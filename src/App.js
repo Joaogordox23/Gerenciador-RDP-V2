@@ -1,5 +1,4 @@
-// src/App.js - VERSÃO ULTRA-SEGURA SEM LOOPS INFINITOS
-// Componente principal com proteções contra re-renders infinitos
+
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
@@ -236,8 +235,8 @@ function App() {
         }
     }, [showError, showSuccess]);
 
-    const handleDeleteServer = useCallback((groupIndex, serverId) => {
-        if (typeof groupIndex !== 'number' || !serverId) {
+   const handleDeleteServer = useCallback((groupId, serverId) => {
+        if (!groupId || !serverId) {
             showError('Parâmetros inválidos para deletar servidor');
             return;
         }
@@ -245,8 +244,8 @@ function App() {
         setGroups(prev => {
             if (!Array.isArray(prev)) return [];
             
-            return prev.map((group, index) => {
-                if (index === groupIndex && group && Array.isArray(group.servers)) {
+            return prev.map(group => {
+                if (group && group.id === groupId) { // <-- MUDANÇA IMPORTANTE: Compara por group.id
                     return {
                         ...group,
                         servers: group.servers.filter(server => server && server.id !== serverId)
@@ -259,15 +258,15 @@ function App() {
         showSuccess('Servidor removido com sucesso');
     }, [showError, showSuccess]);
 
-    const handleDeleteGroup = useCallback((groupIndex) => {
-        if (typeof groupIndex !== 'number') {
-            showError('Índice de grupo inválido');
+    const handleDeleteGroup = useCallback((groupId) => {
+        if (!groupId) {
+            showError('ID de grupo inválido');
             return;
         }
 
         setGroups(prev => {
             if (!Array.isArray(prev)) return [];
-            return prev.filter((_, index) => index !== groupIndex);
+            return prev.filter(group => group && group.id !== groupId); // <-- MUDANÇA IMPORTANTE: Compara por group.id
         });
 
         showSuccess('Grupo removido com sucesso');
@@ -374,21 +373,22 @@ function App() {
         setDialogConfig(null);
     }, [dialogConfig]);
 
-    const openDeleteGroupDialog = useCallback((groupIndex, groupName) => {
-        if (typeof groupIndex === 'number' && groupName) {
+    const openDeleteGroupDialog = useCallback((groupId, groupName) => {
+        if (groupId && groupName) {
             setDialogConfig({
                 message: `Tem certeza que deseja deletar o grupo "${groupName}" e todos os seus servidores?`,
-                onConfirm: () => handleDeleteGroup(groupIndex),
+                onConfirm: () => handleDeleteGroup(groupId),
                 isOpen: true,
             });
         }
     }, [handleDeleteGroup]);
 
-    const openDeleteServerDialog = useCallback((groupIndex, serverId, serverName) => {
-        if (typeof groupIndex === 'number' && serverId && serverName) {
+
+    const openDeleteServerDialog = useCallback((groupId, serverId, serverName) => {
+        if (groupId && serverId && serverName) {
             setDialogConfig({
                 message: `Tem certeza que deseja deletar o servidor "${serverName}"?`,
-                onConfirm: () => handleDeleteServer(groupIndex, serverId),
+                onConfirm: () => handleDeleteServer(groupId, serverId),
                 isOpen: true,
             });
         }
@@ -606,6 +606,7 @@ function App() {
             {/* Diálogo de confirmação */}
             {dialogConfig && (
                 <ConfirmationDialog
+                    isOpen={dialogConfig.isOpen} 
                     message={dialogConfig.message}
                     onConfirm={handleConfirmDelete}
                     onCancel={() => setDialogConfig(null)}

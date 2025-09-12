@@ -41,9 +41,9 @@ function Group({ groupInfo, index, activeConnections, isEditModeEnabled, onAddSe
               <div className="group-header-buttons">
                 <button className="add-server-button" title="Adicionar Servidor" onClick={() => setIsAddingServer(true)}>+</button>
                 <button className="edit-button" title="Editar Grupo" onClick={() => setIsEditing(true)}>&#9998;</button>
-                <button className="delete-button group-delete-button" title="Deletar Grupo" onClick={() => onDeleteGroup(index, groupInfo.groupName)}>
-                  &times;
-                </button>
+                <button className="delete-button group-delete-button" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}>
+                &times;
+              </button>
               </div>
             )}
           </>
@@ -57,7 +57,7 @@ function Group({ groupInfo, index, activeConnections, isEditModeEnabled, onAddSe
             serverInfo={server}
             isActive={activeConnections.includes(server.id)}
             isEditModeEnabled={isEditModeEnabled}
-            onDelete={() => onDeleteServer(index, server.id, server.name)}
+            onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
             onUpdate={(updatedData) => onUpdateServer(index, server.id, updatedData)}
           />
         ))}
