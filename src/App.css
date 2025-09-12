@@ -4374,3 +4374,25 @@ select.form-control {
 .dialog-hint {
     display: none;
 }
+
+/* src/App.css */
+
+/* ======================================= */
+/* 🖥️ FORMULÁRIO DE EDIÇÃO DE SERVIDOR (INLINE) */
+/* ======================================= */
+
+.server-edit-form-inline {
+    padding: var(--space-24);
+    background-color: var(--color-secondary);
+    border-top: 1px solid var(--color-card-border-inner);
+}
+
+.server-edit-form-inline .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-20);
+}
+
+.server-edit-form-inline .form-row {
+    margin-bottom: 0;
+}

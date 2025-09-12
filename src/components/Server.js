@@ -233,128 +233,68 @@ function Server({
     if (isEditing) {
         return (
             <div className={`server-item editing ${currentStatus}`}>
-                {isConnecting && (
-                    <div className="loading-overlay">
-                        <div className="loading-spinner">
-                            <div className="spinner"></div>
-                            <span>Conectando...</span>
-                        </div>
-                    </div>
-                )}
-
-                <form onSubmit={handleUpdateSubmit} onClick={(e) => e.stopPropagation()}>
-                    {/* Protocolo */}
-                    <div className="form-row">
-                        <label>🔌 Protocolo:</label>
-                        <div className="protocol-selector">
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="protocol"
-                                    value="rdp"
-                                    checked={editData.protocol === 'rdp'}
-                                    onChange={handleInputChange}
-                                />
-                                🖥️ RDP
-                            </label>
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="protocol"
-                                    value="ssh"
-                                    checked={editData.protocol === 'ssh'}
-                                    onChange={handleInputChange}
-                                />
-                                💻 SSH
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Nome */}
-                    <div className="form-row">
-                        <label htmlFor={`name-${serverInfo.id}`}>🏷️ Nome:</label>
-                        <input
-                            type="text"
-                            id={`name-${serverInfo.id}`}
-                            name="name"
-                            value={editData.name}
-                            onChange={handleInputChange}
-                            required
-                        />
-                    </div>
-
-                    {/* IP */}
-                    <div className="form-row">
-                        <label htmlFor={`ip-${serverInfo.id}`}>🌐 IP/Hostname:</label>
-                        <input
-                            type="text"
-                            id={`ip-${serverInfo.id}`}
-                            name="ipAddress"
-                            value={editData.ipAddress}
-                            onChange={handleInputChange}
-                            required
-                        />
-                    </div>
-
-                    {/* Usuário */}
-                    <div className="form-row">
-                        <label htmlFor={`username-${serverInfo.id}`}>👤 Usuário:</label>
-                        <input
-                            type="text"
-                            id={`username-${serverInfo.id}`}
-                            name="username"
-                            value={editData.username}
-                            onChange={handleInputChange}
-                        />
-                    </div>
-
-                    {/* Senha */}
-                    <div className="form-row">
-                        <label htmlFor={`password-${serverInfo.id}`}>🔑 Senha:</label>
-                        <input
-                            type="password"
-                            id={`password-${serverInfo.id}`}
-                            name="password"
-                            value={editData.password}
-                            onChange={handleInputChange}
-                        />
-                    </div>
-
-                    {/* Campos específicos do protocolo */}
-                    {editData.protocol === 'rdp' && (
+                <form onSubmit={handleUpdateSubmit} className="server-edit-form-inline" onClick={(e) => e.stopPropagation()}>
+                    <div className="form-grid">
+                        {/* Protocolo */}
                         <div className="form-row">
-                            <label htmlFor={`domain-${serverInfo.id}`}>🏢 Domínio:</label>
-                            <input
-                                type="text"
-                                id={`domain-${serverInfo.id}`}
-                                name="domain"
-                                value={editData.domain}
-                                onChange={handleInputChange}
-                            />
+                            <label className="form-label">🔌 Protocolo:</label>
+                            <div className="protocol-selector">
+                                <div className="protocol-option">
+                                    <input type="radio" id={`edit-rdp-${serverInfo.id}`} name="protocol" value="rdp" checked={editData.protocol === 'rdp'} onChange={handleInputChange} />
+                                    <label htmlFor={`edit-rdp-${serverInfo.id}`} className="protocol-label">🖥️ RDP</label>
+                                </div>
+                                <div className="protocol-option">
+                                    <input type="radio" id={`edit-ssh-${serverInfo.id}`} name="protocol" value="ssh" checked={editData.protocol === 'ssh'} onChange={handleInputChange} />
+                                    <label htmlFor={`edit-ssh-${serverInfo.id}`} className="protocol-label">💻 SSH</label>
+                                </div>
+                            </div>
                         </div>
-                    )}
 
-                    {editData.protocol === 'ssh' && (
+                        {/* Nome */}
                         <div className="form-row">
-                            <label htmlFor={`port-${serverInfo.id}`}>🔌 Porta:</label>
-                            <input
-                                type="number"
-                                id={`port-${serverInfo.id}`}
-                                name="port"
-                                value={editData.port}
-                                onChange={handleInputChange}
-                                min="1"
-                                max="65535"
-                            />
+                            <label htmlFor={`name-${serverInfo.id}`} className="form-label">🏷️ Nome:</label>
+                            <input type="text" id={`name-${serverInfo.id}`} name="name" value={editData.name} onChange={handleInputChange} className="form-input" required />
                         </div>
-                    )}
 
-                    {/* Botões */}
+                        {/* IP/Hostname */}
+                        <div className="form-row">
+                            <label htmlFor={`ip-${serverInfo.id}`} className="form-label">🌐 IP/Hostname:</label>
+                            <input type="text" id={`ip-${serverInfo.id}`} name="ipAddress" value={editData.ipAddress} onChange={handleInputChange} className="form-input" required />
+                        </div>
+
+                        {/* Usuário */}
+                        <div className="form-row">
+                            <label htmlFor={`username-${serverInfo.id}`} className="form-label">👤 Usuário:</label>
+                            <input type="text" id={`username-${serverInfo.id}`} name="username" value={editData.username} onChange={handleInputChange} className="form-input" />
+                        </div>
+
+                        {/* Senha */}
+                        <div className="form-row">
+                            <label htmlFor={`password-${serverInfo.id}`} className="form-label">🔑 Nova Senha:</label>
+                            <input type="password" id={`password-${serverInfo.id}`} name="password" placeholder="Deixe em branco para não alterar" onChange={handleInputChange} className="form-input" />
+                        </div>
+
+                        {/* Campos específicos do protocolo */}
+                        {editData.protocol === 'rdp' && (
+                            <div className="form-row">
+                                <label htmlFor={`domain-${serverInfo.id}`} className="form-label">🏢 Domínio:</label>
+                                <input type="text" id={`domain-${serverInfo.id}`} name="domain" value={editData.domain} onChange={handleInputChange} className="form-input" />
+                            </div>
+                        )}
+                        {editData.protocol === 'ssh' && (
+                            <div className="form-row">
+                                <label htmlFor={`port-${serverInfo.id}`} className="form-label">🔌 Porta:</label>
+                                <input type="number" id={`port-${serverInfo.id}`} name="port" value={editData.port} onChange={handleInputChange} className="form-input" min="1" max="65535" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Botões de Ação */}
                     <div className="form-actions">
-                        <button type="button" onClick={() => setIsEditing(false)}>
+                        <button type="button" onClick={() => setIsEditing(false)} className="btn-cancel">
                             ❌ Cancelar
                         </button>
-                        <button type="submit">
+                        <button type="submit" className="btn-submit">
                             ✅ Salvar
                         </button>
                     </div>

@@ -22,6 +22,7 @@ function Group({ groupInfo, index, activeConnections, isEditModeEnabled, onAddSe
 
   return (
     <div className="group-container">
+      {/* ===== INÍCIO DA SECÇÃO PARA SUBSTITUIR ===== */}
       <div className="group-header">
         {isEditing ? (
           <form onSubmit={handleGroupUpdateSubmit} className="group-edit-form">
@@ -29,10 +30,11 @@ function Group({ groupInfo, index, activeConnections, isEditModeEnabled, onAddSe
               type="text"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="Digite o novo nome do grupo..."
               autoFocus
             />
-            <button type="submit">Salvar</button>
-            <button type="button" onClick={() => setIsEditing(false)}>Cancelar</button>
+            <button type="submit" title="Salvar alterações">Salvar</button>
+            <button type="button" title="Cancelar edição" onClick={() => setIsEditing(false)}>Cancelar</button>
           </form>
         ) : (
           <>
@@ -42,8 +44,8 @@ function Group({ groupInfo, index, activeConnections, isEditModeEnabled, onAddSe
                 <button className="add-server-button" title="Adicionar Servidor" onClick={() => setIsAddingServer(true)}>+</button>
                 <button className="edit-button" title="Editar Grupo" onClick={() => setIsEditing(true)}>&#9998;</button>
                 <button className="delete-button group-delete-button" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}>
-                &times;
-              </button>
+                  &times;
+                </button>
               </div>
             )}
           </>
