@@ -4,12 +4,16 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
 import Group from './components/Group';
 import AddGroupForm from './components/AddGroupForm';
+import RdpSshView from './views/RdpSshView'; // Importa a nova vista
+import VncView from './views/VncView'; // Importa a nova vista
 import ConfirmationDialog from './components/ConfirmationDialog';
 import useConnectivity from './hooks/useConnectivity';
 
 function App() {
     // Estados originais
+    const [activeView, setActiveView] = useState('RDP/SSH');
     const [groups, setGroups] = useState([]);
+    const [vncGroups, setVncGroups] = useState([]);
     const [dialogConfig, setDialogConfig] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeConnections, setActiveConnections] = useState([]);
@@ -102,40 +106,32 @@ function App() {
     // ==========================
     useEffect(() => {
         const loadData = async () => {
-            try {
-                if (window.api && window.api.storage && window.api.storage.get) {
-                    const savedGroups = await window.api.storage.get('groups');
-                    if (savedGroups && Array.isArray(savedGroups)) {
-                        setGroups(savedGroups);
-                    } else {
-                        setGroups([]);
-                    }
-                } else {
-                    console.warn('⚠️ API de storage não disponível');
-                    setGroups([]);
-                }
-            } catch (error) {
-                console.error('❌ Erro ao carregar grupos:', error);
-                setGroups([]);
-                // NÃO chama showError aqui para evitar loop infinito
+            if (window.api && window.api.storage && window.api.storage.get) {
+                // Carrega os grupos RDP/SSH
+                const savedGroups = await window.api.storage.get('groups');
+                setGroups(Array.isArray(savedGroups) ? savedGroups : []);
+
+                // Carrega os grupos VNC
+                const savedVncGroups = await window.api.storage.get('vncGroups');
+                setVncGroups(Array.isArray(savedVncGroups) ? savedVncGroups : []);
             }
         };
-        
-        loadData();
-    }, []); // Dependência vazia é segura aqui
+        loadData().catch(console.error);
+    }, []);
 
     useEffect(() => {
         if (groups && groups.length > 0) {
             try {
                 if (window.api && window.api.storage && window.api.storage.set) {
                     window.api.storage.set('groups', groups);
+                    window.api.storage.set('vncGroups', vncGroups);
                 }
             } catch (error) {
                 console.error('❌ Erro ao salvar grupos:', error);
                 // NÃO chama showError aqui para evitar loop infinito
             }
         }
-    }, [groups]);
+    }, [groups, vncGroups]);
 
     useEffect(() => {
         if (window.api && window.api.onConnectionStatus) {
@@ -319,6 +315,58 @@ function App() {
 
         showSuccess('Grupo atualizado com sucesso');
     }, [showError, showSuccess]);
+
+
+    // src/App.js - Adicione estas funções
+
+        const handleAddVncGroup = useCallback((name) => {
+            const newGroup = { id: Date.now(), groupName: name.trim(), connections: [] };
+            setVncGroups(prev => [...prev, newGroup]);
+            showSuccess(`Grupo VNC "${name.trim()}" criado com sucesso`);
+        }, [showSuccess]);
+
+        const handleAddVncConnection = useCallback((groupId, connectionData) => {
+            setVncGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    // Garante que a propriedade 'connections' existe e é um array
+                    const existingConnections = Array.isArray(group.connections) ? group.connections : [];
+                    return {
+                        ...group,
+                        connections: [...existingConnections, connectionData]
+                    };
+                }
+                return group;
+            }));
+            showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
+        }, [showSuccess]);
+
+        const handleDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
+            // Reutiliza o diálogo de confirmação global
+            setDialogConfig({
+                message: `Tem certeza que deseja deletar a conexão VNC "${connectionName}"?`,
+                onConfirm: () => {
+                    setVncGroups(prev => prev.map(group => {
+                        if (group.id === groupId) {
+                            return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
+                        }
+                        return group;
+                    }));
+                    showSuccess(`Conexão "${connectionName}" deletada.`);
+                },
+                isOpen: true
+            });
+        }, [showSuccess]);
+
+        const handleDeleteVncGroup = useCallback((groupId, groupName) => {
+            setDialogConfig({
+                message: `Tem certeza que deseja deletar o grupo VNC "${groupName}" e todas as suas conexões?`,
+                onConfirm: () => {
+                    setVncGroups(prev => prev.filter(g => g.id !== groupId));
+                    showSuccess(`Grupo VNC "${groupName}" deletado.`);
+                },
+                isOpen: true
+            });
+        }, [showSuccess]);
 
     // Handlers simplificados para conectividade
     const handleTestAllServers = useCallback(async () => {
@@ -538,6 +586,21 @@ function App() {
                     </div>
                 </div>
             </div>
+         <nav className="view-switcher">
+                <button
+                    className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`}
+                    onClick={() => setActiveView('RDP/SSH')}
+                >
+                    RDP/SSH
+                </button>
+                <button
+                    className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`}
+                    onClick={() => setActiveView('VNC')}
+                >
+                    VNC
+                </button>
+            </nav>
+
 
             {/* Formulário de adicionar grupo */}
             {showAddGroupForm && (
@@ -551,44 +614,37 @@ function App() {
 
             {/* Container principal */}
             <main className="groups-container">
-                {filteredGroups.length === 0 ? (
-                    <div className="empty-state">
-                        {groups.length === 0 ? (
-                            <>
-                                <h3>👋 Bem-vindo ao Gerenciador RDP/SSH</h3>
-                                <p>Comece criando seu primeiro grupo de servidores</p>
-                                <button
-                                    onClick={() => setShowAddGroupForm(true)}
-                                    className="toolbar-btn"
-                                    style={{ marginTop: '1rem' }}
-                                >
-                                    ➕ Criar Primeiro Grupo
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <h3>🔍 Nenhum resultado encontrado</h3>
-                                <p>Tente ajustar sua busca por "{searchTerm}"</p>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    filteredGroups.map((group, index) => (
-                        <Group
-                            key={group?.id || index}
-                            groupInfo={group}
-                            index={index}
-                            onAddServer={handleAddServer}
-                            onDeleteServer={openDeleteServerDialog}
-                            onUpdateServer={handleUpdateServer}
-                            onDeleteGroup={openDeleteGroupDialog}
-                            onUpdateGroup={handleUpdateGroup}
-                            activeConnections={activeConnections}
-                            isEditModeEnabled={isEditModeEnabled}
-                            isConnectivityEnabled={globalConnectivityEnabled}
-                        />
-                    ))
+                {activeView === 'RDP/SSH' && (
+                    <RdpSshView
+                        groups={groups}
+                        filteredGroups={filteredGroups}
+                        showAddGroupForm={showAddGroupForm}
+                        setShowAddGroupForm={setShowAddGroupForm}
+                        handleAddGroup={handleAddGroup}
+                        searchTerm={searchTerm}
+                        // Props que o Group precisa
+                        onAddServer={handleAddServer}
+                        onDeleteServer={openDeleteServerDialog}
+                        onUpdateServer={handleUpdateServer}
+                        onDeleteGroup={openDeleteGroupDialog}
+                        onUpdateGroup={handleUpdateGroup}
+                        activeConnections={activeConnections}
+                        isEditModeEnabled={isEditModeEnabled}
+                        isConnectivityEnabled={globalConnectivityEnabled}
+                    />
                 )}
+
+                {activeView === 'VNC' && (
+                    <VncView
+                        vncGroups={vncGroups}
+                        onAddGroup={handleAddVncGroup}
+                        onAddConnection={handleAddVncConnection}
+                        onDeleteConnection={handleDeleteVncConnection}
+                        onDeleteGroup={handleDeleteVncGroup}
+                        isEditModeEnabled={isEditModeEnabled}
+                    />
+                )}
+                
             </main>
 
             {/* Footer */}

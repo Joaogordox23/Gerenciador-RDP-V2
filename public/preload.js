@@ -18,6 +18,10 @@ const connection = {
     connect: (serverInfo) => {
         console.log('🔌 Preload: Enviando pedido de conexão', serverInfo);
         ipcRenderer.send('start-connection', serverInfo);
+    },
+    connectVnc: (connectionInfo) => {
+        console.log('🖥️ Preload: Enviando pedido de conexão VNC', connectionInfo);
+        return ipcRenderer.invoke('connect-vnc', connectionInfo);
     }
 };
 

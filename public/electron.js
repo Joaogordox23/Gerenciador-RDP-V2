@@ -271,6 +271,58 @@ ipcMain.on('clear-data-request', () => {
     app.quit();
 });
 
+
+// src/electron.js - Adicione este novo handler
+
+// NOVO: Handler para a conexão VNC
+ipcMain.handle('connect-vnc', (event, connectionInfo) => {
+  console.log('Recebido pedido para conectar VNC:', connectionInfo);
+
+  // Validação básica dos dados recebidos
+  if (!connectionInfo || !connectionInfo.ipAddress || !connectionInfo.port) {
+    console.error('Dados de conexão VNC inválidos recebidos.');
+    return { success: false, message: 'Dados de conexão inválidos.' };
+  }
+
+  // Define o caminho para o executável do TightVNC embarcado.
+  // IMPORTANTE: Certifique-se de que este caminho corresponde à localização no seu projeto.
+  // O ideal é ter uma pasta 'vendor/tightvnc' na raiz do seu projeto.
+  const vncViewerPath = isDev
+    ? path.join(__dirname, '..', 'assets', 'tvnviewer.exe')
+    : path.join(process.resourcesPath, 'assets', 'tvnviewer.exe');
+
+  // Constrói o comando com os argumentos da linha de comando do TightVNC
+  let command = `"${vncViewerPath}" -host=${connectionInfo.ipAddress} -port=${connectionInfo.port}`;
+
+  if (connectionInfo.password) {
+    command += ` -password=${connectionInfo.password}`;
+  }
+  if (connectionInfo.viewOnly) {
+    command += ` -viewonly`;
+  }
+  // Adicione aqui outros argumentos se necessário, como -8bit, -fullscreen, etc.
+
+  console.log(`Executando comando VNC: ${command}`);
+
+  // Executa o comando para abrir o TightVNC
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Erro ao executar o TightVNC: ${error.message}`);
+      // Mostra um diálogo de erro para o utilizador
+      dialog.showErrorBox('Erro de Conexão VNC', `Não foi possível iniciar o cliente TightVNC.\n\nVerifique se o ficheiro está no caminho correto e se não está a ser bloqueado.\n\nErro: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+    if (stderr) {
+      // Stderr pode conter avisos, por isso apenas os registamos
+      console.warn(`Stderr do TightVNC: ${stderr}`);
+    }
+    console.log(`TightVNC iniciado com sucesso: ${stdout}`);
+  });
+
+  // Retorna sucesso imediatamente, pois o processo é iniciado de forma assíncrona
+  return { success: true, message: 'Cliente VNC iniciado.' };
+});
+
 ipcMain.handle('get-data', (event, key) => {
     return store.get(key);
 });
