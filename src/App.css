@@ -4432,3 +4432,215 @@ select.form-control {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
 }
+
+/* src/App.css */
+
+/* ... (outros estilos) ... */
+
+/* ==========================
+   LAYOUT EM GRELHA PARA SERVIDORES
+   ========================== */
+
+
+.servers-row {
+  display: grid;
+  /* Cria colunas que tentam ter no mínimo 400px, 
+     mas que se esticam para preencher o espaço disponível. */
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: var(--space-24);
+  padding: var(--space-24);
+}
+
+/* Garante que o cartão ocupe 100% da sua célula na grelha */
+.server-item {
+  width: 100%;
+}
+
+/* Em ecrãs mais pequenos (tablets e telemóveis), 
+   a grelha transforma-se numa única coluna. */
+@media (max-width: 900px) {
+  .servers-row {
+    grid-template-columns: 1fr;
+    padding: var(--space-16);
+    gap: var(--space-16);
+  }
+}
+
+/* ============================================================================= */
+/* 🎨 REFINAMENTO DE UI/UX - ESTILOS MODERNOS */
+/* ============================================================================= */
+
+/* 1. Novo Cabeçalho de Grupo Flexível */
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-12) var(--space-20); /* Padding mais sutil */
+}
+
+.group-title-container {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0; /* Previne que o título empurre os botões */
+}
+
+/* 2. Edição Verdadeiramente Inline */
+.group-title-edit-input {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xl); /* Mesmo tamanho do h2 */
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  background-color: var(--color-secondary);
+  border: none;
+  border-radius: var(--radius-base);
+  padding: var(--space-8) var(--space-12);
+  width: 100%;
+  outline: none;
+  border: 2px solid transparent;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.group-title-edit-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+/* 3. Novos Botões de Ação (Ícones) */
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-shrink: 0; /* Impede que os botões encolham */
+}
+
+.action-button-icon {
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--duration-fast) var(--ease-standard);
+  position: relative;
+}
+
+.action-button-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.action-button-icon:hover {
+  color: var(--color-text);
+  background-color: var(--color-secondary-hover);
+  transform: scale(1.1);
+}
+
+.action-button-icon.edit:hover { color: var(--color-primary); }
+.action-button-icon.delete:hover { color: var(--color-error); }
+.action-button-icon.add:hover { color: var(--color-success); }
+.action-button-icon.save:hover { color: var(--color-success); }
+.action-button-icon.cancel:hover { color: var(--color-error); }
+
+.action-button-icon:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ============================================================================= */
+/* ✨ SISTEMA DE NOTIFICAÇÕES (TOASTS) */
+/* ============================================================================= */
+
+/* 1. O Container dos Toasts */
+.toast-container {
+  position: fixed; /* Fica fixo na tela, mesmo com scroll */
+  bottom: var(--space-24);
+  left: var(--space-24);
+  z-index: 9999; /* Garante que fique acima de tudo */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+/* 2. O Estilo de cada Toast */
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-radius: var(--radius-base);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-card-border);
+  width: 350px;
+  max-width: 90vw;
+  animation: toast-fade-in 0.3s var(--ease-standard) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 3. Barra lateral de cor para status */
+.toast-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+
+/* 4. Estilos para cada tipo (sucesso, erro) */
+.toast-item.success::before { background-color: var(--color-success); }
+.toast-item.error::before { background-color: var(--color-error); }
+.toast-item.warning::before { background-color: var(--color-warning); }
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.toast-icon.success { color: var(--color-success); }
+.toast-icon.error { color: var(--color-error); }
+.toast-icon.warning { color: var(--color-warning); }
+
+.toast-message {
+  flex-grow: 1;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
+
+.toast-close-button {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-4);
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast);
+}
+
+.toast-close-button:hover {
+  background-color: var(--color-secondary);
+}
+
+/* 5. Animações de Entrada e Saída */
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* (O fade-out será controlado via JavaScript/React) */

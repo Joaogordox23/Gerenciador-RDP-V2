@@ -1,18 +1,15 @@
-// src/components/VncConnection.js - Versão final com lógica de conexão
+// src/components/VncConnection.js
 
 import React from 'react';
 
-function VncConnection({ connectionInfo, isEditModeEnabled, onDelete }) {
+// 1. Adicionar 'onEdit' à lista de propriedades
+function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) {
 
     const handleConnect = () => {
-        // Se o modo de edição estiver ativo, não faz nada para evitar conflitos
         if (isEditModeEnabled) {
             return;
         }
-
         console.log(`Iniciando conexão VNC para: ${connectionInfo.name}`);
-        
-        // Verifica se a API está disponível e chama a nova função `connectVnc`
         if (window.api && window.api.connection && window.api.connection.connectVnc) {
             window.api.connection.connectVnc(connectionInfo)
                 .then(result => {
@@ -27,13 +24,11 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete }) {
                 });
         } else {
             console.error('API de conexão VNC (window.api.connection.connectVnc) não encontrada!');
-            // Opcional: Mostrar um alerta ao utilizador para um feedback mais claro
             alert('Erro: A função para conectar via VNC não está disponível. Verifique a configuração do preload.');
         }
     };
 
     return (
-        // Adicionamos o onClick ao div principal
         <div className="server-item vnc-connection" onClick={handleConnect}>
             <div className="server-header">
                 <div className="server-info">
@@ -57,7 +52,15 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete }) {
 
                 {isEditModeEnabled && (
                     <div className="server-actions">
-                        <button className="action-btn edit-btn" title="Editar Conexão" onClick={(e) => { e.stopPropagation(); /* Adicionar lógica de edição aqui */ }}>
+                        {/* 2. Conectar a função onEdit ao botão */}
+                        <button 
+                            className="action-btn edit-btn" 
+                            title="Editar Conexão" 
+                            onClick={(e) => { 
+                                e.stopPropagation(); // Previne o início da conexão
+                                onEdit(); // Chama a função para abrir o formulário de edição
+                            }}
+                        >
                             ✏️
                         </button>
                         <button className="action-btn delete-btn" title="Deletar Conexão" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
@@ -71,4 +74,3 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete }) {
 }
 
 export default VncConnection;
-
