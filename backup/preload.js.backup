@@ -1,0 +1,258 @@
+// public/preload.js - VERSÃO EXPANDIDA COM APIs DE CONECTIVIDADE
+
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+    // APIs de conexão existentes
+    connection: {
+        connect: (serverInfo) => ipcRenderer.send('start-connection', serverInfo),
+    },
+
+    onConnectionStatus: (callback) => {
+        ipcRenderer.on('connection-status-update', (event, ...args) => callback(...args));
+    },
+
+    storage: {
+        get: (key) => ipcRenderer.invoke('get-data', key),
+        set: (key, value) => ipcRenderer.send('set-data', key, value),
+    },
+
+    // ==========================
+    // NOVAS APIs DE CONECTIVIDADE
+    // ==========================
+    connectivity: {
+        /**
+         * Testa conectividade de um servidor específico
+         * @param {Object} serverInfo - Informações do servidor
+         * @returns {Promise<Object>} - Resultado do teste
+         */
+        testServer: (serverInfo) => {
+            return ipcRenderer.invoke('connectivity-test-server', serverInfo);
+        },
+
+        /**
+         * Testa conectividade de múltiplos servidores
+         * @param {Array} servers - Array de servidores
+         * @returns {Promise<Array>} - Array de resultados
+         */
+        testMultipleServers: (servers) => {
+            return ipcRenderer.invoke('connectivity-test-multiple', servers);
+        },
+
+        /**
+         * Inicia monitoramento contínuo de um servidor
+         * @param {Object} serverInfo - Informações do servidor
+         * @param {number} interval - Intervalo em ms (padrão: 30000)
+         */
+        startMonitoring: (serverInfo, interval = 30000) => {
+            ipcRenderer.send('connectivity-start-monitoring', serverInfo, interval);
+        },
+
+        /**
+         * Para monitoramento de um servidor
+         * @param {string} serverKey - Chave identificadora do servidor
+         */
+        stopMonitoring: (serverKey) => {
+            ipcRenderer.send('connectivity-stop-monitoring', serverKey);
+        },
+
+        /**
+         * Para todo o monitoramento
+         */
+        stopAllMonitoring: () => {
+            ipcRenderer.send('connectivity-stop-all-monitoring');
+        },
+
+        /**
+         * Limpa cache de resultados
+         */
+        clearCache: () => {
+            ipcRenderer.send('connectivity-clear-cache');
+        },
+
+        /**
+         * Obtém estatísticas do sistema de conectividade
+         * @returns {Promise<Object>} - Estatísticas
+         */
+        getStats: () => {
+            return ipcRenderer.invoke('connectivity-get-stats');
+        }
+    },
+
+    // ==========================
+    // EVENT LISTENERS DE CONECTIVIDADE
+    // ==========================
+
+    /**
+     * Escuta atualizações de status de conectividade
+     * @param {Function} callback - Callback(serverKey, connectivityResult)
+     */
+    onConnectivityUpdate: (callback) => {
+        ipcRenderer.on('connectivity-status-update', (event, serverKey, result) => {
+            callback(serverKey, result);
+        });
+    },
+
+    /**
+     * Escuta início de testes de conectividade
+     * @param {Function} callback - Callback(serverKey, serverInfo)
+     */
+    onConnectivityTestStart: (callback) => {
+        ipcRenderer.on('connectivity-test-start', (event, serverKey, serverInfo) => {
+            callback(serverKey, serverInfo);
+        });
+    },
+
+    /**
+     * Escuta conclusão de testes de conectividade
+     * @param {Function} callback - Callback(serverKey, result)
+     */
+    onConnectivityTestComplete: (callback) => {
+        ipcRenderer.on('connectivity-test-complete', (event, serverKey, result) => {
+            callback(serverKey, result);
+        });
+    },
+
+    /**
+     * Escuta erros de conectividade
+     * @param {Function} callback - Callback(serverKey, error)
+     */
+    onConnectivityError: (callback) => {
+        ipcRenderer.on('connectivity-error', (event, serverKey, error) => {
+            callback(serverKey, error);
+        });
+    },
+
+    /**
+     * Escuta mudanças no monitoramento contínuo
+     * @param {Function} callback - Callback(action, serverKey, data)
+     */
+    onMonitoringChange: (callback) => {
+        ipcRenderer.on('connectivity-monitoring-change', (event, action, serverKey, data) => {
+            callback(action, serverKey, data);
+        });
+    },
+
+    // ==========================
+    // UTILITÁRIOS DE CONECTIVIDADE
+    // ==========================
+    connectivityUtils: {
+        /**
+         * Valida se um endereço IP é válido
+         * @param {string} ip - Endereço IP
+         * @returns {boolean} - True se válido
+         */
+        isValidIP: (ip) => {
+            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            return ipRegex.test(ip);
+        },
+
+        /**
+         * Valida se uma porta é válida
+         * @param {number|string} port - Porta
+         * @returns {boolean} - True se válida
+         */
+        isValidPort: (port) => {
+            const portNum = parseInt(port, 10);
+            return !isNaN(portNum) && portNum >= 1 && portNum <= 65535;
+        },
+
+        /**
+         * Gera chave única para um servidor
+         * @param {Object} serverInfo - Informações do servidor
+         * @returns {string} - Chave única
+         */
+        generateServerKey: (serverInfo) => {
+            const port = serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22);
+            return `${serverInfo.ipAddress}:${port}`;
+        },
+
+        /**
+         * Formata tempo em milissegundos para string legível
+         * @param {number} ms - Tempo em milissegundos
+         * @returns {string} - Tempo formatado
+         */
+        formatTime: (ms) => {
+            if (ms < 1000) return `${ms}ms`;
+            return `${(ms / 1000).toFixed(1)}s`;
+        },
+
+        /**
+         * Formata latência para exibição
+         * @param {number} latency - Latência em ms
+         * @returns {Object} - {text, color, icon}
+         */
+        formatLatency: (latency) => {
+            if (!latency || latency < 0) {
+                return { text: 'N/A', color: '#666', icon: '❓' };
+            }
+
+            if (latency < 50) {
+                return { text: `${latency}ms`, color: '#00ff00', icon: '🟢' };
+            } else if (latency < 150) {
+                return { text: `${latency}ms`, color: '#ffaa00', icon: '🟡' };
+            } else {
+                return { text: `${latency}ms`, color: '#ff6600', icon: '🟠' };
+            }
+        },
+
+        /**
+         * Converte status de conectividade em display info
+         * @param {string} status - Status (online, offline, partial, etc)
+         * @returns {Object} - {icon, color, text, description}
+         */
+        getStatusDisplayInfo: (status) => {
+            const statusMap = {
+                'unknown': { 
+                    icon: '❓', 
+                    color: '#666', 
+                    text: 'Desconhecido', 
+                    description: 'Status não testado ainda' 
+                },
+                'testing': { 
+                    icon: '🔄', 
+                    color: '#ff9500', 
+                    text: 'Testando...', 
+                    description: 'Teste de conectividade em andamento' 
+                },
+                'online': { 
+                    icon: '✅', 
+                    color: '#00ff00', 
+                    text: 'Online', 
+                    description: 'Servidor acessível e porta aberta' 
+                },
+                'offline': { 
+                    icon: '❌', 
+                    color: '#ff0000', 
+                    text: 'Offline', 
+                    description: 'Servidor não responde' 
+                },
+                'partial': { 
+                    icon: '⚠️', 
+                    color: '#ffaa00', 
+                    text: 'Parcial', 
+                    description: 'Host responde mas porta inacessível' 
+                },
+                'error': { 
+                    icon: '💥', 
+                    color: '#cc0000', 
+                    text: 'Erro', 
+                    description: 'Erro durante teste de conectividade' 
+                }
+            };
+
+            return statusMap[status] || statusMap['unknown'];
+        }
+    },
+
+    // ==========================
+    // REMOÇÃO DE EVENT LISTENERS
+    // ==========================
+    removeConnectivityListeners: () => {
+        ipcRenderer.removeAllListeners('connectivity-status-update');
+        ipcRenderer.removeAllListeners('connectivity-test-start');
+        ipcRenderer.removeAllListeners('connectivity-test-complete');
+        ipcRenderer.removeAllListeners('connectivity-error');
+        ipcRenderer.removeAllListeners('connectivity-monitoring-change');
+    }
+});

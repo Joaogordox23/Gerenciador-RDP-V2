@@ -1,0 +1,618 @@
+// src/App.js - VERSÃO ULTRA-SEGURA SEM LOOPS INFINITOS
+// Componente principal com proteções contra re-renders infinitos
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import './App.css';
+import Group from './components/Group';
+import AddGroupForm from './components/AddGroupForm';
+import ConfirmationDialog from './components/ConfirmationDialog';
+import useConnectivity from './hooks/useConnectivity';
+
+function App() {
+    // Estados originais
+    const [groups, setGroups] = useState([]);
+    const [dialogConfig, setDialogConfig] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeConnections, setActiveConnections] = useState([]);
+    const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
+
+    // Estados para conectividade (simplificados para evitar loops)
+    const [globalConnectivityEnabled, setGlobalConnectivityEnabled] = useState(true);
+    const [showAddGroupForm, setShowAddGroupForm] = useState(false);
+    const [errorBanner, setErrorBanner] = useState(null);
+    const [successBanner, setSuccessBanner] = useState(null);
+
+    // Hook de conectividade com opções simplificadas
+    const connectivity = useConnectivity({ 
+        autoTest: false, // Desabilita teste automático para evitar loops
+        enableMonitoring: false // Desabilita monitoramento para evitar loops
+    });
+
+    // ==========================
+    // COMPUTED VALUES (MEMOIZADOS)
+    // ==========================
+    const allServers = useMemo(() => {
+        if (!Array.isArray(groups)) return [];
+        
+        return groups.flatMap(group => 
+            Array.isArray(group.servers) ? group.servers.map(server => ({
+                ...server,
+                groupName: group.groupName
+            })) : []
+        );
+    }, [groups]);
+
+    const connectivityStats = useMemo(() => {
+        const stats = {
+            total: allServers.length,
+            online: 0,
+            offline: 0,
+            testing: 0,
+            unknown: 0,
+            monitored: 0
+        };
+
+        if (connectivity && connectivity.connectivityResults) {
+            allServers.forEach(server => {
+                const serverKey = `${server.ipAddress}:${server.port || (server.protocol === 'rdp' ? 3389 : 22)}`;
+                const result = connectivity.connectivityResults.get ? 
+                    connectivity.connectivityResults.get(serverKey) : null;
+                
+                if (result && result.status) {
+                    switch (result.status) {
+                        case 'online': stats.online++; break;
+                        case 'offline': stats.offline++; break;
+                        case 'testing': stats.testing++; break;
+                        default: stats.unknown++; break;
+                    }
+                } else {
+                    stats.unknown++;
+                }
+            });
+        } else {
+            stats.unknown = allServers.length;
+        }
+
+        return stats;
+    }, [allServers, connectivity?.connectivityResults]);
+
+    const filteredGroups = useMemo(() => {
+        if (!searchTerm) return groups;
+        if (!Array.isArray(groups)) return [];
+
+        return groups.filter(group => {
+            if (!group || !group.groupName) return false;
+            
+            const term = searchTerm.toLowerCase();
+            const groupNameMatches = group.groupName.toLowerCase().includes(term);
+            
+            if (!Array.isArray(group.servers)) return groupNameMatches;
+            
+            const serverMatches = group.servers.some(server => 
+                server && (
+                    (server.name && server.name.toLowerCase().includes(term)) || 
+                    (server.ipAddress && server.ipAddress.toLowerCase().includes(term))
+                )
+            );
+            return groupNameMatches || serverMatches;
+        });
+    }, [groups, searchTerm]);
+
+    // ==========================
+    // EFFECTS SEGUROS (SEM LOOPS)
+    // ==========================
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                if (window.api && window.api.storage && window.api.storage.get) {
+                    const savedGroups = await window.api.storage.get('groups');
+                    if (savedGroups && Array.isArray(savedGroups)) {
+                        setGroups(savedGroups);
+                    } else {
+                        setGroups([]);
+                    }
+                } else {
+                    console.warn('⚠️ API de storage não disponível');
+                    setGroups([]);
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar grupos:', error);
+                setGroups([]);
+                // NÃO chama showError aqui para evitar loop infinito
+            }
+        };
+        
+        loadData();
+    }, []); // Dependência vazia é segura aqui
+
+    useEffect(() => {
+        if (groups && groups.length > 0) {
+            try {
+                if (window.api && window.api.storage && window.api.storage.set) {
+                    window.api.storage.set('groups', groups);
+                }
+            } catch (error) {
+                console.error('❌ Erro ao salvar grupos:', error);
+                // NÃO chama showError aqui para evitar loop infinito
+            }
+        }
+    }, [groups]);
+
+    useEffect(() => {
+        if (window.api && window.api.onConnectionStatus) {
+            const handleConnectionStatus = (serverId, status) => {
+                console.log(`📡 Status recebido: Servidor ${serverId} está ${status}`);
+                setActiveConnections(prev => {
+                    if (status === 'active') {
+                        return [...new Set([...prev, serverId])];
+                    } else {
+                        return prev.filter(id => id !== serverId);
+                    }
+                });
+            };
+
+            try {
+                window.api.onConnectionStatus(handleConnectionStatus);
+            } catch (error) {
+                console.error('❌ Erro ao registrar listener:', error);
+            }
+        }
+    }, []); // Dependência vazia é segura aqui
+
+    // ==========================
+    // HANDLERS SEGUROS (MEMOIZADOS)
+    // ==========================
+    const showError = useCallback((message) => {
+        if (typeof message === 'string' && message.trim()) {
+            setErrorBanner({ message: message.trim(), id: Date.now() });
+            setTimeout(() => setErrorBanner(null), 5000);
+        }
+    }, []); // Sem dependências para evitar re-renders
+
+    const showSuccess = useCallback((message) => {
+        if (typeof message === 'string' && message.trim()) {
+            setSuccessBanner({ message: message.trim(), id: Date.now() });
+            setTimeout(() => setSuccessBanner(null), 3000);
+        }
+    }, []); // Sem dependências para evitar re-renders
+
+    const handleAddGroup = useCallback((name) => {
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            showError('Nome do grupo não pode estar vazio');
+            return;
+        }
+
+        const trimmedName = name.trim();
+        
+        if (!Array.isArray(groups)) {
+            setGroups([]);
+            return;
+        }
+
+        const existsGroup = groups.some(group => 
+            group && group.groupName && 
+            group.groupName.toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        if (existsGroup) {
+            showError('Já existe um grupo com este nome');
+            return;
+        }
+
+        const newGroup = {
+            id: Date.now(),
+            groupName: trimmedName,
+            servers: []
+        };
+
+        setGroups(prev => Array.isArray(prev) ? [...prev, newGroup] : [newGroup]);
+        setShowAddGroupForm(false);
+        showSuccess(`Grupo "${trimmedName}" criado com sucesso`);
+    }, [groups, showError, showSuccess]);
+
+    const handleAddServer = useCallback((groupIndex, serverData) => {
+        if (!serverData || typeof groupIndex !== 'number') {
+            showError('Dados inválidos para adicionar servidor');
+            return;
+        }
+
+        setGroups(prev => {
+            if (!Array.isArray(prev)) return []; 
+            
+            return prev.map((group, index) => {
+                if (index === groupIndex && group) {
+                    return {
+                        ...group,
+                        servers: Array.isArray(group.servers) ? 
+                            [...group.servers, serverData] : [serverData]
+                    };
+                }
+                return group;
+            });
+        });
+
+        if (serverData.name) {
+            showSuccess(`Servidor "${serverData.name}" adicionado com sucesso`);
+        }
+    }, [showError, showSuccess]);
+
+    const handleDeleteServer = useCallback((groupIndex, serverId) => {
+        if (typeof groupIndex !== 'number' || !serverId) {
+            showError('Parâmetros inválidos para deletar servidor');
+            return;
+        }
+
+        setGroups(prev => {
+            if (!Array.isArray(prev)) return [];
+            
+            return prev.map((group, index) => {
+                if (index === groupIndex && group && Array.isArray(group.servers)) {
+                    return {
+                        ...group,
+                        servers: group.servers.filter(server => server && server.id !== serverId)
+                    };
+                }
+                return group;
+            });
+        });
+
+        showSuccess('Servidor removido com sucesso');
+    }, [showError, showSuccess]);
+
+    const handleDeleteGroup = useCallback((groupIndex) => {
+        if (typeof groupIndex !== 'number') {
+            showError('Índice de grupo inválido');
+            return;
+        }
+
+        setGroups(prev => {
+            if (!Array.isArray(prev)) return [];
+            return prev.filter((_, index) => index !== groupIndex);
+        });
+
+        showSuccess('Grupo removido com sucesso');
+    }, [showError, showSuccess]);
+
+    const handleUpdateServer = useCallback((groupIndex, serverId, updatedServerData) => {
+        if (typeof groupIndex !== 'number' || !serverId || !updatedServerData) {
+            showError('Parâmetros inválidos para atualizar servidor');
+            return;
+        }
+
+        setGroups(prev => {
+            if (!Array.isArray(prev)) return [];
+            
+            return prev.map((group, index) => {
+                if (index === groupIndex && group && Array.isArray(group.servers)) {
+                    return {
+                        ...group,
+                        servers: group.servers.map(server => {
+                            if (server && server.id === serverId) {
+                                return { ...server, ...updatedServerData };
+                            }
+                            return server;
+                        })
+                    };
+                }
+                return group;
+            });
+        });
+
+        showSuccess('Servidor atualizado com sucesso');
+    }, [showError, showSuccess]);
+
+    const handleUpdateGroup = useCallback((groupIndex, newGroupName) => {
+        if (typeof groupIndex !== 'number' || !newGroupName || typeof newGroupName !== 'string') {
+            showError('Parâmetros inválidos para atualizar grupo');
+            return;
+        }
+
+        setGroups(prev => {
+            if (!Array.isArray(prev)) return [];
+            
+            return prev.map((group, index) => {
+                if (index === groupIndex && group) {
+                    return { ...group, groupName: newGroupName.trim() };
+                }
+                return group;
+            });
+        });
+
+        showSuccess('Grupo atualizado com sucesso');
+    }, [showError, showSuccess]);
+
+    // Handlers simplificados para conectividade
+    const handleTestAllServers = useCallback(async () => {
+        if (!globalConnectivityEnabled || !connectivity || !connectivity.testMultipleServers) {
+            showError('Sistema de conectividade desabilitado ou indisponível');
+            return;
+        }
+
+        if (allServers.length === 0) {
+            showError('Nenhum servidor para testar');
+            return;
+        }
+
+        try {
+            console.log(`🧪 Testando ${allServers.length} servidores...`);
+            await connectivity.testMultipleServers(allServers);
+            showSuccess(`Teste iniciado para ${allServers.length} servidor(es)`);
+        } catch (error) {
+            console.error('❌ Erro no teste:', error);
+            showError(`Erro no teste: ${error.message || 'Erro desconhecido'}`);
+        }
+    }, [globalConnectivityEnabled, connectivity, allServers, showError, showSuccess]);
+
+    const handleClearCache = useCallback(() => {
+        try {
+            if (connectivity && connectivity.clearCache) {
+                connectivity.clearCache();
+                showSuccess('Cache de conectividade limpo');
+            } else {
+                showError('Função de limpar cache não disponível');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao limpar cache:', error);
+            showError('Erro ao limpar cache');
+        }
+    }, [connectivity, showError, showSuccess]);
+
+    const handleToggleConnectivity = useCallback(() => {
+        setGlobalConnectivityEnabled(prev => !prev);
+        // NÃO chama showSuccess aqui para evitar loop infinito
+    }, []);
+
+    // Handlers de diálogo
+    const handleConfirmDelete = useCallback(() => {
+        if (dialogConfig && typeof dialogConfig.onConfirm === 'function') {
+            try {
+                dialogConfig.onConfirm();
+            } catch (error) {
+                console.error('❌ Erro ao confirmar ação:', error);
+            }
+        }
+        setDialogConfig(null);
+    }, [dialogConfig]);
+
+    const openDeleteGroupDialog = useCallback((groupIndex, groupName) => {
+        if (typeof groupIndex === 'number' && groupName) {
+            setDialogConfig({
+                message: `Tem certeza que deseja deletar o grupo "${groupName}" e todos os seus servidores?`,
+                onConfirm: () => handleDeleteGroup(groupIndex),
+                isOpen: true,
+            });
+        }
+    }, [handleDeleteGroup]);
+
+    const openDeleteServerDialog = useCallback((groupIndex, serverId, serverName) => {
+        if (typeof groupIndex === 'number' && serverId && serverName) {
+            setDialogConfig({
+                message: `Tem certeza que deseja deletar o servidor "${serverName}"?`,
+                onConfirm: () => handleDeleteServer(groupIndex, serverId),
+                isOpen: true,
+            });
+        }
+    }, [handleDeleteServer]);
+
+    const closeBanner = useCallback((type) => {
+        if (type === 'error') {
+            setErrorBanner(null);
+        } else if (type === 'success') {
+            setSuccessBanner(null);
+        }
+    }, []);
+
+    const handleSearchChange = useCallback((event) => {
+        if (event && event.target && typeof event.target.value === 'string') {
+            setSearchTerm(event.target.value);
+        }
+    }, []);
+
+    // ==========================
+    // RENDER SEGURO
+    // ==========================
+    return (
+        <div className="app">
+            {/* Header com stats */}
+            <header className="app-header">
+                <div className="header-content">
+                    <h1>🖥️ Gerenciador RDP/SSH Enterprise</h1>
+                    
+                    {/* Stats bar simplificada */}
+                    <div className="stats-bar">
+                        <div className="stat-item">
+                            📊 Total: {connectivityStats.total}
+                        </div>
+                        <div className="stat-item active-connections">
+                            ✅ Online: {connectivityStats.online}
+                        </div>
+                        <div className="stat-item">
+                            ❌ Offline: {connectivityStats.offline}
+                        </div>
+                        <div className="stat-item">
+                            🔄 Testando: {connectivityStats.testing}
+                        </div>
+                        <div className="stat-item">
+                            🔌 Conexões: {activeConnections.length}
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Banners de erro e sucesso */}
+            {errorBanner && (
+                <div className="error-banner error">
+                    <div className="error-message">
+                        <span className="error-icon">❌</span>
+                        <span>{errorBanner.message}</span>
+                    </div>
+                    <button
+                        className="error-close"
+                        onClick={() => closeBanner('error')}
+                        aria-label="Fechar"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {successBanner && (
+                <div className="error-banner success">
+                    <div className="error-message">
+                        <span className="error-icon">✅</span>
+                        <span>{successBanner.message}</span>
+                    </div>
+                    <button
+                        className="error-close"
+                        onClick={() => closeBanner('success')}
+                        aria-label="Fechar"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {/* Toolbar */}
+            <div className="toolbar">
+                <div className="search-container">
+                    <input
+                        type="text"
+                        placeholder="🔍 Buscar grupos e servidores..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                        className="search-input"
+                    />
+                    {filteredGroups.length !== groups.length && (
+                        <div className="search-results">
+                            {filteredGroups.length} de {groups.length} grupo(s)
+                        </div>
+                    )}
+                </div>
+
+                <div className="toolbar-actions">
+                    <div className="edit-mode-toggle">
+                        <input
+                            type="checkbox"
+                            id="connectivity-toggle"
+                            checked={globalConnectivityEnabled}
+                            onChange={handleToggleConnectivity}
+                        />
+                        <label htmlFor="connectivity-toggle">
+                            🔌 Conectividade Ativa
+                        </label>
+                    </div>
+
+                    <button
+                        onClick={handleTestAllServers}
+                        disabled={!globalConnectivityEnabled || allServers.length === 0}
+                        className="toolbar-btn"
+                    >
+                        🧪 Testar Todos
+                    </button>
+
+                    <button
+                        onClick={handleClearCache}
+                        disabled={!globalConnectivityEnabled}
+                        className="toolbar-btn secondary"
+                    >
+                        🧹 Limpar Cache
+                    </button>
+
+                    <button
+                        onClick={() => setShowAddGroupForm(!showAddGroupForm)}
+                        className="toolbar-btn"
+                    >
+                        {showAddGroupForm ? '❌ Cancelar' : '➕ Novo Grupo'}
+                    </button>
+
+                    <div className="edit-mode-toggle">
+                        <input
+                            type="checkbox"
+                            id="edit-mode-toggle"
+                            checked={isEditModeEnabled}
+                            onChange={(e) => setIsEditModeEnabled(e.target.checked)}
+                        />
+                        <label htmlFor="edit-mode-toggle">
+                            ✏️ Modo Edição
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Formulário de adicionar grupo */}
+            {showAddGroupForm && (
+                <div className="groups-container">
+                    <AddGroupForm 
+                        onAddGroup={handleAddGroup}
+                        onCancel={() => setShowAddGroupForm(false)}
+                    />
+                </div>
+            )}
+
+            {/* Container principal */}
+            <main className="groups-container">
+                {filteredGroups.length === 0 ? (
+                    <div className="empty-state">
+                        {groups.length === 0 ? (
+                            <>
+                                <h3>👋 Bem-vindo ao Gerenciador RDP/SSH</h3>
+                                <p>Comece criando seu primeiro grupo de servidores</p>
+                                <button
+                                    onClick={() => setShowAddGroupForm(true)}
+                                    className="toolbar-btn"
+                                    style={{ marginTop: '1rem' }}
+                                >
+                                    ➕ Criar Primeiro Grupo
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <h3>🔍 Nenhum resultado encontrado</h3>
+                                <p>Tente ajustar sua busca por "{searchTerm}"</p>
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    filteredGroups.map((group, index) => (
+                        <Group
+                            key={group?.id || index}
+                            groupInfo={group}
+                            index={index}
+                            onAddServer={handleAddServer}
+                            onDeleteServer={openDeleteServerDialog}
+                            onUpdateServer={handleUpdateServer}
+                            onDeleteGroup={openDeleteGroupDialog}
+                            onUpdateGroup={handleUpdateGroup}
+                            activeConnections={activeConnections}
+                            isEditModeEnabled={isEditModeEnabled}
+                            isConnectivityEnabled={globalConnectivityEnabled}
+                        />
+                    ))
+                )}
+            </main>
+
+            {/* Footer */}
+            <footer className="app-footer">
+                <div className="footer-content">
+                    <div>
+                        🚀 Gerenciador RDP/SSH Enterprise v2.0 - Sistema de Conectividade Integrado
+                    </div>
+                    <div>
+                        {groups.length} grupo(s) • {allServers.length} servidor(es) • {activeConnections.length} conexão(ões) ativa(s)
+                    </div>
+                </div>
+            </footer>
+
+            {/* Diálogo de confirmação */}
+            {dialogConfig && (
+                <ConfirmationDialog
+                    message={dialogConfig.message}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDialogConfig(null)}
+                />
+            )}
+        </div>
+    );
+}
+
+export default App;

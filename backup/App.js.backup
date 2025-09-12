@@ -1,0 +1,441 @@
+// src/App.js - VERSÃO OTIMIZADA COM MELHORIAS DE PERFORMANCE E UX
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import './App.css';
+import Group from './components/Group';
+import AddGroupForm from './components/AddGroupForm';
+import ConfirmationDialog from './components/ConfirmationDialog';
+
+function App() {
+    const [groups, setGroups] = useState([]);
+    const [dialogConfig, setDialogConfig] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeConnections, setActiveConnections] = useState([]);
+    const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
+    // Debounce para busca otimizada
+    const searchTimeout = useRef(null);
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    // ==========================
+    // EFEITOS E CARREGAMENTO DE DADOS
+    // ==========================
+
+    // Carregamento inicial dos dados
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                
+                const savedGroups = await window.api.storage.get('groups');
+                setGroups(savedGroups || []);
+                
+                console.log('📊 Dados carregados:', savedGroups?.length || 0, 'grupos');
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                setError('Erro ao carregar configurações. Usando dados padrão.');
+                setGroups([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    // Salvamento automático dos dados
+    useEffect(() => {
+        if (groups && groups.length > 0 && !isLoading) {
+            try {
+                window.api.storage.set('groups', groups);
+                console.log('💾 Dados salvos automaticamente');
+            } catch (error) {
+                console.error('Erro ao salvar dados:', error);
+                setError('Erro ao salvar configurações.');
+            }
+        }
+    }, [groups, isLoading]);
+
+    // Listener para status de conexões
+    useEffect(() => {
+        if (window.api && window.api.onConnectionStatus) {
+            window.api.onConnectionStatus((serverId, status) => {
+                console.log(`📡 Status recebido: Servidor ${serverId} está ${status}`);
+                
+                setActiveConnections(prev => {
+                    if (status === 'active') {
+                        // Evita duplicatas usando Set
+                        return [...new Set([...prev, serverId])];
+                    } else {
+                        return prev.filter(id => id !== serverId);
+                    }
+                });
+            });
+        }
+    }, []);
+
+    // Debounce do termo de busca
+    useEffect(() => {
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current);
+        }
+
+        searchTimeout.current = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300); // 300ms de delay
+
+        return () => {
+            if (searchTimeout.current) {
+                clearTimeout(searchTimeout.current);
+            }
+        };
+    }, [searchTerm]);
+
+    // ==========================
+    // FILTROS OTIMIZADOS COM MEMO
+    // ==========================
+
+    // Filtro de grupos otimizado e case-insensitive
+    const filteredGroups = useMemo(() => {
+        if (!debouncedSearchTerm.trim()) return groups;
+
+        const searchLower = debouncedSearchTerm.toLowerCase();
+
+        return groups.filter(group => {
+            // Busca no nome do grupo (case-insensitive)
+            if (group.groupName.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+
+            // Busca nos servidores do grupo
+            return group.servers.some(server =>
+                server.name.toLowerCase().includes(searchLower) ||
+                server.ipAddress.toLowerCase().includes(searchLower) ||
+                (server.username && server.username.toLowerCase().includes(searchLower))
+            );
+        });
+    }, [groups, debouncedSearchTerm]);
+
+    // Estatísticas memoizadas para exibição
+    const stats = useMemo(() => {
+        const totalServers = groups.reduce((total, group) => total + group.servers.length, 0);
+        const activeCount = activeConnections.length;
+        
+        return {
+            totalGroups: groups.length,
+            totalServers,
+            activeConnections: activeCount,
+            filteredGroups: filteredGroups.length
+        };
+    }, [groups, activeConnections, filteredGroups]);
+
+    // ==========================
+    // HANDLERS OTIMIZADOS COM CALLBACK
+    // ==========================
+
+    const handleAddGroup = useCallback((name) => {
+        if (!name || !name.trim()) {
+            setError('Nome do grupo não pode estar vazio.');
+            return;
+        }
+
+        // Verifica se o grupo já existe
+        const groupExists = groups.some(group => 
+            group.groupName.toLowerCase() === name.toLowerCase()
+        );
+        
+        if (groupExists) {
+            setError('Já existe um grupo com este nome.');
+            return;
+        }
+
+        const newGroup = {
+            groupName: name.trim(),
+            servers: [],
+            createdAt: new Date().toISOString()
+        };
+        
+        setGroups(prev => [...prev, newGroup]);
+        setError(null);
+        console.log('➕ Grupo adicionado:', name);
+    }, [groups]);
+
+    const handleAddServer = useCallback((groupIndex, serverData) => {
+        if (!serverData || !serverData.name || !serverData.ipAddress) {
+            setError('Dados do servidor inválidos.');
+            return;
+        }
+
+        setGroups(prev => prev.map((group, index) => {
+            if (index === groupIndex) {
+                // Verifica se já existe um servidor com o mesmo nome no grupo
+                const serverExists = group.servers.some(server => 
+                    server.name.toLowerCase() === serverData.name.toLowerCase()
+                );
+                
+                if (serverExists) {
+                    setError('Já existe um servidor com este nome neste grupo.');
+                    return group;
+                }
+
+                return {
+                    ...group,
+                    servers: [...group.servers, {
+                        ...serverData,
+                        addedAt: new Date().toISOString()
+                    }]
+                };
+            }
+            return group;
+        }));
+        
+        setError(null);
+        console.log('🖥️ Servidor adicionado:', serverData.name);
+    }, []);
+
+    const handleDeleteServer = useCallback((groupIndex, serverId) => {
+        setDialogConfig({
+            message: 'Tem certeza que deseja remover este servidor?',
+            onConfirm: () => {
+                setGroups(prev => prev.map((group, index) => {
+                    if (index === groupIndex) {
+                        return {
+                            ...group,
+                            servers: group.servers.filter(server => server.id !== serverId)
+                        };
+                    }
+                    return group;
+                }));
+                
+                setDialogConfig(null);
+                console.log('🗑️ Servidor removido:', serverId);
+            },
+            onCancel: () => setDialogConfig(null),
+            isOpen: true
+        });
+    }, []);
+
+    const handleDeleteGroup = useCallback((groupIndex) => {
+        const group = groups[groupIndex];
+        if (!group) return;
+
+        const serverCount = group.servers.length;
+        
+        setDialogConfig({
+            message: `Tem certeza que deseja remover o grupo "${group.groupName}"?${
+                serverCount > 0 
+                    ? ` Isso também removerá ${serverCount} servidor${serverCount > 1 ? 'es' : ''}.` 
+                    : ''
+            }`,
+            onConfirm: () => {
+                setGroups(prev => prev.filter((_, index) => index !== groupIndex));
+                setDialogConfig(null);
+                console.log('🗑️ Grupo removido:', group.groupName);
+            },
+            onCancel: () => setDialogConfig(null),
+            isOpen: true
+        });
+    }, [groups]);
+
+    const handleUpdateServer = useCallback((groupIndex, serverId, updatedServerData) => {
+        if (!updatedServerData || !updatedServerData.name || !updatedServerData.ipAddress) {
+            setError('Dados do servidor inválidos para atualização.');
+            return;
+        }
+
+        setGroups(prev => prev.map((group, index) => {
+            if (index === groupIndex) {
+                return {
+                    ...group,
+                    servers: group.servers.map(server => {
+                        if (server.id === serverId) {
+                            return {
+                                ...server,
+                                ...updatedServerData,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        return server;
+                    })
+                };
+            }
+            return group;
+        }));
+        
+        setError(null);
+        console.log('✏️ Servidor atualizado:', updatedServerData.name);
+    }, []);
+
+    const handleUpdateGroup = useCallback((groupIndex, newGroupName) => {
+        if (!newGroupName || !newGroupName.trim()) {
+            setError('Nome do grupo não pode estar vazio.');
+            return;
+        }
+
+        // Verifica se outro grupo já tem este nome
+        const nameExists = groups.some((group, index) => 
+            index !== groupIndex && 
+            group.groupName.toLowerCase() === newGroupName.toLowerCase()
+        );
+        
+        if (nameExists) {
+            setError('Já existe um grupo com este nome.');
+            return;
+        }
+
+        setGroups(prev => prev.map((group, index) => {
+            if (index === groupIndex) {
+                return {
+                    ...group,
+                    groupName: newGroupName.trim(),
+                    updatedAt: new Date().toISOString()
+                };
+            }
+            return group;
+        }));
+        
+        setError(null);
+        console.log('✏️ Grupo renomeado para:', newGroupName);
+    }, [groups]);
+
+    // Handler para limpar erro
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
+    // ==========================
+    // RENDERIZAÇÃO PRINCIPAL
+    // ==========================
+
+    if (isLoading) {
+        return (
+            <div className="app loading-state">
+                <div className="loading-spinner">
+                    <div className="spinner"></div>
+                    <p>Carregando configurações...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="app">
+            {/* Header da aplicação */}
+            <header className="app-header">
+                <div className="header-content">
+                    <h1>Gerenciador de Conexões RDP</h1>
+                    
+                    {/* Estatísticas */}
+                    <div className="stats-bar">
+                        <span className="stat-item">
+                            📁 {stats.totalGroups} {stats.totalGroups === 1 ? 'Grupo' : 'Grupos'}
+                        </span>
+                        <span className="stat-item">
+                            🖥️ {stats.totalServers} {stats.totalServers === 1 ? 'Servidor' : 'Servidores'}
+                        </span>
+                        {stats.activeConnections > 0 && (
+                            <span className="stat-item active-connections">
+                                🟢 {stats.activeConnections} {stats.activeConnections === 1 ? 'Ativa' : 'Ativas'}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </header>
+
+            {/* Barra de ferramentas */}
+            <div className="toolbar">
+                <div className="search-container">
+                    <input
+                        type="text"
+                        placeholder="🔍 Buscar grupos ou servidores..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
+                    {debouncedSearchTerm && (
+                        <span className="search-results">
+                            {filteredGroups.length} resultado{filteredGroups.length !== 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+
+                <div className="toolbar-actions">
+                    <label className="edit-mode-toggle">
+                        <input
+                            type="checkbox"
+                            checked={isEditModeEnabled}
+                            onChange={(e) => setIsEditModeEnabled(e.target.checked)}
+                        />
+                        Modo Edição
+                    </label>
+                </div>
+            </div>
+
+            {/* Exibição de erro */}
+            {error && (
+                <div className="error-banner">
+                    <span className="error-message">⚠️ {error}</span>
+                    <button onClick={clearError} className="error-close">×</button>
+                </div>
+            )}
+
+            {/* Conteúdo principal */}
+            <main className="main-content">
+                {/* Formulário para adicionar grupo */}
+                <AddGroupForm onAddGroup={handleAddGroup} />
+
+                {/* Lista de grupos filtrados */}
+                {filteredGroups.length === 0 ? (
+                    <div className="empty-state">
+                        {groups.length === 0 ? (
+                            <>
+                                <h3>🎯 Bem-vindo ao Gerenciador de Conexões!</h3>
+                                <p>Comece criando seu primeiro grupo de servidores acima.</p>
+                            </>
+                        ) : (
+                            <>
+                                <h3>🔍 Nenhum resultado encontrado</h3>
+                                <p>Tente alterar os termos de busca ou adicionar novos servidores.</p>
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    filteredGroups.map((group, index) => {
+                        // Encontra o índice original do grupo
+                        const originalIndex = groups.findIndex(g => g === group);
+                        
+                        return (
+                            <Group
+                                key={`group-${originalIndex}-${group.groupName}`}
+                                groupInfo={group}
+                                index={originalIndex}
+                                activeConnections={activeConnections}
+                                isEditModeEnabled={isEditModeEnabled}
+                                onAddServer={handleAddServer}
+                                onDeleteServer={handleDeleteServer}
+                                onDeleteGroup={handleDeleteGroup}
+                                onUpdateServer={handleUpdateServer}
+                                onUpdateGroup={handleUpdateGroup}
+                            />
+                        );
+                    })
+                )}
+            </main>
+
+            {/* Dialog de confirmação */}
+            {dialogConfig && (
+                <ConfirmationDialog
+                    message={dialogConfig.message}
+                    onConfirm={dialogConfig.onConfirm}
+                    onCancel={dialogConfig.onCancel}
+                    isOpen={dialogConfig.isOpen}
+                />
+            )}
+        </div>
+    );
+}
+
+export default App;

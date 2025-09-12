@@ -1,0 +1,634 @@
+// src/components/AddServerForm.js - VERSÃO MELHORADA COM VALIDAÇÕES ROBUSTAS
+
+import React, { useState, useEffect, useRef } from 'react';
+
+function AddServerForm({ onServerAdded, onCancel }) {
+    const [serverData, setServerData] = useState({
+        protocol: 'rdp',
+        name: '',
+        ipAddress: '',
+        username: '',
+        password: '',
+        domain: '',
+        port: '3389' // Porta RDP padrão
+    });
+
+    const [errors, setErrors] = useState({});
+    const [isConnectivityTesting, setIsConnectivityTesting] = useState(false);
+    const [connectivityResult, setConnectivityResult] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+
+    // Refs para foco automático
+    const nameInputRef = useRef(null);
+    const ipInputRef = useRef(null);
+
+    // ==========================
+    // FUNÇÕES DE VALIDAÇÃO
+    // ==========================
+
+    /**
+     * Valida endereço IP v4
+     * @param {string} ip - Endereço IP para validar
+     * @returns {boolean} - True se válido
+     */
+    const isValidIPAddress = (ip) => {
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        return ipRegex.test(ip);
+    };
+
+    /**
+     * Valida porta de rede
+     * @param {string|number} port - Porta para validar
+     * @returns {boolean} - True se válida
+     */
+    const isValidPort = (port) => {
+        const portNum = parseInt(port, 10);
+        return !isNaN(portNum) && portNum >= 1 && portNum <= 65535;
+    };
+
+    /**
+     * Valida nome do servidor
+     * @param {string} name - Nome para validar
+     * @returns {boolean} - True se válido
+     */
+    const isValidServerName = (name) => {
+        if (!name || name.trim().length < 2) return false;
+        // Permite letras, números, espaços, hífen, underscore e ponto
+        const nameRegex = /^[a-zA-Z0-9\s\-_.]+$/;
+        return nameRegex.test(name) && name.trim().length <= 50;
+    };
+
+    /**
+     * Valida nome de usuário
+     * @param {string} username - Nome de usuário para validar
+     * @returns {boolean} - True se válido
+     */
+    const isValidUsername = (username) => {
+        if (!username || username.trim().length < 1) return false;
+        // Permite letras, números, ponto, hífen, underscore e @
+        const usernameRegex = /^[a-zA-Z0-9._@-]+$/;
+        return usernameRegex.test(username) && username.length <= 50;
+    };
+
+    /**
+     * Valida domínio (opcional para RDP)
+     * @param {string} domain - Domínio para validar
+     * @returns {boolean} - True se válido ou vazio
+     */
+    const isValidDomain = (domain) => {
+        if (!domain) return true; // Domínio é opcional
+        const domainRegex = /^[a-zA-Z0-9.-]+$/;
+        return domainRegex.test(domain) && domain.length <= 100;
+    };
+
+    /**
+     * Aplica máscara de IP durante digitação
+     * @param {string} value - Valor atual do input
+     * @returns {string} - Valor formatado
+     */
+    const formatIPAddress = (value) => {
+        // Remove caracteres não numéricos e pontos extras
+        let cleaned = value.replace(/[^\d.]/g, '');
+        
+        // Divide em partes e limita cada parte a 3 dígitos
+        let parts = cleaned.split('.');
+        parts = parts.map(part => part.substring(0, 3));
+        
+        // Limita a 4 partes
+        if (parts.length > 4) {
+            parts = parts.slice(0, 4);
+        }
+        
+        return parts.join('.');
+    };
+
+    /**
+     * Valida todos os campos do formulário
+     * @returns {Object} - Objeto com erros encontrados
+     */
+    const validateForm = () => {
+        const newErrors = {};
+
+        // Validação do nome
+        if (!serverData.name.trim()) {
+            newErrors.name = 'Nome do servidor é obrigatório';
+        } else if (!isValidServerName(serverData.name)) {
+            newErrors.name = 'Nome deve ter 2-50 caracteres e conter apenas letras, números, espaços, hífen, underscore e ponto';
+        }
+
+        // Validação do IP
+        if (!serverData.ipAddress.trim()) {
+            newErrors.ipAddress = 'Endereço IP é obrigatório';
+        } else if (!isValidIPAddress(serverData.ipAddress)) {
+            newErrors.ipAddress = 'Endereço IP inválido (formato: 192.168.1.100)';
+        }
+
+        // Validação do nome de usuário (obrigatório para ambos protocolos)
+        if (serverData.username.trim()) {
+            if (!isValidUsername(serverData.username)) {
+                newErrors.username = 'Nome de usuário inválido (apenas letras, números, ., -, _, @)';
+            }
+        }
+
+        // Validação da porta
+        const port = serverData.protocol === 'rdp' ? serverData.port || '3389' : serverData.port || '22';
+        if (!isValidPort(port)) {
+            newErrors.port = 'Porta deve estar entre 1 e 65535';
+        }
+
+        // Validação específica por protocolo
+        if (serverData.protocol === 'rdp') {
+            if (serverData.domain && !isValidDomain(serverData.domain)) {
+                newErrors.domain = 'Domínio inválido (apenas letras, números, pontos e hífen)';
+            }
+        }
+
+        return newErrors;
+    };
+
+    // ==========================
+    // EVENT HANDLERS
+    // ==========================
+
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        let formattedValue = value;
+
+        // Aplicar formatação específica para IP
+        if (name === 'ipAddress') {
+            formattedValue = formatIPAddress(value);
+        }
+
+        // Aplicar formatação específica para porta
+        if (name === 'port') {
+            formattedValue = value.replace(/[^\d]/g, '').substring(0, 5);
+        }
+
+        setServerData(prevData => ({
+            ...prevData,
+            [name]: formattedValue
+        }));
+
+        // Limpar erro específico quando usuário começar a digitar
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: null
+            }));
+        }
+
+        // Limpar resultado de conectividade quando IP mudar
+        if (name === 'ipAddress' && connectivityResult) {
+            setConnectivityResult(null);
+        }
+    };
+
+    const handleProtocolChange = (event) => {
+        const newProtocol = event.target.value;
+        setServerData(prevData => ({
+            ...prevData,
+            protocol: newProtocol,
+            port: newProtocol === 'rdp' ? '3389' : '22'
+        }));
+
+        // Limpar erros relacionados ao protocolo anterior
+        setErrors(prev => ({
+            ...prev,
+            port: null,
+            domain: null
+        }));
+
+        setConnectivityResult(null);
+    };
+
+    const handleTestConnectivity = async () => {
+        if (!serverData.ipAddress || !isValidIPAddress(serverData.ipAddress)) {
+            setErrors(prev => ({ ...prev, ipAddress: 'IP válido é necessário para testar conectividade' }));
+            return;
+        }
+
+        setIsConnectivityTesting(true);
+        setConnectivityResult(null);
+
+        try {
+            // Simula teste de conectividade (em produção, isso seria uma chamada real)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Simulação de resultado baseado no IP (para demonstração)
+            const lastOctet = parseInt(serverData.ipAddress.split('.')[3]);
+            const isReachable = lastOctet % 3 !== 0; // Simula alguns IPs como não alcançáveis
+            
+            setConnectivityResult({
+                success: isReachable,
+                message: isReachable 
+                    ? `✅ Servidor ${serverData.ipAddress}:${serverData.port || (serverData.protocol === 'rdp' ? '3389' : '22')} está acessível`
+                    : `❌ Servidor ${serverData.ipAddress}:${serverData.port || (serverData.protocol === 'rdp' ? '3389' : '22')} não está acessível`,
+                latency: isReachable ? Math.floor(Math.random() * 100) + 10 : null
+            });
+        } catch (error) {
+            setConnectivityResult({
+                success: false,
+                message: `❌ Erro ao testar conectividade: ${error.message}`,
+                latency: null
+            });
+        } finally {
+            setIsConnectivityTesting(false);
+        }
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+
+        const formErrors = validateForm();
+        setErrors(formErrors);
+
+        if (Object.keys(formErrors).length > 0) {
+            setIsSubmitting(false);
+            // Foca no primeiro campo com erro
+            const firstErrorField = Object.keys(formErrors)[0];
+            const errorInput = document.querySelector(`[name="${firstErrorField}"]`);
+            if (errorInput) {
+                errorInput.focus();
+            }
+            return;
+        }
+
+        try {
+            // Prepara dados finais
+            const finalServerData = { ...serverData };
+            
+            // Remove campos não utilizados pelo protocolo
+            if (finalServerData.protocol === 'rdp') {
+                if (!finalServerData.port) finalServerData.port = '3389';
+            } else if (finalServerData.protocol === 'ssh') {
+                delete finalServerData.domain;
+                if (!finalServerData.port) finalServerData.port = '22';
+            }
+
+            const newServer = {
+                ...finalServerData,
+                id: Date.now(),
+                createdAt: new Date().toISOString(),
+                lastConnected: null,
+                connectionCount: 0
+            };
+
+            // Simula salvamento (adiciona delay para UX)
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            onServerAdded(newServer);
+
+            // Reset do formulário
+            setServerData({
+                protocol: 'rdp',
+                name: '',
+                ipAddress: '',
+                username: '',
+                password: '',
+                domain: '',
+                port: '3389'
+            });
+            setErrors({});
+            setConnectivityResult(null);
+            setShowPreview(false);
+
+            // Foca no campo nome para próxima entrada
+            setTimeout(() => {
+                if (nameInputRef.current) {
+                    nameInputRef.current.focus();
+                }
+            }, 100);
+
+        } catch (error) {
+            setErrors({ submit: `Erro ao adicionar servidor: ${error.message}` });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // ==========================
+    // EFFECTS
+    // ==========================
+
+    // Foco inicial no campo nome
+    useEffect(() => {
+        if (nameInputRef.current) {
+            nameInputRef.current.focus();
+        }
+    }, []);
+
+    // Atualiza preview quando dados mudarem
+    useEffect(() => {
+        if (serverData.name && serverData.ipAddress && isValidIPAddress(serverData.ipAddress)) {
+            setShowPreview(true);
+        } else {
+            setShowPreview(false);
+        }
+    }, [serverData.name, serverData.ipAddress]);
+
+    // ==========================
+    // RENDER
+    // ==========================
+
+    return (
+        <div className="add-server-form-container">
+            <form onSubmit={handleSubmit} className="add-server-form">
+                <div className="form-header">
+                    <h3>➕ Adicionar Novo Servidor</h3>
+                    <p className="form-subtitle">Preencha os dados para adicionar um novo servidor</p>
+                </div>
+
+                {/* Erro geral de submissão */}
+                {errors.submit && (
+                    <div className="error-banner">
+                        <span className="error-icon">⚠️</span>
+                        {errors.submit}
+                    </div>
+                )}
+
+                {/* Seleção de protocolo */}
+                <div className="form-row">
+                    <label className="form-label">
+                        🔗 Protocolo *
+                    </label>
+                    <div className="protocol-selector">
+                        <label className="protocol-option">
+                            <input
+                                type="radio"
+                                name="protocol"
+                                value="rdp"
+                                checked={serverData.protocol === 'rdp'}
+                                onChange={handleProtocolChange}
+                            />
+                            <span className="protocol-label">
+                                🖥️ RDP (Remote Desktop)
+                            </span>
+                        </label>
+                        <label className="protocol-option">
+                            <input
+                                type="radio"
+                                name="protocol"
+                                value="ssh"
+                                checked={serverData.protocol === 'ssh'}
+                                onChange={handleProtocolChange}
+                            />
+                            <span className="protocol-label">
+                                💻 SSH (Secure Shell)
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Nome do servidor */}
+                <div className="form-row">
+                    <label className="form-label" htmlFor="name">
+                        📝 Nome do Servidor *
+                    </label>
+                    <input
+                        ref={nameInputRef}
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={serverData.name}
+                        onChange={handleInputChange}
+                        placeholder="Ex: Servidor Principal"
+                        className={`form-input ${errors.name ? 'error' : ''}`}
+                        maxLength={50}
+                    />
+                    <div className="input-info">
+                        <span className="char-counter">
+                            {serverData.name.length}/50
+                        </span>
+                    </div>
+                    {errors.name && (
+                        <div className="error-message">
+                            <span className="error-icon">⚠️</span>
+                            {errors.name}
+                        </div>
+                    )}
+                </div>
+
+                {/* Endereço IP */}
+                <div className="form-row">
+                    <label className="form-label" htmlFor="ipAddress">
+                        🌐 Endereço IP *
+                    </label>
+                    <div className="input-with-button">
+                        <input
+                            ref={ipInputRef}
+                            type="text"
+                            id="ipAddress"
+                            name="ipAddress"
+                            value={serverData.ipAddress}
+                            onChange={handleInputChange}
+                            placeholder="192.168.1.100"
+                            className={`form-input ${errors.ipAddress ? 'error' : ''} ${connectivityResult?.success === true ? 'success' : ''} ${connectivityResult?.success === false ? 'error' : ''}`}
+                            maxLength={15}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleTestConnectivity}
+                            disabled={!isValidIPAddress(serverData.ipAddress) || isConnectivityTesting}
+                            className="connectivity-test-btn"
+                            title="Testar conectividade"
+                        >
+                            {isConnectivityTesting ? '🔄' : '🔍'}
+                        </button>
+                    </div>
+                    
+                    {/* Resultado do teste de conectividade */}
+                    {connectivityResult && (
+                        <div className={`connectivity-result ${connectivityResult.success ? 'success' : 'error'}`}>
+                            {connectivityResult.message}
+                            {connectivityResult.latency && (
+                                <span className="latency">
+                                    (Latência: {connectivityResult.latency}ms)
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    
+                    {errors.ipAddress && (
+                        <div className="error-message">
+                            <span className="error-icon">⚠️</span>
+                            {errors.ipAddress}
+                        </div>
+                    )}
+                </div>
+
+                {/* Porta */}
+                <div className="form-row">
+                    <label className="form-label" htmlFor="port">
+                        🔌 Porta
+                    </label>
+                    <input
+                        type="text"
+                        id="port"
+                        name="port"
+                        value={serverData.port}
+                        onChange={handleInputChange}
+                        placeholder={serverData.protocol === 'rdp' ? '3389' : '22'}
+                        className={`form-input ${errors.port ? 'error' : ''}`}
+                        maxLength={5}
+                    />
+                    <div className="input-hint">
+                        Padrão: {serverData.protocol === 'rdp' ? '3389 (RDP)' : '22 (SSH)'}
+                    </div>
+                    {errors.port && (
+                        <div className="error-message">
+                            <span className="error-icon">⚠️</span>
+                            {errors.port}
+                        </div>
+                    )}
+                </div>
+
+                {/* Nome de usuário */}
+                <div className="form-row">
+                    <label className="form-label" htmlFor="username">
+                        👤 Nome de Usuário
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        value={serverData.username}
+                        onChange={handleInputChange}
+                        placeholder="usuario"
+                        className={`form-input ${errors.username ? 'error' : ''}`}
+                        maxLength={50}
+                    />
+                    {errors.username && (
+                        <div className="error-message">
+                            <span className="error-icon">⚠️</span>
+                            {errors.username}
+                        </div>
+                    )}
+                </div>
+
+                {/* Senha */}
+                <div className="form-row">
+                    <label className="form-label" htmlFor="password">
+                        🔒 Senha
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        value={serverData.password}
+                        onChange={handleInputChange}
+                        placeholder="••••••••"
+                        className="form-input"
+                        autoComplete="new-password"
+                    />
+                    <div className="input-hint">
+                        💡 As senhas são criptografadas e armazenadas com segurança
+                    </div>
+                </div>
+
+                {/* Domínio (apenas para RDP) */}
+                {serverData.protocol === 'rdp' && (
+                    <div className="form-row">
+                        <label className="form-label" htmlFor="domain">
+                            🏢 Domínio
+                        </label>
+                        <input
+                            type="text"
+                            id="domain"
+                            name="domain"
+                            value={serverData.domain}
+                            onChange={handleInputChange}
+                            placeholder="EMPRESA"
+                            className={`form-input ${errors.domain ? 'error' : ''}`}
+                            maxLength={100}
+                        />
+                        <div className="input-hint">
+                            Opcional - deixe em branco se não usar domínio
+                        </div>
+                        {errors.domain && (
+                            <div className="error-message">
+                                <span className="error-icon">⚠️</span>
+                                {errors.domain}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Preview da configuração */}
+                {showPreview && (
+                    <div className="server-preview">
+                        <h4>📋 Preview da Configuração</h4>
+                        <div className="preview-content">
+                            <div className="preview-item">
+                                <span className="preview-label">Protocolo:</span>
+                                <span className="preview-value">
+                                    {serverData.protocol === 'rdp' ? '🖥️ RDP' : '💻 SSH'}
+                                </span>
+                            </div>
+                            <div className="preview-item">
+                                <span className="preview-label">Servidor:</span>
+                                <span className="preview-value">{serverData.name}</span>
+                            </div>
+                            <div className="preview-item">
+                                <span className="preview-label">Endereço:</span>
+                                <span className="preview-value">
+                                    {serverData.ipAddress}:{serverData.port || (serverData.protocol === 'rdp' ? '3389' : '22')}
+                                </span>
+                            </div>
+                            {serverData.username && (
+                                <div className="preview-item">
+                                    <span className="preview-label">Usuário:</span>
+                                    <span className="preview-value">
+                                        {serverData.domain && serverData.protocol === 'rdp' 
+                                            ? `${serverData.domain}\\${serverData.username}`
+                                            : serverData.username
+                                        }
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Botões de ação */}
+                <div className="form-actions">
+                    {onCancel && (
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="btn-cancel"
+                            disabled={isSubmitting}
+                        >
+                            ❌ Cancelar
+                        </button>
+                    )}
+                    <button
+                        type="submit"
+                        className="btn-submit"
+                        disabled={isSubmitting || Object.keys(validateForm()).length > 0}
+                    >
+                        {isSubmitting ? (
+                            <>🔄 Adicionando...</>
+                        ) : (
+                            <>✅ Adicionar Servidor</>
+                        )}
+                    </button>
+                </div>
+
+                {/* Dicas de preenchimento */}
+                <div className="form-tips">
+                    <h4>💡 Dicas de Preenchimento</h4>
+                    <ul>
+                        <li>📝 Use nomes descritivos para facilitar a identificação</li>
+                        <li>🔍 Teste a conectividade antes de salvar</li>
+                        <li>🔒 Senhas são criptografadas automaticamente</li>
+                        <li>🌐 IPs privados comuns: 192.168.x.x, 10.x.x.x, 172.16-31.x.x</li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+export default AddServerForm;

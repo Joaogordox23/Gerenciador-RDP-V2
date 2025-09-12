@@ -1,0 +1,547 @@
+// src/components/Server.js - VERSÃO MELHORADA COM CONECTIVIDADE
+// Baseado no Server original, com ConnectivityIndicator e estados visuais
+
+import React, { useState, useEffect } from 'react';
+import useConnectivity from '../hooks/useConnectivity';
+import ConnectivityIndicator from './ConnectivityIndicator';
+
+function Server({ 
+    serverInfo, 
+    onDelete, 
+    onUpdate, 
+    isActive, 
+    isEditModeEnabled,
+    isConnectivityEnabled = true 
+}) {
+    // Estados originais
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        protocol: serverInfo.protocol || 'rdp',
+        name: serverInfo.name,
+        ipAddress: serverInfo.ipAddress,
+        username: serverInfo.username || '',
+        password: serverInfo.password || '',
+        domain: serverInfo.domain || '',
+        port: serverInfo.port || (serverInfo.protocol === 'ssh' ? '22' : '')
+    });
+
+    // ==========================
+    // NOVOS ESTADOS PARA CONECTIVIDADE
+    // ==========================
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [lastConnectionTime, setLastConnectionTime] = useState(null);
+    const [connectionHistory, setConnectionHistory] = useState([]);
+
+    // Hook de conectividade
+    const {
+        getConnectivityResult,
+        isServerTesting,
+        isServerOnline,
+        testServer,
+        startMonitoring,
+        stopMonitoring,
+        isServerMonitored
+    } = useConnectivity();
+
+    // ==========================
+    // COMPUTED VALUES
+    // ==========================
+    const connectivityResult = isConnectivityEnabled ? getConnectivityResult(serverInfo) : null;
+    const isTesting = isConnectivityEnabled ? isServerTesting(serverInfo) : false;
+    const isOnline = isConnectivityEnabled ? isServerOnline(serverInfo) : null;
+    const isMonitored = isConnectivityEnabled ? isServerMonitored(serverInfo) : false;
+
+    // Determina o status visual do servidor
+    const getServerStatus = () => {
+        if (isActive) return 'active';
+        if (isConnecting) return 'connecting';
+        if (!isConnectivityEnabled) return 'default';
+        if (isTesting) return 'testing';
+        if (connectivityResult) {
+            switch (connectivityResult.status) {
+                case 'online': return 'online';
+                case 'offline': return 'offline';
+                case 'partial': return 'partial';
+                case 'error': return 'error';
+                default: return 'unknown';
+            }
+        }
+        return 'unknown';
+    };
+
+    const serverStatus = getServerStatus();
+
+    // ==========================
+    // EFFECTS
+    // ==========================
+    useEffect(() => {
+        // Atualiza dados de edição quando serverInfo muda
+        setEditData({
+            protocol: serverInfo.protocol || 'rdp',
+            name: serverInfo.name,
+            ipAddress: serverInfo.ipAddress,
+            username: serverInfo.username || '',
+            password: serverInfo.password || '',
+            domain: serverInfo.domain || '',
+            port: serverInfo.port || (serverInfo.protocol === 'ssh' ? '22' : '')
+        });
+    }, [serverInfo]);
+
+    // ==========================
+    // HANDLERS ORIGINAIS
+    // ==========================
+    const handleConnect = async () => {
+        if (isConnecting) return;
+
+        setIsConnecting(true);
+        
+        // Opcional: teste rápido antes de conectar (se conectividade estiver habilitada)
+        if (isConnectivityEnabled && connectivityResult?.status === 'offline') {
+            const confirm = window.confirm(
+                `O servidor "${serverInfo.name}" parece estar offline.\n\nDeseja tentar conectar mesmo assim?`
+            );
+            if (!confirm) {
+                setIsConnecting(false);
+                return;
+            }
+        }
+
+        try {
+            if (window.api && window.api.connection && window.api.connection.connect) {
+                console.log(`🔌 Conectando ao ${serverInfo.name}...`);
+                
+                // Registra tentativa de conexão
+                const connectionAttempt = {
+                    timestamp: new Date(),
+                    status: 'attempted',
+                    serverName: serverInfo.name
+                };
+                setConnectionHistory(prev => [connectionAttempt, ...prev.slice(0, 4)]);
+                setLastConnectionTime(new Date());
+                
+                window.api.connection.connect(serverInfo);
+            } else {
+                console.error('❌ API de conexão do Electron não disponível');
+                alert('Erro: Sistema de conexão não está disponível');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao conectar:', error);
+            alert(`Erro ao conectar: ${error.message}`);
+        } finally {
+            // Remove estado de conectando após um tempo
+            setTimeout(() => setIsConnecting(false), 2000);
+        }
+    };
+
+    const handleDeleteClick = (event) => {
+        event.stopPropagation();
+        onDelete();
+    };
+
+    const handleUpdateSubmit = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onUpdate(editData);
+        setIsEditing(false);
+    };
+
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        setEditData(prevData => ({
+            ...prevData,
+            [name]: value
+        }));
+    };
+
+    // ==========================
+    // NOVOS HANDLERS DE CONECTIVIDADE
+    // ==========================
+    const handleTestConnectivity = async (event) => {
+        event.stopPropagation();
+        if (isTesting || !isConnectivityEnabled) return;
+        
+        try {
+            await testServer(serverInfo);
+        } catch (error) {
+            console.error('Erro no teste de conectividade:', error);
+        }
+    };
+
+    const handleToggleMonitoring = (event) => {
+        event.stopPropagation();
+        if (!isConnectivityEnabled) return;
+        
+        if (isMonitored) {
+            stopMonitoring(serverInfo);
+        } else {
+            startMonitoring(serverInfo);
+        }
+    };
+
+    const handleMouseEnter = () => {
+        if (connectivityResult || isActive) {
+            setShowTooltip(true);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setShowTooltip(false);
+    };
+
+    // ==========================
+    // RENDER DO MODO DE EDIÇÃO
+    // ==========================
+    if (isEditing) {
+        return (
+            <div className={`server-item editing ${serverStatus}`}>
+                <form className="server-edit-form" onSubmit={handleUpdateSubmit}>
+                    <div className="edit-header">
+                        <h4>✏️ Editando: {editData.name}</h4>
+                    </div>
+
+                    <div className="edit-grid">
+                        <div className="edit-field">
+                            <label htmlFor={`protocol-${serverInfo.id}`}>🔌 Protocolo</label>
+                            <div className="protocol-selection">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="protocol"
+                                        value="rdp"
+                                        checked={editData.protocol === 'rdp'}
+                                        onChange={handleInputChange}
+                                    />
+                                    RDP
+                                </label>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="protocol"
+                                        value="ssh"
+                                        checked={editData.protocol === 'ssh'}
+                                        onChange={handleInputChange}
+                                    />
+                                    SSH
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="edit-field">
+                            <label htmlFor={`name-${serverInfo.id}`}>🏷️ Nome</label>
+                            <input
+                                type="text"
+                                id={`name-${serverInfo.id}`}
+                                name="name"
+                                value={editData.name}
+                                onChange={handleInputChange}
+                                required
+                                maxLength="50"
+                            />
+                        </div>
+
+                        <div className="edit-field">
+                            <label htmlFor={`ip-${serverInfo.id}`}>🌐 IP</label>
+                            <input
+                                type="text"
+                                id={`ip-${serverInfo.id}`}
+                                name="ipAddress"
+                                value={editData.ipAddress}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        </div>
+
+                        <div className="edit-field">
+                            <label htmlFor={`username-${serverInfo.id}`}>👤 Usuário</label>
+                            <input
+                                type="text"
+                                id={`username-${serverInfo.id}`}
+                                name="username"
+                                value={editData.username}
+                                onChange={handleInputChange}
+                            />
+                        </div>
+
+                        <div className="edit-field">
+                            <label htmlFor={`password-${serverInfo.id}`}>🔑 Senha</label>
+                            <div className="password-input-container">
+                                <input
+                                    type="password"
+                                    id={`password-${serverInfo.id}`}
+                                    name="password"
+                                    value={editData.password}
+                                    onChange={handleInputChange}
+                                />
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        const input = e.target.previousSibling;
+                                        input.type = input.type === 'password' ? 'text' : 'password';
+                                    }}
+                                >
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        {editData.protocol === 'rdp' && (
+                            <div className="edit-field">
+                                <label htmlFor={`domain-${serverInfo.id}`}>🏢 Domínio</label>
+                                <input
+                                    type="text"
+                                    id={`domain-${serverInfo.id}`}
+                                    name="domain"
+                                    value={editData.domain}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                        )}
+
+                        {editData.protocol === 'ssh' && (
+                            <div className="edit-field">
+                                <label htmlFor={`port-${serverInfo.id}`}>🔌 Porta</label>
+                                <input
+                                    type="number"
+                                    id={`port-${serverInfo.id}`}
+                                    name="port"
+                                    value={editData.port}
+                                    onChange={handleInputChange}
+                                    min="1"
+                                    max="65535"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="edit-actions">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEditing(false);
+                            }}
+                            className="btn-cancel"
+                        >
+                            ❌ Cancelar
+                        </button>
+                        <button type="submit" className="btn-save">
+                            ✅ Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        );
+    }
+
+    // ==========================
+    // RENDER DO MODO VISUALIZAÇÃO
+    // ==========================
+    return (
+        <div 
+            className={`server-item ${serverStatus} ${isActive ? 'active' : ''} ${isMonitored ? 'monitored' : ''}`}
+            onClick={handleConnect}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            {/* Loading overlay quando conectando */}
+            {isConnecting && (
+                <div className="loading-overlay">
+                    <div className="loading-spinner">
+                        <div className="spinner"></div>
+                        <span>Conectando...</span>
+                    </div>
+                </div>
+            )}
+
+            <div className="server-header">
+                <div className="server-info">
+                    <div className="server-title">
+                        <div className="protocol-icon">
+                            {serverInfo.protocol === 'ssh' ? '💻' : '🖥️'}
+                        </div>
+                        <h3 className="server-name">{serverInfo.name}</h3>
+                        
+                        {/* Indicador de status */}
+                        <div 
+                            className={`status-indicator ${serverStatus}`}
+                            title={`Status: ${serverStatus}`}
+                        />
+                    </div>
+
+                    <div className="server-details">
+                        <div className="server-address">
+                            <span className="address-icon">🌐</span>
+                            <span className="address-text">
+                                {serverInfo.ipAddress}
+                                {serverInfo.protocol === 'ssh' && serverInfo.port && `:${serverInfo.port}`}
+                            </span>
+                        </div>
+                        
+                        {(serverInfo.username || serverInfo.domain) && (
+                            <div className="server-user">
+                                <span className="user-icon">👤</span>
+                                <span className="user-text">
+                                    {serverInfo.domain && `${serverInfo.domain}\\`}
+                                    {serverInfo.username}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Indicador de conectividade */}
+                {isConnectivityEnabled && (
+                    <div className="connectivity-section">
+                        <ConnectivityIndicator
+                            serverInfo={serverInfo}
+                            size="medium"
+                            showText={!isTesting}
+                            showLatency={true}
+                            clickToTest={false}
+                            autoTest={false}
+                        />
+                    </div>
+                )}
+
+                {/* Ações do servidor */}
+                <div className="server-actions">
+                    {isConnectivityEnabled && (
+                        <>
+                            <button
+                                className="action-btn test-btn"
+                                onClick={handleTestConnectivity}
+                                disabled={isTesting}
+                                title="Testar conectividade"
+                            >
+                                {isTesting ? '🔄' : '🧪'}
+                            </button>
+                            
+                            <button
+                                className={`action-btn monitor-btn ${isMonitored ? 'active' : ''}`}
+                                onClick={handleToggleMonitoring}
+                                title={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
+                            >
+                                {isMonitored ? '📡' : '📊'}
+                            </button>
+                        </>
+                    )}
+
+                    {isEditModeEnabled && (
+                        <>
+                            <button
+                                className="action-btn edit-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsEditing(true);
+                                }}
+                                title="Editar servidor"
+                            >
+                                ✏️
+                            </button>
+                            
+                            <button
+                                className="action-btn delete-btn"
+                                onClick={handleDeleteClick}
+                                title="Deletar servidor"
+                            >
+                                🗑️
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Status de conexão */}
+            {(isActive || isConnecting || connectivityResult) && (
+                <div className={`connection-status ${serverStatus}`}>
+                    <div className={`status-message ${serverStatus}`}>
+                        <span className="status-icon">
+                            {isConnecting ? '🔄' :
+                             isActive ? '✅' :
+                             serverStatus === 'online' ? '✅' :
+                             serverStatus === 'offline' ? '❌' :
+                             serverStatus === 'partial' ? '⚠️' :
+                             serverStatus === 'testing' ? '🔄' : '❓'}
+                        </span>
+                        <span>
+                            {isConnecting ? 'Conectando...' :
+                             isActive ? 'Conexão ativa' :
+                             connectivityResult ? connectivityResult.message :
+                             'Status desconhecido'}
+                        </span>
+                        
+                        {/* Informações de latência */}
+                        {connectivityResult?.tests?.tcpLatency?.average && !isActive && (
+                            <span className="latency-info">
+                                ({connectivityResult.tests.tcpLatency.average}ms)
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Tooltip detalhado */}
+            {showTooltip && (connectivityResult || isActive) && (
+                <div className="server-tooltip">
+                    <div className="tooltip-content">
+                        {isActive && (
+                            <div className="tooltip-row">
+                                <span>Estado:</span>
+                                <span>🔗 Conectado</span>
+                            </div>
+                        )}
+                        
+                        {connectivityResult && (
+                            <>
+                                <div className="tooltip-row">
+                                    <span>Status:</span>
+                                    <span>{connectivityResult.message}</span>
+                                </div>
+                                
+                                {connectivityResult.tests?.ping?.success && (
+                                    <div className="tooltip-row">
+                                        <span>Ping:</span>
+                                        <span>{connectivityResult.tests.ping.averageLatency}ms</span>
+                                    </div>
+                                )}
+                                
+                                {connectivityResult.tests?.port && (
+                                    <div className="tooltip-row">
+                                        <span>Porta:</span>
+                                        <span>{connectivityResult.tests.port.status}</span>
+                                    </div>
+                                )}
+                                
+                                {connectivityResult.totalTime && (
+                                    <div className="tooltip-row">
+                                        <span>Teste:</span>
+                                        <span>{connectivityResult.totalTime}ms</span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        
+                        {lastConnectionTime && (
+                            <div className="tooltip-row">
+                                <span>Última conexão:</span>
+                                <span>{lastConnectionTime.toLocaleTimeString()}</span>
+                            </div>
+                        )}
+                        
+                        {isMonitored && (
+                            <div className="tooltip-row">
+                                <span>Monitoramento:</span>
+                                <span>📡 Ativo</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default Server;
