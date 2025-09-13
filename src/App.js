@@ -4,13 +4,19 @@ import RdpSshView from './views/RdpSshView';
 import VncView from './views/VncView';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import useConnectivity from './hooks/useConnectivity';
-import AddGroupForm from './components/AddGroupForm'; // Importação corrigida
+import AddGroupForm from './components/AddGroupForm';
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
 import ToastContainer from './components/toast/ToastContainer';
 
-// Componente Wrapper para que AppContent possa usar o hook useToast
+// --- Ícones para a Barra de Estatísticas ---
+const TotalIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>);
+const OnlineIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>);
+const OfflineIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>);
+const ConnectionsIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0V10.5m-3 0h15v9a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 3 19.5v-9Z"></path><path d="M12 15a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"></path></svg>);
+
+
 function App() {
     return (
         <ToastProvider>
@@ -30,48 +36,38 @@ function AppContent() {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeConnections, setActiveConnections] = useState([]);
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
-    const [globalConnectivityEnabled, setGlobalConnectivityEnabled] = useState(true);
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
     
-    // Hook de conectividade (funcionalidade preservada)
     const connectivity = useConnectivity({ autoTest: false, enableMonitoring: false });
 
-    // Funções de notificação usando o sistema Toast
+    // Funções de notificação
     const showError = useCallback((message) => {
-        if (typeof message === 'string' && message.trim()) {
-            toast.error(message.trim());
-        }
+        if (typeof message === 'string' && message.trim()) toast.error(message.trim());
     }, [toast]);
 
     const showSuccess = useCallback((message) => {
-        if (typeof message === 'string' && message.trim()) {
-            toast.success(message.trim());
-        }
+        if (typeof message === 'string' && message.trim()) toast.success(message.trim());
     }, [toast]);
 
     //
     // Handlers para Grupos RDP/SSH
     //
     const handleAddGroup = useCallback((name) => {
-        if (!name || typeof name !== 'string' || !name.trim()) {
-            showError('Nome do grupo não pode estar vazio');
+        const trimmedName = name.trim();
+        if(!trimmedName) {
+            showError('Nome do grupo não pode estar vazio.');
             return;
         }
-        const trimmedName = name.trim();
-        
-        // CORREÇÃO: Padrão de atualização de estado seguro para evitar "stale state"
         setGroups(prevGroups => {
             if (prevGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError('Já existe um grupo com este nome.');
-                return prevGroups; // Retorna o estado anterior sem alteração
+                return prevGroups;
             }
-            
             const newGroup = { id: Date.now(), groupName: trimmedName, servers: [] };
             showSuccess(`Grupo "${trimmedName}" criado com sucesso`);
-            return [...prevGroups, newGroup]; // Retorna o novo estado
+            setShowAddGroupForm(false);
+            return [...prevGroups, newGroup];
         });
-
-        setShowAddGroupForm(false);
     }, [showError, showSuccess]);
     
     const handleUpdateGroup = useCallback((groupId, newGroupName) => {
@@ -137,20 +133,16 @@ function AppContent() {
             showError('Nome do grupo não pode estar vazio.');
             return;
         }
-
-        // CORREÇÃO: Padrão de atualização de estado seguro e unificado
         setVncGroups(prevVncGroups => {
             if (prevVncGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError('Já existe um grupo VNC com este nome.');
                 return prevVncGroups;
             }
-
             const newGroup = { id: Date.now(), groupName: trimmedName, connections: [] };
             showSuccess(`Grupo VNC "${trimmedName}" criado com sucesso`);
+            setShowAddGroupForm(false);
             return [...prevVncGroups, newGroup];
         });
-
-        setShowAddGroupForm(false);
     }, [showError, showSuccess]);
 
     const handleUpdateVncGroup = useCallback((groupId, newGroupName) => {
@@ -233,7 +225,6 @@ function AppContent() {
     const allVncConnections = useMemo(() => vncGroups.flatMap(group => group.connections || []), [vncGroups]);
 
     const connectivityStats = useMemo(() => {
-        // A lógica completa de conectividade pode ser re-adicionada aqui se necessário
         const stats = { total: allServers.length, online: 0, offline: 0, testing: 0, unknown: 0 };
         return stats;
     }, [allServers]);
@@ -288,31 +279,27 @@ function AppContent() {
                 <div className="header-content">
                     <h1>🖥️ Gerenciador RDP/SSH Enterprise</h1>
                     <div className="stats-bar">
-                        <div className="stat-item">📊 Total: {connectivityStats.total}</div>
-                        <div className="stat-item active-connections">✅ Online: {connectivityStats.online}</div>
-                        <div className="stat-item">❌ Offline: {connectivityStats.offline}</div>
-                        <div className="stat-item">🔄 Testando: {connectivityStats.testing}</div>
-                        <div className="stat-item">🔌 Conexões: {activeConnections.length}</div>
+                        <div className="stat-item"><TotalIcon /> Total: {allServers.length}</div>
+                        <div className="stat-item active-connections"><OnlineIcon /> Online: {connectivityStats.online}</div>
+                        <div className="stat-item"><OfflineIcon /> Offline: {connectivityStats.offline}</div>
+                        <div className="stat-item"><ConnectionsIcon /> Conexões: {activeConnections.length}</div>
                     </div>
                 </div>
             </header>
 
             <div className="toolbar">
                 <div className="search-container">
-                    <input type="text" placeholder="🔍 Buscar grupos e servidores..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
+                    <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
                 </div>
                 <div className="toolbar-actions">
-                    <div className="edit-mode-toggle">
-                        <input type="checkbox" id="connectivity-toggle" checked={globalConnectivityEnabled} onChange={() => setGlobalConnectivityEnabled(p => !p)} />
-                        <label htmlFor="connectivity-toggle">🔌 Conectividade Ativa</label>
-                    </div>
-                    <button onClick={() => {}} disabled={!globalConnectivityEnabled || allServers.length === 0} className="toolbar-btn">🧪 Testar Todos</button>
-                    <button onClick={() => {}} disabled={!globalConnectivityEnabled} className="toolbar-btn secondary">🧹 Limpar Cache</button>
-                    <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">{showAddGroupForm ? '❌ Cancelar' : '➕ Novo Grupo'}</button>
-                    <div className="edit-mode-toggle">
+                    <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
+                        {showAddGroupForm ? '✖️ Cancelar' : '➕ Novo Grupo'}
+                    </button>
+                    <label htmlFor="edit-mode-toggle" className="edit-mode-toggle">
+                        <span>Modo Edição</span>
                         <input type="checkbox" id="edit-mode-toggle" checked={isEditModeEnabled} onChange={(e) => setIsEditModeEnabled(e.target.checked)} />
-                        <label htmlFor="edit-mode-toggle">✏️ Modo Edição</label>
-                    </div>
+                        <span className="toggle-switch"></span>
+                    </label>
                 </div>
             </div>
 
@@ -322,24 +309,27 @@ function AppContent() {
             </nav>
 
             <main className="groups-container">
-                {showAddGroupForm && activeView === 'RDP/SSH' && (
-                    <AddGroupForm 
-                        onAddGroup={handleAddGroup}
-                        onCancel={() => setShowAddGroupForm(false)}
-                    />
+                {showAddGroupForm && (
+                    activeView === 'RDP/SSH' ? (
+                        <AddGroupForm 
+                            onAddGroup={handleAddGroup}
+                            onCancel={() => setShowAddGroupForm(false)}
+                            title="Criar Novo Grupo RDP/SSH"
+                            subtitle="Organize seus servidores RDP e SSH."
+                        />
+                    ) : (
+                        <AddGroupForm 
+                            onAddGroup={handleAddVncGroup}
+                            onCancel={() => setShowAddGroupForm(false)}
+                            title="Criar Novo Grupo VNC"
+                            subtitle="Organize suas conexões VNC."
+                        />
+                    )
                 )}
-                 {showAddGroupForm && activeView === 'VNC' && (
-                    <AddGroupForm 
-                        onAddGroup={handleAddVncGroup}
-                        onCancel={() => setShowAddGroupForm(false)}
-                        title="Criar Novo Grupo VNC"
-                        subtitle="Organize suas conexões VNC."
-                    />
-                )}
+
                 {activeView === 'RDP/SSH' && (
                     <RdpSshView
                         filteredGroups={filteredGroups}
-                        onAddGroup={handleAddGroup}
                         onAddServer={handleAddServer}
                         onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
                         onUpdateServer={handleUpdateServer}
@@ -347,7 +337,6 @@ function AppContent() {
                         onUpdateGroup={handleUpdateGroup}
                         activeConnections={activeConnections}
                         isEditModeEnabled={isEditModeEnabled}
-                        isConnectivityEnabled={globalConnectivityEnabled}
                     />
                 )}
                 {activeView === 'VNC' && (
@@ -366,7 +355,7 @@ function AppContent() {
             
             <footer className="app-footer">
                 <div className="footer-content">
-                    <div>🚀 Gerenciador RDP/SSH Enterprise v2.1</div>
+                    <div>🚀 Gerenciador Enterprise v2.4</div>
                     <div>{groups.length + vncGroups.length} grupo(s) • {allServers.length + allVncConnections.length} item(ns)</div>
                 </div>
             </footer>

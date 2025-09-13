@@ -1,20 +1,13 @@
-// src/views/VncView.js
-
 import React, { useState } from 'react';
 import VncGroup from '../components/VncGroup';
 import AddGroupForm from '../components/AddGroupForm';
 
 // Recebemos a nova propriedade 'onUpdateVncGroup' do App.js
 function VncView({ vncGroups, onAddGroup, isEditModeEnabled, onUpdateVncGroup, ...groupProps }) {
-    const [showAddGroup, setShowAddGroup] = useState(false);
+    // O estado 'showAddGroupForm' é agora controlado pelo App.js, removemos o local.
     
     // Estado para controlar qual grupo está sendo editado
     const [editingGroupId, setEditingGroupId] = useState(null);
-
-    const handleGroupAdded = (groupName) => {
-        onAddGroup(groupName);
-        setShowAddGroup(false);
-    };
     
     // Função para salvar e sair do modo de edição
     const handleUpdateAndFinishEditing = (groupId, newName) => {
@@ -24,22 +17,7 @@ function VncView({ vncGroups, onAddGroup, isEditModeEnabled, onUpdateVncGroup, .
 
     return (
         <div>
-            {isEditModeEnabled && !showAddGroup && (
-                <div className="toolbar-actions" style={{ justifyContent: 'center', marginBottom: '20px' }}>
-                    <button onClick={() => setShowAddGroup(true)} className="toolbar-btn">
-                        ➕ Novo Grupo VNC
-                    </button>
-                </div>
-            )}
-
-            {showAddGroup && (
-                <AddGroupForm
-                    onAddGroup={handleGroupAdded}
-                    onCancel={() => setShowAddGroup(false)}
-                    title="Criar Novo Grupo VNC"
-                    subtitle="Organize suas conexões VNC em grupos."
-                />
-            )}
+            {/* O formulário de adicionar grupo agora é renderizado no App.js */}
             
             {Array.isArray(vncGroups) && vncGroups.length > 0 ? (
                 vncGroups.map(group => (
@@ -59,7 +37,7 @@ function VncView({ vncGroups, onAddGroup, isEditModeEnabled, onUpdateVncGroup, .
             ) : (
                 <div className="empty-state">
                     <h3>Nenhum grupo VNC encontrado.</h3>
-                    <p>Clique em "Novo Grupo VNC" para começar a adicionar suas conexões.</p>
+                    {!isEditModeEnabled ? <p>Ative o "Modo Edição" para adicionar um novo grupo.</p> : <p>Clique em "Novo Grupo" para começar.</p>}
                 </div>
             )}
         </div>

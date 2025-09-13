@@ -4644,3 +4644,149 @@ select.form-control {
 }
 
 /* (O fade-out será controlado via JavaScript/React) */
+
+/* ============================================================================= */
+/* 🎨 PADRONIZAÇÃO DA UI - BARRA DE FERRAMENTAS MODERNA */
+/* ============================================================================= */
+
+/* 1. Container da Barra de Ferramentas */
+.toolbar {
+    padding: var(--space-12) var(--space-24);
+    gap: var(--space-20);
+    align-items: center;
+}
+
+/* 2. Campo de Busca Aprimorado */
+.search-container {
+    position: relative;
+    flex-grow: 1; /* Ocupa o espaço disponível */
+}
+
+.search-input {
+    background-color: var(--color-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-base);
+    padding: var(--space-10) var(--space-16) var(--space-10) var(--space-32); /* Espaço para o ícone */
+    font-size: var(--font-size-base);
+    width: 100%;
+    transition: all var(--duration-normal) var(--ease-standard);
+}
+
+.search-input:focus {
+    border-color: var(--color-primary);
+    background-color: var(--color-surface);
+    box-shadow: var(--focus-ring);
+}
+
+.search-input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+/* Ícone de busca dentro do campo */
+.search-container::before {
+    content: '🔍';
+    position: absolute;
+    left: var(--space-12);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    pointer-events: none; /* Permite clicar através do ícone */
+}
+
+/* 3. Botões da Barra de Ferramentas */
+.toolbar-actions .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    background-color: var(--color-primary);
+    color: var(--color-btn-primary-text);
+    padding: var(--space-10) var(--space-20);
+    border-radius: var(--radius-base);
+    font-weight: var(--font-weight-semibold);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal) var(--ease-standard);
+    border: 1px solid transparent;
+}
+
+.toolbar-actions .toolbar-btn:hover {
+    background-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.toolbar-actions .toolbar-btn:active {
+    transform: translateY(0);
+}
+
+/* 4. Toggle de Edição Moderno (Switch) */
+.edit-mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-10);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent; /* Remove highlight on mobile tap */
+}
+
+.edit-mode-toggle span:first-of-type { /* The label text */
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    transition: color var(--duration-fast);
+}
+
+.edit-mode-toggle:hover span:first-of-type {
+    color: var(--color-text);
+}
+
+.edit-mode-toggle input[type="checkbox"] {
+    display: none; /* Hide the default checkbox */
+}
+
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background-color: var(--color-secondary-active);
+    border-radius: var(--radius-full);
+    transition: background-color var(--duration-fast);
+    flex-shrink: 0;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: white;
+    top: 3px;
+    left: 4px;
+    box-shadow: var(--shadow-xs);
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.edit-mode-toggle input[type="checkbox"]:checked ~ .toggle-switch {
+    background-color: var(--color-primary);
+}
+
+.edit-mode-toggle input[type="checkbox"]:checked ~ .toggle-switch::before {
+    transform: translateX(19px);
+}
+
+/* ============================================================================= */
+/* 🎨 PADRONIZAÇÃO DA UI - ÍCONES DA BARRA DE ESTATÍSTICAS */
+/* ============================================================================= */
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+.stat-item svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.5;
+    opacity: 0.8;
+}
+
