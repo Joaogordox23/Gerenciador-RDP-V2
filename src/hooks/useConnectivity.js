@@ -68,6 +68,20 @@ export function ConnectivityProvider({ children }) {
         }
     }, [generateServerKey]);
 
+    const testAllServers = useCallback(async (servers) => {
+        if (!servers || servers.length === 0) return;
+        
+        console.log(`[Hook] Disparando teste em lote para ${servers.length} servidores.`);
+        
+        // Usamos a API do backend que já existe para testar múltiplos servidores
+        try {
+            await window.api.connectivity.testMultiple(servers);
+            console.log('[Hook] Pedido de teste em lote enviado com sucesso.');
+        } catch (e) {
+            console.error("Erro no testAllServers:", e);
+        }
+    }, []);
+
     const startMonitoring = useCallback((serverInfo) => {
         const serverKey = generateServerKey(serverInfo);
         if (!serverKey || monitoredServers.has(serverKey)) return;
@@ -87,6 +101,7 @@ export function ConnectivityProvider({ children }) {
         monitoredServers,
         generateServerKey,
         testServer,
+        testAllServers,
         startMonitoring,
         stopMonitoring,
     };

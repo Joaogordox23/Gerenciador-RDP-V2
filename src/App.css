@@ -4959,3 +4959,91 @@ select.form-control {
 ::-webkit-scrollbar-button {
     display: none; /* Geralmente removemos os botões para um visual mais limpo */
 }
+
+/* ======================================= */
+/* 🖥️ DASHBOARD DE MONITORAMENTO         */
+/* ======================================= */
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-16);
+}
+
+.dashboard-header h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-20);
+}
+
+.stat-card {
+  background-color: var(--color-surface);
+  padding: var(--space-20);
+  border-radius: var(--radius-lg);
+  border-left: 5px solid;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast) ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card-value {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+}
+
+.stat-card-title {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-4);
+}
+
+.dashboard-server-list {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.server-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.server-table th,
+.server-table td {
+  padding: var(--space-12) var(--space-16);
+  text-align: left;
+  border-bottom: 1px solid var(--color-card-border-inner);
+}
+
+.server-table th {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-secondary);
+}
+
+.server-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.server-table tbody tr:hover {
+  background-color: var(--color-secondary-hover);
+}

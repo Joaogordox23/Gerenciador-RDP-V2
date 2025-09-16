@@ -8,6 +8,7 @@ import AddGroupForm from './components/AddGroupForm';
 import Modal from './components/Modal';
 import AddServerForm from './components/AddServerForm'; 
 import AddVncConnectionForm from './components/AddVncConnectionForm';
+import DashboardView from './views/DashboardView';
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
@@ -32,8 +33,8 @@ function App() {
 
 function AppContent() {
     const { toast } = useToast();
-    
-    const [activeView, setActiveView] = useState('RDP/SSH');
+     const { testAllServers } = useConnectivity(); 
+    const [activeView, setActiveView] = useState('Dashboard');
     const [groups, setGroups] = useState([]);
     const [vncGroups, setVncGroups] = useState([]);
     const [dialogConfig, setDialogConfig] = useState(null);
@@ -213,8 +214,24 @@ function AppContent() {
         }
         setDialogConfig(null);
     }, [dialogConfig]);
-    
-    const allServers = useMemo(() => groups.flatMap(group => group.servers || []), [groups]);
+
+    const allServers = useMemo(() => {
+        return groups.flatMap(group => 
+            // Para cada servidor, retornamos um novo objeto que inclui o nome do grupo
+            (group.servers || []).map(server => ({
+                ...server,
+                groupName: group.groupName // Adicionando o nome do grupo ao objeto do servidor
+            }))
+        );
+    }, [groups]);
+    const handleTestAllServers = useCallback(() => {
+        if (allServers.length === 0) {
+            toast.warning('Não há servidores para testar.');
+            return;
+        }
+        toast.success(`Iniciando teste de conectividade para ${allServers.length} servidores...`);
+        testAllServers(allServers);
+    }, [allServers, testAllServers, toast]);
     const allVncConnections = useMemo(() => vncGroups.flatMap(group => group.connections || []), [vncGroups]);
 
     const connectivityStats = useMemo(() => {
@@ -294,6 +311,7 @@ function AppContent() {
                 </div>
             </div>
             <nav className="view-switcher">
+                <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
                 <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
                 <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
             </nav>
@@ -347,6 +365,12 @@ function AppContent() {
                         onShowAddGroupForm={() => setShowAddGroupForm(true)}
                         onShowAddServerModal={setAddingToGroupId}
                         
+                    />
+                )}
+                {activeView === 'Dashboard' && (
+                    <DashboardView
+                        servers={allServers} // Passamos a lista de todos os servidores
+                        onTestAll={handleTestAllServers}
                     />
                 )}
                 {activeView === 'VNC' && (
