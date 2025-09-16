@@ -64,23 +64,34 @@ function DashboardView({ servers, onTestAll }) {
                             const result = results.get(key);
                             const isCurrentlyTesting = isTesting.has(key);
                             const status = result ? result.status : 'unknown';
-                            
-                            // 2. CORREÇÃO NA LATÊNCIA: Acessando o dado de forma segura
-                            const latency = result?.tests?.ping?.averageLatency;
+
+                            // LÓGICA DE LATÊNCIA MELHORADA
+                            let latencyText = '-';
+                            if (isCurrentlyTesting) {
+                                latencyText = '...';
+                            } else if (result) {
+                                // Verifica se a latência existe e é um número
+                                if (result.tests?.ping?.averageLatency) {
+                                    latencyText = `${result.tests.ping.averageLatency} ms`;
+                                } 
+                                // Se não existir latência mas o ping foi testado, significa que foi bloqueado
+                                else if (result.tests?.ping) {
+                                    latencyText = 'Bloqueado';
+                                }
+                            }
 
                             return (
                                 <tr key={server.id}>
                                     <td>
-                                        {/* 3. CORREÇÃO NO STATUS: Adicionando a classe de cor dinâmica */}
                                         <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
                                     </td>
                                     <td>{server.name}</td>
                                     <td>{server.ipAddress}{server.port ? `:${server.port}`: ''}</td>
                                     <td>{server.groupName}</td>
-                                    <td>{isCurrentlyTesting ? '...' : (latency ? `${latency} ms` : '-')}</td>
+                                    {/* Exibe o texto de latência que definimos */}
+                                    <td>{latencyText}</td>
                                     <td>{result ? new Date(result.timestamp).toLocaleTimeString() : 'Nunca'}</td>
                                     <td>
-                                        {/* 4. CORREÇÃO NO BOTÃO: Usando o mesmo padrão do Server.js */}
                                         <button 
                                             className="action-button-icon" 
                                             title="Testar Agora" 
