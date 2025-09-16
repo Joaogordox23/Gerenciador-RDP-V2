@@ -44,8 +44,6 @@ function AppContent() {
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
     const [addingToGroupId, setAddingToGroupId] = useState(null);
     
-    const connectivity = useConnectivity({ autoTest: false, enableMonitoring: false });
-
     const showError = useCallback((message) => {
         if (typeof message === 'string' && message.trim()) toast.error(message.trim());
     }, [toast]);

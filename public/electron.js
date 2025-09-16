@@ -86,9 +86,13 @@ function createWindow() {
                                     }
 
                                     try {
-                                        const importedGroups = JSON.parse(data);
-                                        if (Array.isArray(importedGroups)) {
-                                            store.set('groups', importedGroups);
+                                        const importedData = JSON.parse(data);
+                                        // VERIFICAÇÃO ROBUSTA: Checa se o objeto e as chaves existem
+                                        if (importedData && Array.isArray(importedData.groups) && Array.isArray(importedData.vncGroups)) {
+                                            // SALVA AMBAS AS CHAVES
+                                            store.set('groups', importedData.groups);
+                                            store.set('vncGroups', importedData.vncGroups);
+                                            
                                             dialog.showMessageBoxSync({
                                                 type: 'info',
                                                 title: 'Importação Concluída',
@@ -97,10 +101,10 @@ function createWindow() {
                                             app.relaunch();
                                             app.quit();
                                         } else {
-                                            throw new Error('O arquivo não contém um formato de dados válido.');
+                                            throw new Error('O arquivo não contém o formato de dados esperado (groups e vncGroups).');
                                         }
                                     } catch (e) {
-                                        dialog.showErrorBox('Erro de Importação', `O arquivo selecionado não é um JSON válido: ${e.message}`);
+                                        dialog.showErrorBox('Erro de Importação', `O arquivo selecionado não é um JSON válido ou está mal formatado: ${e.message}`);
                                     }
                                 });
                             }
@@ -110,11 +114,21 @@ function createWindow() {
                 {
                     label: 'Exportar Configurações...',
                     click: () => {
-                        const groups = store.get('groups');
-                        if (!groups || groups.length === 0) {
+                        // PEGA AMBOS OS TIPOS DE GRUPO
+                        const groups = store.get('groups', []);
+                        const vncGroups = store.get('vncGroups', []);
+
+                        if (groups.length === 0 && vncGroups.length === 0) {
                             dialog.showMessageBoxSync({ type: 'info', title: 'Exportar', message: 'Não há dados para exportar.' });
                             return;
                         }
+
+                        // CRIA UM OBJETO UNIFICADO PARA SALVAR
+                        const dataToSave = {
+                            groups: groups,
+                            vncGroups: vncGroups,
+                            exportDate: new Date().toISOString()
+                        };
 
                         dialog.showSaveDialog({
                             title: 'Exportar Configurações',
@@ -123,8 +137,8 @@ function createWindow() {
                             filters: [{ name: 'JSON', extensions: ['json'] }]
                         }).then(result => {
                             if (!result.canceled && result.filePath) {
-                                const dataToSave = JSON.stringify(groups, null, 2);
-                                fs.writeFile(result.filePath, dataToSave, 'utf-8', (err) => {
+                                const jsonContent = JSON.stringify(dataToSave, null, 2); // Formata o JSON para ser legível
+                                fs.writeFile(result.filePath, jsonContent, 'utf-8', (err) => {
                                     if (err) {
                                         dialog.showErrorBox('Erro de Exportação', `Não foi possível salvar o arquivo: ${err.message}`);
                                     } else {
