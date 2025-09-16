@@ -156,6 +156,8 @@ if (!contextBridge) {
 // ==========================
 // EXPOSIÇÃO SEGURA DAS APIs VIA CONTEXT BRIDGE
 // ==========================
+// src/preload.js
+
 try {
     contextBridge.exposeInMainWorld('api', {
         // APIs originais
@@ -164,6 +166,12 @@ try {
         clearData,
         onConnectionStatus,
 
+        // <-- ADICIONE ESTE NOVO OBJETO PARA VNC -->
+        vnc: {
+            startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-start-proxy', connectionInfo),
+            stopProxy: () => ipcRenderer.send('vnc-stop-proxy'),
+        },
+        
         // Novas APIs de conectividade
         connectivity,
         

@@ -1,15 +1,15 @@
-// electron.js - VERSÃO INTEGRADA COM SISTEMA DE CONECTIVIDADE
-// Baseado no arquivo original, com adições do sistema de conectividade
+// electron.js - VERSÃO 3.1 com RealVNC externo
 
 const { app, BrowserWindow, ipcMain, Notification, Menu, safeStorage, dialog } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const Store = require('electron-store');
 const url = require('url');
 const fs = require('fs');
 
 // ==========================
-// IMPORTS DO SISTEMA DE CONECTIVIDADE
+// IMPORTS DO SISTEMA DE CONECTIVIDADE (MANTIDOS)
 // ==========================
 const ConnectivityTester = require('./ConnectivityTester');
 const net = require('net');
@@ -21,15 +21,16 @@ let mainWindow;
 const isDev = !app.isPackaged;
 
 // ==========================
-// INICIALIZAÇÃO DO SISTEMA DE CONECTIVIDADE
+// INICIALIZAÇÃO DO SISTEMA DE CONECTIVIDADE (MANTIDO)
 // ==========================
 const connectivityTester = new ConnectivityTester();
 const connectivityMonitors = new Map(); // Armazena intervalos de monitoramento ativo
 
-console.log('🔌 Sistema de conectividade inicializado no Electron');
+console.log('🔌 Sistema de conectividade inicializado no Electron v3.1');
+console.log('🎯 VNC agora usa RealVNC externo');
 
 // ==========================
-// FUNÇÃO CREATEWINDOW ORIGINAL
+// FUNÇÃO CREATEWINDOW (MANTIDA)
 // ==========================
 function createWindow() {
     const win = new BrowserWindow({
@@ -62,7 +63,7 @@ function createWindow() {
     }
 
     // ==========================
-    // MENU ORIGINAL EXPANDIDO
+    // MENU ATUALIZADO
     // ==========================
     const menuTemplate = [
         {
@@ -104,7 +105,7 @@ function createWindow() {
                                 });
                             }
                         });
-                    },
+                    }
                 },
                 {
                     label: 'Exportar Configurações...',
@@ -132,19 +133,19 @@ function createWindow() {
                                 });
                             }
                         });
-                    },
+                    }
                 },
                 { type: 'separator' },
                 {
                     label: 'Limpar Cache de Conectividade',
                     click: () => {
                         connectivityTester.clearCache();
-                        dialog.showMessageBoxSync({ 
-                            type: 'info', 
-                            title: 'Cache Limpo', 
-                            message: 'Cache de conectividade foi limpo com sucesso!' 
+                        dialog.showMessageBoxSync({
+                            type: 'info',
+                            title: 'Cache Limpo',
+                            message: 'Cache de conectividade foi limpo com sucesso!'
                         });
-                    },
+                    }
                 },
                 {
                     label: 'Parar Todo Monitoramento',
@@ -153,38 +154,38 @@ function createWindow() {
                             clearInterval(interval);
                         });
                         connectivityMonitors.clear();
-                        
+
                         if (mainWindow) {
                             connectivityMonitors.forEach((_, serverKey) => {
                                 mainWindow.webContents.send('connectivity-monitoring-change', 'stopped', serverKey);
                             });
                         }
-                        
-                        dialog.showMessageBoxSync({ 
-                            type: 'info', 
-                            title: 'Monitoramento Parado', 
-                            message: 'Todo o monitoramento de conectividade foi interrompido.' 
+
+                        dialog.showMessageBoxSync({
+                            type: 'info',
+                            title: 'Monitoramento Parado',
+                            message: 'Todo o monitoramento de conectividade foi interrompido.'
                         });
-                    },
+                    }
                 },
                 { type: 'separator' },
                 {
                     label: 'Limpar Dados e Reiniciar',
                     click: () => {
                         ipcMain.emit('clear-data-request');
-                    },
+                    }
                 },
                 { type: 'separator' },
                 { role: 'quit', label: 'Sair' }
-            ],
+            ]
         },
         {
             label: 'Ver',
             submenu: [
                 { role: 'reload', label: 'Recarregar' },
                 { role: 'forceReload', label: 'Forçar Recarregamento' },
-                { role: 'toggleDevTools', label: 'Alternar Ferramentas de Desenvolvedor' },
-            ],
+                { role: 'toggleDevTools', label: 'Alternar Ferramentas de Desenvolvedor' }
+            ]
         },
         {
             label: 'Conectividade',
@@ -194,50 +195,50 @@ function createWindow() {
                     click: async () => {
                         const groups = store.get('groups') || [];
                         const allServers = [];
-                        
+
                         groups.forEach(group => {
                             if (group.servers) {
                                 allServers.push(...group.servers);
                             }
                         });
-                        
+
                         if (allServers.length === 0) {
-                            dialog.showMessageBoxSync({ 
-                                type: 'info', 
-                                title: 'Nenhum Servidor', 
-                                message: 'Não há servidores cadastrados para testar.' 
+                            dialog.showMessageBoxSync({
+                                type: 'info',
+                                title: 'Nenhum Servidor',
+                                message: 'Não há servidores cadastrados para testar.'
                             });
                             return;
                         }
-                        
+
                         dialog.showMessageBox({
                             type: 'info',
                             title: 'Teste Iniciado',
                             message: `Iniciando teste de conectividade para ${allServers.length} servidor(es)...`,
                             buttons: ['OK']
                         });
-                        
+
                         try {
                             await connectivityTester.testMultipleServers(allServers);
                         } catch (error) {
                             console.error('Erro no teste em lote:', error);
                         }
-                    },
+                    }
                 },
                 {
                     label: 'Estatísticas de Conectividade',
                     click: async () => {
                         const stats = connectivityTester.getCacheStats();
                         stats.activeMonitors = connectivityMonitors.size;
-                        
+
                         dialog.showMessageBoxSync({
                             type: 'info',
                             title: 'Estatísticas de Conectividade',
                             message: `Cache: ${stats.size} resultados\nTestes ativos: ${stats.activeTests}\nMonitoramentos ativos: ${stats.activeMonitors}\nTimeout do cache: ${stats.cacheTimeout}ms`
                         });
-                    },
+                    }
                 }
-            ],
+            ]
         }
     ];
 
@@ -246,7 +247,7 @@ function createWindow() {
 }
 
 // ==========================
-// EVENTOS ELECTRON ORIGINAIS
+// EVENTOS ELECTRON (MANTIDOS)
 // ==========================
 app.whenReady().then(createWindow);
 
@@ -263,7 +264,7 @@ app.on('activate', () => {
 });
 
 // ==========================
-// HANDLERS IPC ORIGINAIS
+// HANDLERS IPC BÁSICOS (MANTIDOS)
 // ==========================
 ipcMain.on('clear-data-request', () => {
     store.clear();
@@ -271,65 +272,15 @@ ipcMain.on('clear-data-request', () => {
     app.quit();
 });
 
-
-// src/electron.js - Adicione este novo handler
-
-// NOVO: Handler para a conexão VNC
-ipcMain.handle('connect-vnc', (event, connectionInfo) => {
-  console.log('Recebido pedido para conectar VNC:', connectionInfo);
-
-  // Validação básica dos dados recebidos
-  if (!connectionInfo || !connectionInfo.ipAddress || !connectionInfo.port) {
-    console.error('Dados de conexão VNC inválidos recebidos.');
-    return { success: false, message: 'Dados de conexão inválidos.' };
-  }
-
-  // Define o caminho para o executável do TightVNC embarcado.
-  // IMPORTANTE: Certifique-se de que este caminho corresponde à localização no seu projeto.
-  // O ideal é ter uma pasta 'vendor/tightvnc' na raiz do seu projeto.
-  const vncViewerPath = isDev
-    ? path.join(__dirname, '..', 'assets', 'tvnviewer.exe')
-    : path.join(process.resourcesPath, 'assets', 'tvnviewer.exe');
-
-  // Constrói o comando com os argumentos da linha de comando do TightVNC
-  let command = `"${vncViewerPath}" -host=${connectionInfo.ipAddress} -port=${connectionInfo.port}`;
-
-  if (connectionInfo.password) {
-    command += ` -password=${connectionInfo.password}`;
-  }
-  if (connectionInfo.viewOnly) {
-    command += ` -viewonly`;
-  }
-  // Adicione aqui outros argumentos se necessário, como -8bit, -fullscreen, etc.
-
-  console.log(`Executando comando VNC: ${command}`);
-
-  // Executa o comando para abrir o TightVNC
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Erro ao executar o TightVNC: ${error.message}`);
-      // Mostra um diálogo de erro para o utilizador
-      dialog.showErrorBox('Erro de Conexão VNC', `Não foi possível iniciar o cliente TightVNC.\n\nVerifique se o ficheiro está no caminho correto e se não está a ser bloqueado.\n\nErro: ${error.message}`);
-      return { success: false, message: error.message };
-    }
-    if (stderr) {
-      // Stderr pode conter avisos, por isso apenas os registamos
-      console.warn(`Stderr do TightVNC: ${stderr}`);
-    }
-    console.log(`TightVNC iniciado com sucesso: ${stdout}`);
-  });
-
-  // Retorna sucesso imediatamente, pois o processo é iniciado de forma assíncrona
-  return { success: true, message: 'Cliente VNC iniciado.' };
-});
-
 ipcMain.handle('get-data', (event, key) => {
     return store.get(key);
 });
 
+// Tratamento especial para criptografia de senhas
 ipcMain.on('set-data', (event, key, value) => {
     if (key === 'groups') {
         const groupsToStore = JSON.parse(JSON.stringify(value));
+
         groupsToStore.forEach(group => {
             group.servers.forEach(server => {
                 if (server.password && typeof server.password === 'string') {
@@ -342,6 +293,7 @@ ipcMain.on('set-data', (event, key, value) => {
                 }
             });
         });
+
         store.set(key, groupsToStore);
     } else {
         store.set(key, value);
@@ -349,25 +301,71 @@ ipcMain.on('set-data', (event, key, value) => {
 });
 
 // ==========================
-// HANDLER DE CONEXÃO MELHORADO COM TESTE PRÉVIO
+// HANDLER DE CONEXÃO VNC com RealVNC
+// ==========================
+ipcMain.handle('connect-vnc', async (event, connectionInfo) => {
+    console.log(`🖥️ Pedido de conexão VNC (TightVNC) recebido para: ${connectionInfo.name}`);
+
+    // O caminho deve apontar para o tvnviewer.exe na sua pasta assets
+    const vncViewerPath = isDev
+        ? path.join(__dirname, '..', 'assets', 'tvnviewer.exe')
+        : path.join(process.resourcesPath, 'assets', 'tvnviewer.exe');
+
+    // Construindo o comando com a sintaxe correta para o TightVNC (-param=valor)
+    let command = `"${vncViewerPath}" -host=${connectionInfo.ipAddress} -port=${connectionInfo.port}`;
+
+    if (connectionInfo.password) {
+        command += ` -password=${connectionInfo.password}`;
+    }
+
+    if (connectionInfo.viewOnly) {
+        command += ` -viewonly`;
+    }
+
+    console.log(`⚡ Executando comando TightVNC: ${command}`);
+
+    // Usando exec, que é ideal para strings de comando completas
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`❌ Erro ao executar o TightVNC: ${error.message}`);
+            dialog.showErrorBox(
+                'Erro de Conexão VNC',
+                `Não foi possível iniciar o cliente TightVNC.\n\nVerifique se o arquivo 'tvnviewer.exe' está no caminho correto e se não está sendo bloqueado.\n\nErro: ${error.message}`
+            );
+            return; // Retorna aqui para evitar log de sucesso
+        }
+        
+        if (stderr) {
+            // stderr pode conter avisos, então apenas registramos
+            console.warn(`Stderr do TightVNC: ${stderr}`);
+        }
+
+        console.log('✅ TightVNC iniciado com sucesso.');
+    });
+
+    return { success: true, message: 'Comando para iniciar o TightVNC enviado.' };
+});
+
+// ==========================
+// HANDLER DE CONEXÃO RDP/SSH (MANTIDO COM TESTE PRÉVIO)
 // ==========================
 ipcMain.on('start-connection', async (event, serverInfo) => {
     const protocol = serverInfo.protocol || 'rdp';
     console.log(`🔗 Pedido de conexão [${protocol.toUpperCase()}] recebido para: ${serverInfo.name}`);
 
-    // NOVO: Teste rápido de conectividade antes de conectar
+    // Teste prévio de conectividade (mantido)
     try {
         console.log('🧪 Executando teste prévio de conectividade...');
         const quickTest = await connectivityTester.testServerConnectivity(serverInfo);
-        
+
         if (quickTest.status === 'offline') {
             dialog.showErrorBox(
-                'Servidor Inacessível', 
+                'Servidor Inacessível',
                 `O servidor ${serverInfo.name} não está acessível no momento.\n\nDetalhes: ${quickTest.message}\n\nVerifique a conectividade antes de tentar conectar.`
             );
             return;
         }
-        
+
         if (quickTest.status === 'partial') {
             const response = dialog.showMessageBoxSync(mainWindow, {
                 type: 'warning',
@@ -377,20 +375,20 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
                 defaultId: 0,
                 cancelId: 0
             });
-            
+
             if (response === 0) {
                 console.log('🚫 Conexão cancelada pelo usuário devido à conectividade limitada');
                 return;
             }
         }
-        
+
         if (quickTest.status === 'online' && quickTest.tests?.tcpLatency?.average) {
             console.log(`✅ Conectividade confirmada. Latência: ${quickTest.tests.tcpLatency.average}ms`);
         }
-        
+
     } catch (error) {
         console.warn('⚠️ Teste prévio de conectividade falhou:', error);
-        
+
         const response = dialog.showMessageBoxSync(mainWindow, {
             type: 'question',
             title: 'Teste de Conectividade Falhou',
@@ -399,7 +397,7 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
             defaultId: 0,
             cancelId: 0
         });
-        
+
         if (response === 0) {
             console.log('🚫 Conexão cancelada devido à falha no teste prévio');
             return;
@@ -415,9 +413,9 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
         notification.show();
     }
 
-    // Lógica de conexão original baseada no protocolo
+    // Lógica de conexão baseada no protocolo
     if (protocol === 'ssh') {
-        // Validações SSH
+        // ===== SSH CONNECTION =====
         if (!serverInfo.ipAddress || !serverInfo.username) {
             dialog.showErrorBox('Erro de Conexão', 'Endereço de IP e Usuário são obrigatórios para SSH.');
             return;
@@ -442,16 +440,18 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
         }
 
         const finalCommand = plainTextPassword ? `${sshCommand} -pw "${plainTextPassword}"` : sshCommand;
-        
         console.log(`🖥️ Executando comando PuTTY SSH`);
+
         exec(finalCommand, (error) => {
             if (error) {
                 console.error(`❌ Erro ao iniciar PuTTY: ${error.message}`);
-                dialog.showErrorBox('Erro de Conexão', `PuTTY não encontrado ou falhou ao executar.\n\nVerifique se o putty.exe está na pasta 'assets'.\n\nErro: ${error.message}`);
+                dialog.showErrorBox('Erro de Conexão', 
+                    `PuTTY não encontrado ou falhou ao executar.\n\nVerifique se o putty.exe está na pasta 'assets'.\n\nErro: ${error.message}`);
             }
         });
 
-    } else { // Lógica RDP
+    } else if (protocol === 'rdp') {
+        // ===== RDP CONNECTION =====
         let plainTextPassword = '';
         if (serverInfo.password) {
             try {
@@ -492,15 +492,17 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
                 }
 
                 console.log('✅ Credencial RDP adicionada com sucesso.');
-                if (mainWindow) { 
-                    mainWindow.webContents.send('connection-status-update', serverInfo.id, 'active'); 
+
+                if (mainWindow) {
+                    mainWindow.webContents.send('connection-status-update', serverInfo.id, 'active');
                 }
 
                 // 3. Inicia conexão RDP
                 exec(rdpCommand, () => {
                     console.log('🏁 Sessão RDP finalizada.');
-                    if (mainWindow) { 
-                        mainWindow.webContents.send('connection-status-update', serverInfo.id, 'inactive'); 
+
+                    if (mainWindow) {
+                        mainWindow.webContents.send('connection-status-update', serverInfo.id, 'inactive');
                     }
 
                     // 4. Limpa credenciais após uso
@@ -518,52 +520,34 @@ ipcMain.on('start-connection', async (event, serverInfo) => {
 });
 
 // ==========================
-// NOVOS HANDLERS IPC PARA CONECTIVIDADE
+// HANDLERS DE CONECTIVIDADE (MANTIDOS)
 // ==========================
 
-/**
- * Handler para teste de conectividade de servidor único
- */
 ipcMain.handle('connectivity-test-server', async (event, serverInfo) => {
     try {
         console.log(`🧪 Teste de conectividade solicitado para: ${serverInfo.name}`);
-        
         const result = await connectivityTester.testServerConnectivity(serverInfo);
-        
-        // Emite evento de atualização para o frontend
         const serverKey = `${serverInfo.ipAddress}:${serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22)}`;
         if (mainWindow) {
             mainWindow.webContents.send('connectivity-status-update', serverKey, result);
         }
-        
         return result;
     } catch (error) {
         console.error('❌ Erro no teste de conectividade:', error);
-        return {
-            status: 'error',
-            error: error.message,
-            timestamp: Date.now()
-        };
+        return { status: 'error', error: error.message, timestamp: Date.now() };
     }
 });
 
-/**
- * Handler para teste de múltiplos servidores
- */
 ipcMain.handle('connectivity-test-multiple', async (event, servers) => {
     try {
         console.log(`🔄 Teste batch de ${servers.length} servidores solicitado`);
-        
         const results = await connectivityTester.testMultipleServers(servers);
-        
-        // Emite eventos de atualização para cada resultado
         if (mainWindow) {
             results.forEach(({ server, result }) => {
                 const serverKey = `${server.ipAddress}:${server.port || (server.protocol === 'rdp' ? 3389 : 22)}`;
                 mainWindow.webContents.send('connectivity-status-update', serverKey, result);
             });
         }
-        
         return results;
     } catch (error) {
         console.error('❌ Erro no teste batch:', error);
@@ -571,195 +555,73 @@ ipcMain.handle('connectivity-test-multiple', async (event, servers) => {
     }
 });
 
-/**
- * Handler para iniciar monitoramento contínuo
- */
 ipcMain.on('connectivity-start-monitoring', (event, serverInfo, interval = 30000) => {
-    try {
-        const serverKey = `${serverInfo.ipAddress}:${serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22)}`;
-        
-        // Para monitoramento existente se houver
-        if (connectivityMonitors.has(serverKey)) {
-            clearInterval(connectivityMonitors.get(serverKey));
-        }
-        
-        console.log(`🔄 Iniciando monitoramento contínuo para ${serverInfo.name} (${interval}ms)`);
-        
-        // Primeira execução imediata
-        performMonitoringTest(serverInfo, serverKey);
-        
-        // Configura execução periódica
-        const monitorInterval = setInterval(() => {
-            performMonitoringTest(serverInfo, serverKey);
-        }, interval);
-        
-        connectivityMonitors.set(serverKey, monitorInterval);
-        
-        // Notifica frontend
-        if (mainWindow) {
-            mainWindow.webContents.send('connectivity-monitoring-change', 'started', serverKey, {
-                interval,
-                serverInfo
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao iniciar monitoramento:', error);
-        if (mainWindow) {
-            mainWindow.webContents.send('connectivity-error', serverKey, error.message);
-        }
+    const serverKey = `${serverInfo.ipAddress}:${serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22)}`;
+    if (connectivityMonitors.has(serverKey)) {
+        clearInterval(connectivityMonitors.get(serverKey));
     }
-});
-
-/**
- * Handler para parar monitoramento específico
- */
-ipcMain.on('connectivity-stop-monitoring', (event, serverKey) => {
-    try {
-        if (connectivityMonitors.has(serverKey)) {
-            clearInterval(connectivityMonitors.get(serverKey));
-            connectivityMonitors.delete(serverKey);
-            
-            console.log(`⏹️ Monitoramento parado para ${serverKey}`);
-            
-            if (mainWindow) {
-                mainWindow.webContents.send('connectivity-monitoring-change', 'stopped', serverKey);
-            }
-        }
-    } catch (error) {
-        console.error('❌ Erro ao parar monitoramento:', error);
-    }
-});
-
-/**
- * Handler para parar todo monitoramento
- */
-ipcMain.on('connectivity-stop-all-monitoring', () => {
-    try {
-        console.log(`⏹️ Parando todos os ${connectivityMonitors.size} monitoramentos ativos`);
-        
-        connectivityMonitors.forEach((interval, serverKey) => {
-            clearInterval(interval);
-            if (mainWindow) {
-                mainWindow.webContents.send('connectivity-monitoring-change', 'stopped', serverKey);
-            }
-        });
-        
-        connectivityMonitors.clear();
-    } catch (error) {
-        console.error('❌ Erro ao parar todos os monitoramentos:', error);
-    }
-});
-
-/**
- * Handler para limpar cache
- */
-ipcMain.on('connectivity-clear-cache', () => {
-    try {
-        connectivityTester.clearCache();
-        console.log('🧹 Cache de conectividade limpo via IPC');
-    } catch (error) {
-        console.error('❌ Erro ao limpar cache:', error);
-    }
-});
-
-/**
- * Handler para obter estatísticas
- */
-ipcMain.handle('connectivity-get-stats', () => {
-    try {
-        const stats = connectivityTester.getCacheStats();
-        stats.activeMonitors = connectivityMonitors.size;
-        return stats;
-    } catch (error) {
-        console.error('❌ Erro ao obter estatísticas:', error);
-        return {
-            size: 0,
-            activeTests: 0,
-            activeMonitors: 0,
-            cacheTimeout: 30000
-        };
-    }
-});
-
-// ==========================
-// FUNÇÕES AUXILIARES DE CONECTIVIDADE
-// ==========================
-
-/**
- * Executa teste de monitoramento para um servidor
- */
-async function performMonitoringTest(serverInfo, serverKey) {
-    try {
-        if (mainWindow) {
-            mainWindow.webContents.send('connectivity-test-start', serverKey, serverInfo);
-        }
-        
-        const result = await connectivityTester.testServerConnectivity(serverInfo);
-        
-        if (mainWindow) {
-            mainWindow.webContents.send('connectivity-test-complete', serverKey, result);
-            mainWindow.webContents.send('connectivity-status-update', serverKey, result);
-        }
-        
-    } catch (error) {
-        console.error(`❌ Erro no monitoramento de ${serverKey}:`, error);
-        
-        if (mainWindow) {
-            mainWindow.webContents.send('connectivity-error', serverKey, error.message);
-        }
-    }
-}
-
-/**
- * Testa conectividade automaticamente quando servidor é adicionado
- */
-function autoTestNewServer(serverInfo) {
-    // Dispara teste automático quando servidor é adicionado
-    setTimeout(async () => {
+    console.log(`📡 Iniciando monitoramento de ${serverInfo.name} (${serverKey}) a cada ${interval}ms`);
+    const monitorInterval = setInterval(async () => {
         try {
             const result = await connectivityTester.testServerConnectivity(serverInfo);
-            const serverKey = `${serverInfo.ipAddress}:${serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22)}`;
-            
             if (mainWindow) {
                 mainWindow.webContents.send('connectivity-status-update', serverKey, result);
             }
         } catch (error) {
-            console.warn('⚠️ Teste automático de novo servidor falhou:', error);
+            console.error(`❌ Erro no monitoramento de ${serverKey}:`, error);
+            if (mainWindow) {
+                mainWindow.webContents.send('connectivity-error', serverKey, { message: error.message });
+            }
         }
-    }, 1000); // 1 segundo de delay
-}
+    }, interval);
+    connectivityMonitors.set(serverKey, monitorInterval);
+    if (mainWindow) {
+        mainWindow.webContents.send('connectivity-monitoring-change', 'started', serverKey, { interval });
+    }
+});
+
+ipcMain.on('connectivity-stop-monitoring', (event, serverKey) => {
+    if (connectivityMonitors.has(serverKey)) {
+        clearInterval(connectivityMonitors.get(serverKey));
+        connectivityMonitors.delete(serverKey);
+        console.log(`⏹️ Monitoramento parado para ${serverKey}`);
+        if (mainWindow) {
+            mainWindow.webContents.send('connectivity-monitoring-change', 'stopped', serverKey);
+        }
+    }
+});
+
+ipcMain.on('connectivity-stop-all-monitoring', () => {
+    console.log('⏹️ Parando todo monitoramento de conectividade');
+    connectivityMonitors.forEach((interval, serverKey) => {
+        clearInterval(interval);
+        if (mainWindow) {
+            mainWindow.webContents.send('connectivity-monitoring-change', 'stopped', serverKey);
+        }
+    });
+    connectivityMonitors.clear();
+});
+
+ipcMain.on('connectivity-clear-cache', () => {
+    connectivityTester.clearCache();
+    console.log('🧹 Cache de conectividade limpo via IPC');
+});
+
+ipcMain.handle('connectivity-get-stats', async () => {
+    const stats = connectivityTester.getCacheStats();
+    stats.activeMonitors = connectivityMonitors.size;
+    stats.monitoredServers = Array.from(connectivityMonitors.keys());
+    return stats;
+});
 
 // ==========================
-// LIMPEZA DE RECURSOS AO FECHAR
+// CLEANUP AO FECHAR
 // ==========================
 app.on('before-quit', () => {
-    console.log('🧹 Limpando recursos de conectividade...');
-    
-    // Para todos os monitoramentos
+    console.log('🧹 Limpando recursos antes de fechar...');
     connectivityMonitors.forEach((interval) => {
         clearInterval(interval);
     });
     connectivityMonitors.clear();
-    
-    // Limpa cache
-    connectivityTester.clearCache();
-    
-    console.log('✅ Recursos de conectividade limpos com sucesso');
+    console.log('✅ Cleanup concluído');
 });
-
-// ==========================
-// LOGS DE INICIALIZAÇÃO
-// ==========================
-console.log('🚀 Gerenciador de Conexões RDP/SSH iniciado');
-console.log(`   📁 Modo: ${isDev ? 'Desenvolvimento' : 'Produção'}`);
-console.log(`   🔌 Sistema de conectividade: Ativo`);
-console.log(`   📊 Handlers IPC: ${Object.keys(ipcMain.listenerCount).length || 'Registrados'}`);
-console.log(`   🎯 Pronto para conexões!`);
-
-// Exporta funções para possível uso em módulos externos
-module.exports = {
-    connectivityTester,
-    autoTestNewServer,
-    performMonitoringTest
-};

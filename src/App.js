@@ -5,6 +5,9 @@ import VncView from './views/VncView';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import useConnectivity from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
+import Modal from './components/Modal';
+import AddServerForm from './components/AddServerForm'; 
+import AddVncConnectionForm from './components/AddVncConnectionForm';
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
@@ -28,7 +31,6 @@ function App() {
 function AppContent() {
     const { toast } = useToast();
     
-    // Estados da aplicação
     const [activeView, setActiveView] = useState('RDP/SSH');
     const [groups, setGroups] = useState([]);
     const [vncGroups, setVncGroups] = useState([]);
@@ -37,10 +39,10 @@ function AppContent() {
     const [activeConnections, setActiveConnections] = useState([]);
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
+    const [addingToGroupId, setAddingToGroupId] = useState(null);
     
     const connectivity = useConnectivity({ autoTest: false, enableMonitoring: false });
 
-    // Funções de notificação
     const showError = useCallback((message) => {
         if (typeof message === 'string' && message.trim()) toast.error(message.trim());
     }, [toast]);
@@ -49,9 +51,7 @@ function AppContent() {
         if (typeof message === 'string' && message.trim()) toast.success(message.trim());
     }, [toast]);
 
-    //
     // Handlers para Grupos RDP/SSH
-    //
     const handleAddGroup = useCallback((name) => {
         const trimmedName = name.trim();
         if(!trimmedName) {
@@ -89,9 +89,7 @@ function AppContent() {
         showSuccess('Grupo removido com sucesso');
     }, [showSuccess]);
 
-    //
     // Handlers para Servidores RDP/SSH
-    //
     const handleAddServer = useCallback((groupId, serverData) => {
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
@@ -124,9 +122,7 @@ function AppContent() {
         showSuccess('Servidor removido com sucesso.');
     }, [showSuccess]);
 
-    //
     // Handlers para Grupos VNC
-    //
     const handleAddVncGroup = useCallback((name) => {
         const trimmedName = name.trim();
         if(!trimmedName) {
@@ -170,9 +166,7 @@ function AppContent() {
         });
     }, [showSuccess]);
 
-    //
     // Handlers para Conexões VNC
-    //
     const handleAddVncConnection = useCallback((groupId, connectionData) => {
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
@@ -218,9 +212,6 @@ function AppContent() {
         setDialogConfig(null);
     }, [dialogConfig]);
     
-    //
-    // Efeitos e valores memoizados
-    //
     const allServers = useMemo(() => groups.flatMap(group => group.servers || []), [groups]);
     const allVncConnections = useMemo(() => vncGroups.flatMap(group => group.connections || []), [vncGroups]);
 
@@ -274,7 +265,6 @@ function AppContent() {
     return (
         <div className="app">
             <ToastContainer />
-
             <header className="app-header">
                 <div className="header-content">
                     <h1>🖥️ Gerenciador RDP/SSH Enterprise</h1>
@@ -286,7 +276,6 @@ function AppContent() {
                     </div>
                 </div>
             </header>
-
             <div className="toolbar">
                 <div className="search-container">
                     <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
@@ -302,64 +291,83 @@ function AppContent() {
                     </label>
                 </div>
             </div>
-
             <nav className="view-switcher">
                 <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
                 <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
             </nav>
-
             <main className="groups-container">
-                {showAddGroupForm && (
-                    activeView === 'RDP/SSH' ? (
-                        <AddGroupForm 
-                            onAddGroup={handleAddGroup}
-                            onCancel={() => setShowAddGroupForm(false)}
-                            title="Criar Novo Grupo RDP/SSH"
-                            subtitle="Organize seus servidores RDP e SSH."
+                <Modal 
+                    isOpen={showAddGroupForm} 
+                    onClose={() => setShowAddGroupForm(false)}
+                    title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
+                >
+                    <AddGroupForm 
+                        onAddGroup={activeView === 'RDP/SSH' ? handleAddGroup : handleAddVncGroup}
+                        onCancel={() => setShowAddGroupForm(false)}
+                        // O título e subtítulo agora podem ser passados para o próprio formulário
+                        // title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
+                        subtitle={activeView === 'RDP/SSH' ? 'Organize seus servidores.' : 'Organize suas conexões.'}
+                    />
+                </Modal>
+                <Modal
+                    isOpen={!!addingToGroupId} // O modal abre se addingToGroupId tiver um valor
+                    onClose={() => setAddingToGroupId(null)}
+                    title={activeView === 'RDP/SSH' ? 'Adicionar Novo Servidor' : 'Adicionar Nova Conexão VNC'}
+                >
+                    {activeView === 'RDP/SSH' ? (
+                        <AddServerForm
+                            onAddServer={(serverData) => {
+                                handleAddServer(addingToGroupId, serverData);
+                                setAddingToGroupId(null); // Fecha o modal após adicionar
+                            }}
+                            onCancel={() => setAddingToGroupId(null)}
                         />
                     ) : (
-                        <AddGroupForm 
-                            onAddGroup={handleAddVncGroup}
-                            onCancel={() => setShowAddGroupForm(false)}
-                            title="Criar Novo Grupo VNC"
-                            subtitle="Organize suas conexões VNC."
+                        <AddVncConnectionForm
+                            onAddConnection={(connectionData) => {
+                                handleAddVncConnection(addingToGroupId, connectionData);
+                                setAddingToGroupId(null); // Fecha o modal após adicionar
+                            }}
+                            onCancel={() => setAddingToGroupId(null)}
                         />
-                    )
-                )}
-
+                    )}
+                </Modal>
                 {activeView === 'RDP/SSH' && (
                     <RdpSshView
                         filteredGroups={filteredGroups}
-                        onAddServer={handleAddServer}
+                        onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
                         onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
                         onUpdateServer={handleUpdateServer}
                         onDeleteGroup={(groupId, groupName) => setDialogConfig({ message: `Deletar grupo "${groupName}"?`, onConfirm: () => handleDeleteGroup(groupId), isOpen: true })}
                         onUpdateGroup={handleUpdateGroup}
                         activeConnections={activeConnections}
                         isEditModeEnabled={isEditModeEnabled}
+                        onShowAddGroupForm={() => setShowAddGroupForm(true)}
+                        onShowAddServerModal={setAddingToGroupId}
+                        
                     />
                 )}
                 {activeView === 'VNC' && (
                     <VncView
                         vncGroups={vncGroups}
                         onAddGroup={handleAddVncGroup}
-                        onAddConnection={handleAddVncConnection}
+                        onAddConnection={(groupId, connectionData) => handleAddVncConnection(groupId, connectionData)}
                         onDeleteConnection={handleDeleteVncConnection}
                         onDeleteGroup={handleDeleteVncGroup}
                         onUpdateConnection={handleUpdateVncConnection}
                         onUpdateVncGroup={handleUpdateVncGroup}
                         isEditModeEnabled={isEditModeEnabled}
+                        onShowAddConnectionModal={setAddingToGroupId}
+                        
                     />
                 )}
             </main>
-            
             <footer className="app-footer">
                 <div className="footer-content">
-                    <div>🚀 Gerenciador Enterprise v2.4</div>
+                    <div>🚀 Gerenciador Enterprise v3.1</div>
                     <div>{groups.length + vncGroups.length} grupo(s) • {allServers.length + allVncConnections.length} item(ns)</div>
                 </div>
             </footer>
-
             {dialogConfig && (
                 <ConfirmationDialog
                     isOpen={dialogConfig.isOpen} 
@@ -373,4 +381,3 @@ function AppContent() {
 }
 
 export default App;
-

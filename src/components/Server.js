@@ -119,36 +119,49 @@ function Server({
     // RENDER - MODO EDIÇÃO
     // ==========================
     if (isEditing) {
-        return (
-            <div className={`server-item editing ${currentStatus}`}>
-                <form onSubmit={handleUpdateSubmit} className="server-edit-form-inline" onClick={(e) => e.stopPropagation()}>
-                    <div className="form-grid">
-                        {/* ... Seus campos de formulário permanecem os mesmos ... */}
+    return (
+        // Usamos a mesma classe do formulário de VNC para manter a consistência
+        <div className="add-group-form-container" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleUpdateSubmit} className="add-server-form" style={{padding: 'var(--space-24)'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                    <div className="form-row">
+                        <label className="form-label">Nome:</label>
+                        <input name="name" value={editData.name} onChange={handleInputChange} className="form-input"/>
+                    </div>
+                    <div className="form-row">
+                        <label className="form-label">IP:</label>
+                        <input name="ipAddress" value={editData.ipAddress} onChange={handleInputChange} className="form-input"/>
+                    </div>
+                    <div className="form-row">
+                        <label className="form-label">Usuário:</label>
+                        <input name="username" value={editData.username} onChange={handleInputChange} className="form-input"/>
+                    </div>
+                    <div className="form-row">
+                        <label className="form-label">Nova Senha:</label>
+                        <input name="password" type="password" placeholder="Não alterar" onChange={handleInputChange} className="form-input"/>
+                    </div>
+                    {editData.protocol === 'rdp' && 
                         <div className="form-row">
-                            <label className="form-label">Protocolo:</label>
-                            <div className="protocol-selector">{/*...*/}</div>
+                            <label className="form-label">Domínio:</label>
+                            <input name="domain" value={editData.domain} onChange={handleInputChange} className="form-input"/>
                         </div>
-                        <div className="form-row"><label>Nome:</label><input name="name" value={editData.name} onChange={handleInputChange}/></div>
-                        <div className="form-row"><label>IP:</label><input name="ipAddress" value={editData.ipAddress} onChange={handleInputChange}/></div>
-                        <div className="form-row"><label>Usuário:</label><input name="username" value={editData.username} onChange={handleInputChange}/></div>
-                        <div className="form-row"><label>Senha:</label><input name="password" type="password" placeholder="Não alterar" onChange={handleInputChange}/></div>
-                        {editData.protocol === 'rdp' && <div className="form-row"><label>Domínio:</label><input name="domain" value={editData.domain} onChange={handleInputChange}/></div>}
-                        {editData.protocol === 'ssh' && <div className="form-row"><label>Porta:</label><input name="port" value={editData.port} onChange={handleInputChange}/></div>}
-                    </div>
+                    }
+                    {editData.protocol === 'ssh' && 
+                        <div className="form-row">
+                            <label className="form-label">Porta:</label>
+                            <input name="port" value={editData.port} onChange={handleInputChange} className="form-input"/>
+                        </div>
+                    }
+                </div>
 
-                    {/* --- BOTÕES DO FORMULÁRIO DE EDIÇÃO ATUALIZADOS --- */}
-                    <div className="form-actions">
-                        <button type="button" className="action-button-icon cancel" title="Cancelar" onClick={() => setIsEditing(false)}>
-                            <CancelIcon />
-                        </button>
-                        <button type="submit" className="action-button-icon save" title="Salvar">
-                            <SaveIcon />
-                        </button>
-                    </div>
-                </form>
-            </div>
-        );
-    }
+                <div className="form-actions" style={{marginTop: '16px'}}>
+                    <button type="button" className="btn-cancel" onClick={() => setIsEditing(false)}>Cancelar</button>
+                    <button type="submit" className="btn-submit">Salvar</button>
+                </div>
+            </form>
+        </div>
+    );
+}
 
     // ==========================
     // RENDER - MODO NORMAL
