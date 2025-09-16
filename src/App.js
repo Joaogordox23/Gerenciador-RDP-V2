@@ -3,7 +3,7 @@ import './App.css';
 import RdpSshView from './views/RdpSshView';
 import VncView from './views/VncView';
 import ConfirmationDialog from './components/ConfirmationDialog';
-import useConnectivity from './hooks/useConnectivity';
+import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
 import Modal from './components/Modal';
 import AddServerForm from './components/AddServerForm'; 
@@ -23,7 +23,9 @@ const ConnectionsIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="curr
 function App() {
     return (
         <ToastProvider>
-            <AppContent />
+            <ConnectivityProvider>
+                <AppContent />
+            </ConnectivityProvider>
         </ToastProvider>
     );
 }
