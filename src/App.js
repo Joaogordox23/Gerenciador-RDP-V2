@@ -43,7 +43,12 @@ function AppContent() {
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
     const [addingToGroupId, setAddingToGroupId] = useState(null);
-    
+    const [theme, setTheme] = useState('dark');
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
+    };
+
     const showError = useCallback((message) => {
         if (typeof message === 'string' && message.trim()) toast.error(message.trim());
     }, [toast]);
@@ -250,6 +255,11 @@ function AppContent() {
     }, [groups, searchTerm]);
 
     useEffect(() => {
+        // Acessa o elemento <html> e define o atributo
+        document.documentElement.setAttribute('data-color-scheme', theme);
+    }, [theme]);
+
+    useEffect(() => {
         const loadData = async () => {
             if (window.api && window.api.storage) {
                 const savedGroups = await window.api.storage.get('groups');
@@ -295,17 +305,23 @@ function AppContent() {
             </header>
             <div className="toolbar">
                 <div className="search-container">
-                    <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
+                    <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Buscar por nome do grupo, servidor ou IP..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
                 <div className="toolbar-actions">
+                    {/* 3. ADICIONANDO O BOTÃO DE ALTERNÂNCIA DE TEMA */}
+                    <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </button>
                     <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
                         {showAddGroupForm ? '✖️ Cancelar' : '➕ Novo Grupo'}
                     </button>
-                    <label htmlFor="edit-mode-toggle" className="edit-mode-toggle">
-                        <span>Modo Edição</span>
-                        <input type="checkbox" id="edit-mode-toggle" checked={isEditModeEnabled} onChange={(e) => setIsEditModeEnabled(e.target.checked)} />
-                        <span className="toggle-switch"></span>
-                    </label>
+                    <label htmlFor="edit-mode-toggle" className="edit-mode-toggle">{/* ... */}</label>
                 </div>
             </div>
             <nav className="view-switcher">
