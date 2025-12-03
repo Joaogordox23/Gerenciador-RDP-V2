@@ -1,10 +1,17 @@
 // src/components/EditServerForm.js
-
 import React, { useState } from 'react';
+import {
+    ComputerIcon,
+    TerminalIcon,
+    SettingsEthernetIcon,
+    PersonOutlineIcon,
+    LockIcon,
+    DomainIcon,
+    SaveIcon,
+    CancelIcon
+} from './MuiIcons';
 
-// Este componente recebe o serverInfo para preencher os campos
 function EditServerForm({ serverInfo, onSave, onCancel }) {
-    // O estado inicial é preenchido com os dados do servidor que estamos a editar
     const [serverData, setServerData] = useState({
         protocol: serverInfo.protocol || 'rdp',
         name: serverInfo.name || '',
@@ -58,80 +65,161 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
         // Prepara os dados para salvar, omitindo a senha se estiver vazia
         const finalData = { ...serverData };
         if (!finalData.password) {
-            delete finalData.password; // Não envia senha vazia para não sobrescrever a existente
+            delete finalData.password;
         }
 
         onSave(finalData);
     };
 
-    // Usamos os mesmos estilos do AddServerForm para consistência
     return (
-        <div className="add-server-form-container" onClick={(e) => e.stopPropagation()}>
-            <div className="form-header">
-                <h3>✏️ Editar Servidor</h3>
-                <p className="form-subtitle">Atualize os dados do servidor {serverInfo.name}</p>
-            </div>
-            <form className="add-server-form" onSubmit={handleSubmit}>
-                {/* Seletor de protocolo */}
-                <div className="form-row">
-                    <label className="form-label">🔌 Protocolo</label>
+        <div className="server-edit-form-inline" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmit} className="server-edit-form">
+                <div className="form-header">
+                    <h3>Editar Servidor</h3>
+                </div>
+
+                <div className="form-group">
+                    <label>Protocolo</label>
                     <div className="protocol-selector">
-                        {/* Opção RDP */}
-                        <div className="protocol-option">
-                            <input type="radio" id={`rdp-${serverInfo.id}`} name="protocol" value="rdp" checked={serverData.protocol === 'rdp'} onChange={handleProtocolChange} />
-                            <label htmlFor={`rdp-${serverInfo.id}`} className="protocol-label">🖥️ RDP</label>
+                        <label className={`protocol-option ${serverData.protocol === 'rdp' ? 'selected' : ''}`}>
+                            <input
+                                type="radio"
+                                name="protocol"
+                                value="rdp"
+                                checked={serverData.protocol === 'rdp'}
+                                onChange={handleProtocolChange}
+                                className="sr-only"
+                            />
+                            <div className="protocol-content">
+                                <ComputerIcon className="protocol-icon" />
+                                <span>RDP</span>
+                            </div>
+                        </label>
+                        <label className={`protocol-option ${serverData.protocol === 'ssh' ? 'selected' : ''}`}>
+                            <input
+                                type="radio"
+                                name="protocol"
+                                value="ssh"
+                                checked={serverData.protocol === 'ssh'}
+                                onChange={handleProtocolChange}
+                                className="sr-only"
+                            />
+                            <div className="protocol-content">
+                                <TerminalIcon className="protocol-icon" />
+                                <span>SSH</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Nome *</label>
+                    <div className="input-with-icon">
+                        <ComputerIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="name"
+                            value={serverData.name}
+                            onChange={handleInputChange}
+                            className={`form-control ${errors.name ? 'error' : ''}`}
+                            placeholder="Ex: Servidor Principal"
+                            autoFocus
+                        />
+                    </div>
+                    {errors.name && <span className="error-text">{errors.name}</span>}
+                </div>
+
+                <div className="form-group">
+                    <label>IP ou Hostname *</label>
+                    <div className="input-with-icon">
+                        <SettingsEthernetIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="ipAddress"
+                            value={serverData.ipAddress}
+                            onChange={handleInputChange}
+                            className={`form-control ${errors.ipAddress ? 'error' : ''}`}
+                            placeholder="Ex: 192.168.1.100"
+                        />
+                    </div>
+                    {errors.ipAddress && <span className="error-text">{errors.ipAddress}</span>}
+                </div>
+
+                <div className="form-row">
+                    <div className="form-group">
+                        <label>Usuário {serverData.protocol === 'ssh' ? '*' : ''}</label>
+                        <div className="input-with-icon">
+                            <PersonOutlineIcon className="input-icon" />
+                            <input
+                                type="text"
+                                name="username"
+                                value={serverData.username}
+                                onChange={handleInputChange}
+                                className={`form-control ${errors.username ? 'error' : ''}`}
+                                placeholder="Usuário"
+                            />
                         </div>
-                        {/* Opção SSH */}
-                        <div className="protocol-option">
-                            <input type="radio" id={`ssh-${serverInfo.id}`} name="protocol" value="ssh" checked={serverData.protocol === 'ssh'} onChange={handleProtocolChange} />
-                            <label htmlFor={`ssh-${serverInfo.id}`} className="protocol-label">💻 SSH</label>
+                        {errors.username && <span className="error-text">{errors.username}</span>}
+                    </div>
+                    <div className="form-group">
+                        <label>Nova Senha</label>
+                        <div className="input-with-icon">
+                            <LockIcon className="input-icon" />
+                            <input
+                                type="password"
+                                name="password"
+                                value={serverData.password}
+                                onChange={handleInputChange}
+                                className="form-control"
+                                placeholder="Deixe em branco para manter"
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* Campos do formulário (Nome, IP, etc.) */}
-                {/* Nome */}
-                <div className="form-row">
-                    <label htmlFor={`name-${serverInfo.id}`} className="form-label">🏷️ Nome *</label>
-                    <input type="text" id={`name-${serverInfo.id}`} name="name" value={serverData.name} onChange={handleInputChange} className={`form-input ${errors.name ? 'error' : ''}`} required />
-                    {errors.name && <div className="input-info"><span className="error-message">{errors.name}</span></div>}
-                </div>
-                {/* IP/Hostname */}
-                <div className="form-row">
-                    <label htmlFor={`ip-${serverInfo.id}`} className="form-label">🌐 IP ou Hostname *</label>
-                    <input type="text" id={`ip-${serverInfo.id}`} name="ipAddress" value={serverData.ipAddress} onChange={handleInputChange} className={`form-input ${errors.ipAddress ? 'error' : ''}`} required />
-                    {errors.ipAddress && <div className="input-info"><span className="error-message">{errors.ipAddress}</span></div>}
-                </div>
-                {/* Usuário */}
-                <div className="form-row">
-                    <label htmlFor={`username-${serverInfo.id}`} className="form-label">👤 Usuário {serverData.protocol === 'ssh' ? '*' : ''}</label>
-                    <input type="text" id={`username-${serverInfo.id}`} name="username" value={serverData.username} onChange={handleInputChange} className={`form-input ${errors.username ? 'error' : ''}`} required={serverData.protocol === 'ssh'} />
-                    {errors.username && <div className="input-info"><span className="error-message">{errors.username}</span></div>}
-                </div>
-                {/* Senha */}
-                <div className="form-row">
-                    <label htmlFor={`password-${serverInfo.id}`} className="form-label">🔑 Nova Senha</label>
-                    <input type="password" id={`password-${serverInfo.id}`} name="password" value={serverData.password} onChange={handleInputChange} placeholder="Deixe em branco para não alterar" className="form-input" />
-                </div>
-                {/* Domínio (RDP) */}
                 {serverData.protocol === 'rdp' && (
-                    <div className="form-row">
-                        <label htmlFor={`domain-${serverInfo.id}`} className="form-label">🏢 Domínio</label>
-                        <input type="text" id={`domain-${serverInfo.id}`} name="domain" value={serverData.domain} onChange={handleInputChange} className="form-input" />
-                    </div>
-                )}
-                {/* Porta (SSH) */}
-                {serverData.protocol === 'ssh' && (
-                    <div className="form-row">
-                        <label htmlFor={`port-${serverInfo.id}`} className="form-label">🔌 Porta</label>
-                        <input type="number" id={`port-${serverInfo.id}`} name="port" value={serverData.port} onChange={handleInputChange} placeholder="22" className="form-input" />
+                    <div className="form-group">
+                        <label>Domínio</label>
+                        <div className="input-with-icon">
+                            <DomainIcon className="input-icon" />
+                            <input
+                                type="text"
+                                name="domain"
+                                value={serverData.domain}
+                                onChange={handleInputChange}
+                                className="form-control"
+                                placeholder="Ex: EMPRESA"
+                            />
+                        </div>
                     </div>
                 )}
 
-                {/* Ações */}
+                {serverData.protocol === 'ssh' && (
+                    <div className="form-group">
+                        <label>Porta</label>
+                        <div className="input-with-icon">
+                            <SettingsEthernetIcon className="input-icon" />
+                            <input
+                                type="number"
+                                name="port"
+                                value={serverData.port}
+                                onChange={handleInputChange}
+                                className="form-control"
+                                placeholder="22"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn-cancel">❌ Cancelar</button>
-                    <button type="submit" className="btn-submit">✅ Salvar Alterações</button>
+                    <button type="button" onClick={onCancel} className="btn btn--secondary">
+                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Cancelar
+                    </button>
+                    <button type="submit" className="btn btn--primary">
+                        <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Salvar
+                    </button>
                 </div>
             </form>
         </div>

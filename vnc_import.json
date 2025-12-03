@@ -1,0 +1,588 @@
+{
+  "generatedAt": "2025-12-03T02:14:53.163Z",
+  "totalGroups": 12,
+  "totalConnections": 71,
+  "vncGroups": [
+    {
+      "id": 1764728093152.417,
+      "name": "1A",
+      "groupName": "1A",
+      "connections": [
+        {
+          "id": 1764728093151.9922,
+          "name": "1A RESIDENTES",
+          "ipAddress": "RESIDENTES01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093151.7412,
+          "name": "1A RESIDENTES02",
+          "ipAddress": "RESIDENTES02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093151.8655,
+          "name": "1A RESIDENTES03",
+          "ipAddress": "RESIDENTES03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093151.9548,
+          "name": "1A01",
+          "ipAddress": "UI1A01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093152.1675,
+          "name": "1A02 - Balcão",
+          "ipAddress": "UI1A02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093152.37,
+          "name": "1A03",
+          "ipAddress": "UI1A03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093152.4075,
+          "name": "1A04",
+          "ipAddress": "UI1A04",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093152.4424,
+          "name": "1A05 - Balcão",
+          "ipAddress": "UI1A05",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093153.85,
+      "name": "1B",
+      "groupName": "1B",
+      "connections": [
+        {
+          "id": 1764728093152.1338,
+          "name": "1B01",
+          "ipAddress": "UI1B01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093153.5571,
+          "name": "1B02",
+          "ipAddress": "UI1B02",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093153.3809,
+      "name": "2A Cirurgico",
+      "groupName": "2A Cirurgico",
+      "connections": [
+        {
+          "id": 1764728093153.6978,
+          "name": "2A03 - CORREDOR",
+          "ipAddress": "UI2A03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093153.189,
+          "name": "2A05 - JANELA",
+          "ipAddress": "UI2A05",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093154.0488,
+      "name": "2A Convênios",
+      "groupName": "2A Convênios",
+      "connections": [
+        {
+          "id": 1764728093154.9753,
+          "name": "2A01",
+          "ipAddress": "UI2A01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093154.3345,
+          "name": "2A02 - Porta",
+          "ipAddress": "UI2A02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093154.8013,
+          "name": "2A04 - Geladeira",
+          "ipAddress": "UI2A04",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093155.4705,
+      "name": "2B - Maternidade",
+      "groupName": "2B - Maternidade",
+      "connections": [
+        {
+          "id": 1764728093154.1057,
+          "name": "2B SUPERVISAO",
+          "ipAddress": "SUPENF",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093154.1084,
+          "name": "2B01 - Maternidade",
+          "ipAddress": "UI2B01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093154.0808,
+          "name": "2B02 - Maternidade",
+          "ipAddress": "UI2B02",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093156.156,
+      "name": "2C - Saúde Mental",
+      "groupName": "2C - Saúde Mental",
+      "connections": [
+        {
+          "id": 1764728093155.9365,
+          "name": "2CSM01 - MULTIDISCIPLINAR",
+          "ipAddress": "2CSM01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093155.5127,
+          "name": "2CSM01",
+          "ipAddress": "2CSM01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093155.7595,
+          "name": "2CSM02",
+          "ipAddress": "2CSM02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093156.7449,
+          "name": "2CSM03 - CONSULTORIO MEDICO",
+          "ipAddress": "2CSM03",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093156.8452,
+      "name": "3A",
+      "groupName": "3A",
+      "connections": [
+        {
+          "id": 1764728093156.696,
+          "name": "3A01",
+          "ipAddress": "UI3A01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093156.931,
+          "name": "3A02",
+          "ipAddress": "UI3A02",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093157.6738,
+      "name": "3B",
+      "groupName": "3B",
+      "connections": [
+        {
+          "id": 1764728093157.2385,
+          "name": "3B01",
+          "ipAddress": "UI3B01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093157.1404,
+          "name": "3B04",
+          "ipAddress": "UI3B04",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093158.235,
+      "name": "Agendamento",
+      "groupName": "Agendamento",
+      "connections": [
+        {
+          "id": 1764728093157.4502,
+          "name": "AGENDAMENTO01",
+          "ipAddress": "AGENDAMENTO01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093157.7375,
+          "name": "AGENDAMENTO02",
+          "ipAddress": "AGENDAMENTO02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093158.7976,
+          "name": "AGENDAMENTO03 NICOLI",
+          "ipAddress": "AGENDAMENTO03",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093158.1514,
+      "name": "Almoxarifado",
+      "groupName": "Almoxarifado",
+      "connections": [
+        {
+          "id": 1764728093158.0613,
+          "name": "ALMOX01 - Mateus",
+          "ipAddress": "ALMOX01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093158.5898,
+          "name": "ALMOX02 - Fabiana",
+          "ipAddress": "ALMOX02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093158.136,
+          "name": "ALMOX04",
+          "ipAddress": "ALMOX04",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093158.812,
+          "name": "ALMOX05 UNITERIZACAO",
+          "ipAddress": "ALMOX05",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093161.1372,
+      "name": "Faturamento",
+      "groupName": "Faturamento",
+      "connections": [
+        {
+          "id": 1764728093159.1538,
+          "name": "FATU01 - CONCEICAO",
+          "ipAddress": "FATU01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.6665,
+          "name": "FATU02 - ELISAMA",
+          "ipAddress": "FATU02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.4587,
+          "name": "FATU03",
+          "ipAddress": "FATU03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.9666,
+          "name": "FATU04",
+          "ipAddress": "FATU04",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.7166,
+          "name": "FATU05",
+          "ipAddress": "FATU05",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.874,
+          "name": "FATU06 - ISABEL",
+          "ipAddress": "FATU06",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.9893,
+          "name": "FATU07 - VAZIO",
+          "ipAddress": "FATU07",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.1702,
+          "name": "FATU08 - MARIA EDUARDA SILVA",
+          "ipAddress": "FATU08",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093159.1367,
+          "name": "FATU09 -",
+          "ipAddress": "FATU09",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.4834,
+          "name": "FATU10 - MARIANA",
+          "ipAddress": "FATU10",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.0232,
+          "name": "FATU11 - VAZIO",
+          "ipAddress": "FATU11",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.1582,
+          "name": "FATU12 - CICERO",
+          "ipAddress": "FATU12",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.3713,
+          "name": "FATU13 - EDUARDO",
+          "ipAddress": "FATU13",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.8179,
+          "name": "FATU14 - SEM DONO",
+          "ipAddress": "FATU14",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.262,
+          "name": "FATU15 - SEM DONO",
+          "ipAddress": "FATU15",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.7974,
+          "name": "FATU16 - ELIS REGINA",
+          "ipAddress": "FATU16",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.504,
+          "name": "FATU17 - VAZIO",
+          "ipAddress": "FATU17",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093160.9211,
+          "name": "FATU18 - PAULO",
+          "ipAddress": "FATU18",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.6619,
+          "name": "FATU19 - XILTON",
+          "ipAddress": "FATU19",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.7136,
+          "name": "FATU20 - SEM DONO",
+          "ipAddress": "FATU20",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.8135,
+          "name": "FATU21 - PATRICIA",
+          "ipAddress": "FATU21",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.0645,
+          "name": "FATU22 - ASS. DE ALA",
+          "ipAddress": "FATU22",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.4216,
+          "name": "FATU23 - ASS. ALA",
+          "ipAddress": "FATU23",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.2268,
+          "name": "FATU24 - LUCIENE",
+          "ipAddress": "FATU24",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.0867,
+          "name": "FATU25 - SEM DONO",
+          "ipAddress": "FATU025",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.444,
+          "name": "FATU26 - ANA PAULA",
+          "ipAddress": "FATU26",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.4436,
+          "name": "FATU27 - TATHIANE",
+          "ipAddress": "FATU27",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093161.1484,
+          "name": "FATU28 - VAZIO",
+          "ipAddress": "FATU28",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    },
+    {
+      "id": 1764728093163.6357,
+      "name": "Pronto Atendimento",
+      "groupName": "Pronto Atendimento",
+      "connections": [
+        {
+          "id": 1764728093162.1492,
+          "name": "PA01",
+          "ipAddress": "PA01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.549,
+          "name": "PA02",
+          "ipAddress": "PA02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.7288,
+          "name": "PA03",
+          "ipAddress": "PA03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.9146,
+          "name": "PA04",
+          "ipAddress": "PA04",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.2449,
+          "name": "PAINELPA01-1",
+          "ipAddress": "PAINELPA01",
+          "port": "1",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.3928,
+          "name": "PAINELPA01",
+          "ipAddress": "PAINELPA01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093162.2283,
+          "name": "PAINELPA02 - UNIMED",
+          "ipAddress": "PAINELPA02",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093163.5742,
+          "name": "PAINELPA03",
+          "ipAddress": "PAINELPA03",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093163.0906,
+          "name": "PAUNIMEDENF",
+          "ipAddress": "UNIMEDENF01",
+          "port": "7007",
+          "protocol": "vnc"
+        },
+        {
+          "id": 1764728093163.9558,
+          "name": "TOTEM-PA",
+          "ipAddress": "TOTEM",
+          "port": "7007",
+          "protocol": "vnc"
+        }
+      ]
+    }
+  ]
+}

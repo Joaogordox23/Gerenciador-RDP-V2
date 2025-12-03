@@ -5,11 +5,17 @@
   "main": "public/electron.js",
   "homepage": "./",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "activedirectory2": "^2.2.0",
     "electron-store": "^7.0.3",
     "react": "^18.3.1",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
@@ -26,6 +32,7 @@
     "build:react": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "electron": "npm run electron:start",
     "electron:start": "concurrently \"npm:start\" \"wait-on http://localhost:3000 && electron .\"",
     "package": "npm run build:react && electron-builder",
     "build": "npm run build:react && electron-builder --win --x64"
@@ -48,7 +55,7 @@
       "last 1 safari version"
     ]
   },
-"build": {
+  "build": {
     "appId": "com.seu-nome.gerenciador-rdp",
     "productName": "Gerenciador de Conexões Enterprise",
     "directories": {
@@ -59,7 +66,8 @@
       "build/**/*",
       "public/electron.js",
       "public/preload.js",
-      "public/ConnectivityTester.js"
+      "public/ConnectivityTester.js",
+      "public/FileSystemManager.js"
     ],
     "extraResources": [
       {
@@ -73,7 +81,9 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "include": "installer/installer.nsh"
     }
   }
 }

@@ -6,20 +6,44 @@ import ConfirmationDialog from './components/ConfirmationDialog';
 import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
 import Modal from './components/Modal';
-import AddServerForm from './components/AddServerForm'; 
+import AddServerForm from './components/AddServerForm';
 import AddVncConnectionForm from './components/AddVncConnectionForm';
 import DashboardView from './views/DashboardView';
+import { DragDropContext } from 'react-beautiful-dnd';
+import {
+    ComputerIcon,
+    LayersIcon,
+    CheckCircleOutlineIcon,
+    CancelIcon,
+    LinkIcon,
+    CloudDownloadIcon,
+    LightModeIcon,
+    DarkModeIcon,
+    AddCircleOutlineIcon,
+    CloseIcon,
+    SearchIcon,
+    RocketLaunchIcon,
+    LockIcon
+} from './components/MuiIcons';
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
 import ToastContainer from './components/toast/ToastContainer';
 
-// --- Ícones para a Barra de Estatísticas ---
-const TotalIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>);
-const OnlineIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>);
-const OfflineIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>);
-const ConnectionsIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0V10.5m-3 0h15v9a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 3 19.5v-9Z"></path><path d="M12 15a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"></path></svg>);
+// Hook de Grupos
+import { useGroups } from './hooks/useGroups';
 
+// Modal de Importação do AD
+import ADImportModal from './components/ADImportModal';
+
+// Modal de Alteração de Senha Global
+import BulkPasswordModal from './components/BulkPasswordModal';
+
+// Tela de Loading
+import LoadingScreen from './components/LoadingScreen';
+
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { getTheme } from './theme/AppTheme';
 
 function App() {
     return (
@@ -33,183 +57,110 @@ function App() {
 
 function AppContent() {
     const { toast } = useToast();
-     const { testAllServers } = useConnectivity(); 
+    const { testAllServers } = useConnectivity();
     const [activeView, setActiveView] = useState('Dashboard');
-    const [groups, setGroups] = useState([]);
-    const [vncGroups, setVncGroups] = useState([]);
+
+    // Usando o hook customizado para gerenciar grupos
+    const {
+        groups,
+        setGroups,
+        vncGroups,
+        // setVncGroups, // Unused
+        handleAddGroup,
+        handleUpdateGroup,
+        handleDeleteGroup,
+        handleAddServer,
+        handleUpdateServer,
+        handleDeleteServer,
+        handleAddVncGroup,
+        handleUpdateVncGroup,
+        handleDeleteVncGroup,
+        handleAddVncConnection,
+        handleUpdateVncConnection,
+        handleDeleteVncConnection,
+        isLoading
+    } = useGroups(toast);
+
     const [dialogConfig, setDialogConfig] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeConnections, setActiveConnections] = useState([]);
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
     const [addingToGroupId, setAddingToGroupId] = useState(null);
-    const [theme, setTheme] = useState('dark');
+    const [theme, setTheme] = useState(null);
+    const [showADModal, setShowADModal] = useState(false);
+    const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
 
     const toggleTheme = () => {
         setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
     };
 
-    const showError = useCallback((message) => {
-        if (typeof message === 'string' && message.trim()) toast.error(message.trim());
-    }, [toast]);
+    // const showError = useCallback((message) => {
+    //     if (typeof message === 'string' && message.trim()) toast.error(message.trim());
+    // }, [toast]);
 
     const showSuccess = useCallback((message) => {
         if (typeof message === 'string' && message.trim()) toast.success(message.trim());
     }, [toast]);
 
-    // Handlers para Grupos RDP/SSH
-    const handleAddGroup = useCallback((name) => {
-        const trimmedName = name.trim();
-        if(!trimmedName) {
-            showError('Nome do grupo não pode estar vazio.');
-            return;
+    // Handler para Importação do AD
+    const handleImportFromAD = useCallback((targetGroupId, servers, type) => {
+        if (type === 'rdp') {
+            servers.forEach(server => handleAddServer(targetGroupId, server));
+        } else {
+            servers.forEach(server => handleAddVncConnection(targetGroupId, server));
         }
-        setGroups(prevGroups => {
-            if (prevGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-                showError('Já existe um grupo com este nome.');
-                return prevGroups;
+        showSuccess(`${servers.length} computadores importados com sucesso!`);
+    }, [handleAddServer, handleAddVncConnection, showSuccess]);
+
+    // Handler para Alteração de Senha Global
+    const handleBulkPasswordUpdate = useCallback(async (data) => {
+        try {
+            if (!window.api || !window.api.bulkUpdatePassword) {
+                toast.error('API de alteração em massa não disponível');
+                return;
             }
-            const newGroup = { id: Date.now(), groupName: trimmedName, servers: [] };
-            showSuccess(`Grupo "${trimmedName}" criado com sucesso`);
-            setShowAddGroupForm(false);
-            return [...prevGroups, newGroup];
+
+            const result = await window.api.bulkUpdatePassword(data);
+
+            if (result.success) {
+                toast.success(`✅ ${result.updated} servidor(es) atualizado(s) com sucesso!`);
+                if (result.failed > 0) {
+                    toast.warning(`⚠️ ${result.failed} servidor(es) falharam na atualização`);
+                }
+                // Força reload dos dados para refletir mudanças
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar senhas em massa:', error);
+            toast.error(`Erro ao atualizar senhas: ${error.message}`);
+        }
+    }, [toast]);
+
+    // Wrappers para deletar com confirmação
+    const confirmDeleteGroup = useCallback((groupId, groupName) => {
+        setDialogConfig({
+            message: `Tem certeza que deseja deletar o grupo "${groupName}"?`,
+            onConfirm: () => handleDeleteGroup(groupId),
+            isOpen: true
         });
-    }, [showError, showSuccess]);
-    
-    const handleUpdateGroup = useCallback((groupId, newGroupName) => {
-        const trimmedName = newGroupName.trim();
-        if (!trimmedName) {
-            showError('O nome do grupo não pode estar vazio.');
-            return;
-        }
-        if (groups.some(g => g.id !== groupId && g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-            showError('Já existe um grupo com este nome.');
-            return;
-        }
-        setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, groupName: trimmedName } : g)));
-        showSuccess('Grupo atualizado com sucesso');
-    }, [groups, showError, showSuccess]);
+    }, [handleDeleteGroup]);
 
-    const handleDeleteGroup = useCallback((groupId) => {
-        setGroups(prev => prev.filter(g => g.id !== groupId));
-        showSuccess('Grupo removido com sucesso');
-    }, [showSuccess]);
-
-    // Handlers para Servidores RDP/SSH
-    const handleAddServer = useCallback((groupId, serverData) => {
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                const newServer = { ...serverData, id: Date.now() };
-                const updatedServers = Array.isArray(group.servers) ? [...group.servers, newServer] : [newServer];
-                return { ...group, servers: updatedServers };
-            }
-            return group;
-        }));
-        showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
-    }, [showSuccess]);
-
-    const handleUpdateServer = useCallback((groupId, serverId, updatedData) => {
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...updatedData } : s)) };
-            }
-            return group;
-        }));
-        showSuccess('Servidor atualizado com sucesso.');
-    }, [showSuccess]);
-
-    const handleDeleteServer = useCallback((groupId, serverId) => {
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
-            }
-            return group;
-        }));
-        showSuccess('Servidor removido com sucesso.');
-    }, [showSuccess]);
-
-    // Handlers para Grupos VNC
-    const handleAddVncGroup = useCallback((name) => {
-        const trimmedName = name.trim();
-        if(!trimmedName) {
-            showError('Nome do grupo não pode estar vazio.');
-            return;
-        }
-        setVncGroups(prevVncGroups => {
-            if (prevVncGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-                showError('Já existe um grupo VNC com este nome.');
-                return prevVncGroups;
-            }
-            const newGroup = { id: Date.now(), groupName: trimmedName, connections: [] };
-            showSuccess(`Grupo VNC "${trimmedName}" criado com sucesso`);
-            setShowAddGroupForm(false);
-            return [...prevVncGroups, newGroup];
-        });
-    }, [showError, showSuccess]);
-
-    const handleUpdateVncGroup = useCallback((groupId, newGroupName) => {
-        const trimmedName = newGroupName.trim();
-        if (!trimmedName) {
-            showError("O novo nome do grupo não pode estar vazio.");
-            return;
-        }
-        if (vncGroups.some(g => g.id !== groupId && g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-            showError("Já existe um grupo VNC com este nome.");
-            return;
-        }
-        setVncGroups(prev => prev.map(g => (g.id === groupId ? { ...g, groupName: trimmedName } : g)));
-        showSuccess(`Grupo VNC renomeado para "${trimmedName}".`);
-    }, [vncGroups, showError, showSuccess]);
-
-    const handleDeleteVncGroup = useCallback((groupId, groupName) => {
+    const confirmDeleteVncGroup = useCallback((groupId, groupName) => {
         setDialogConfig({
             message: `Tem certeza que deseja deletar o grupo VNC "${groupName}" e todas as suas conexões?`,
-            onConfirm: () => {
-                setVncGroups(prev => prev.filter(g => g.id !== groupId));
-                showSuccess(`Grupo VNC "${groupName}" deletado.`);
-            },
+            onConfirm: () => handleDeleteVncGroup(groupId, groupName),
             isOpen: true
         });
-    }, [showSuccess]);
+    }, [handleDeleteVncGroup]);
 
-    // Handlers para Conexões VNC
-    const handleAddVncConnection = useCallback((groupId, connectionData) => {
-        setVncGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                const newConnection = { ...connectionData, id: Date.now() };
-                const updatedConnections = Array.isArray(group.connections) ? [...group.connections, newConnection] : [newConnection];
-                return { ...group, connections: updatedConnections };
-            }
-            return group;
-        }));
-        showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
-    }, [showSuccess]);
-
-    const handleUpdateVncConnection = useCallback((groupId, connectionId, updatedData) => {
-        setVncGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...updatedData } : c)) };
-            }
-            return group;
-        }));
-        showSuccess('Conexão VNC atualizada com sucesso');
-    }, [showSuccess]);
-
-    const handleDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
+    const confirmDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
         setDialogConfig({
             message: `Tem certeza que deseja deletar a conexão VNC "${connectionName}"?`,
-            onConfirm: () => {
-                setVncGroups(prev => prev.map(group => {
-                    if (group.id === groupId) {
-                        return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
-                    }
-                    return group;
-                }));
-                showSuccess(`Conexão "${connectionName}" deletada.`);
-            },
+            onConfirm: () => handleDeleteVncConnection(groupId, connectionId, connectionName),
             isOpen: true
         });
-    }, [showSuccess]);
+    }, [handleDeleteVncConnection]);
 
     const handleConfirmDelete = useCallback(() => {
         if (dialogConfig && typeof dialogConfig.onConfirm === 'function') {
@@ -219,7 +170,7 @@ function AppContent() {
     }, [dialogConfig]);
 
     const allServers = useMemo(() => {
-        return groups.flatMap(group => 
+        return groups.flatMap(group =>
             // Para cada servidor, retornamos um novo objeto que inclui o nome do grupo
             (group.servers || []).map(server => ({
                 ...server,
@@ -227,6 +178,7 @@ function AppContent() {
             }))
         );
     }, [groups]);
+
     const handleTestAllServers = useCallback(() => {
         if (allServers.length === 0) {
             toast.warning('Não há servidores para testar.');
@@ -235,6 +187,7 @@ function AppContent() {
         toast.success(`Iniciando teste de conectividade para ${allServers.length} servidores...`);
         testAllServers(allServers);
     }, [allServers, testAllServers, toast]);
+
     const allVncConnections = useMemo(() => vncGroups.flatMap(group => group.connections || []), [vncGroups]);
 
     const connectivityStats = useMemo(() => {
@@ -254,30 +207,130 @@ function AppContent() {
         });
     }, [groups, searchTerm]);
 
-    useEffect(() => {
-        // Acessa o elemento <html> e define o atributo
-        document.documentElement.setAttribute('data-color-scheme', theme);
-    }, [theme]);
+    // 🔧 CORREÇÃO BUG #3: Filtro de busca para VNC groups
+    const filteredVncGroups = useMemo(() => {
+        if (!searchTerm) return vncGroups;
+        return vncGroups.filter(group => {
+            const term = searchTerm.toLowerCase();
+            const groupNameMatches = group.groupName.toLowerCase().includes(term);
+            const connectionMatches = (group.connections || []).some(conn =>
+                conn.name.toLowerCase().includes(term) || conn.ipAddress.toLowerCase().includes(term)
+            );
+            return groupNameMatches || connectionMatches;
+        });
+    }, [vncGroups, searchTerm]);
+
+    const handleOnDragEnd = useCallback((result) => {
+        const { destination, source, type } = result;
+
+        // 1. Validações iniciais
+        if (!destination) {
+            console.log('Drop cancelado - sem destino válido');
+            return;
+        }
+
+        if (destination.droppableId === source.droppableId &&
+            destination.index === source.index) {
+            console.log('Drop cancelado - mesma posição');
+            return;
+        }
+
+        try {
+            // 2. Reordenar GRUPOS
+            if (type === 'group') {
+                const newGroups = Array.from(groups);
+                const [reorderedItem] = newGroups.splice(source.index, 1);
+                newGroups.splice(destination.index, 0, reorderedItem);
+
+                setGroups(newGroups);
+                toast.success(`Grupo "${reorderedItem.groupName}" reordenado`);
+                return;
+            }
+
+            // 3. Reordenar SERVIDORES
+            // IMPORTANTE: droppableId pode ser string ou number.
+            // Convertemos para string para garantir comparação consistente, ou mantemos original se for ID complexo.
+            const startGroupId = source.droppableId;
+            const finishGroupId = destination.droppableId;
+
+            // Encontra os grupos usando comparação flexível (==) ou string
+            const startGroup = groups.find(g => g.id.toString() === startGroupId.toString());
+            const finishGroup = groups.find(g => g.id.toString() === finishGroupId.toString());
+
+            if (!startGroup || !finishGroup) {
+                console.error(`Erro DnD: Grupo não encontrado. Start: ${startGroupId}, Finish: ${finishGroupId}`);
+                toast.error('Erro ao mover item: Grupo de destino não encontrado.');
+                return;
+            }
+
+            // Movimento no mesmo grupo
+            if (startGroup === finishGroup) {
+                const newServers = Array.from(startGroup.servers);
+                const [reorderedItem] = newServers.splice(source.index, 1);
+                newServers.splice(destination.index, 0, reorderedItem);
+
+                const newGroup = { ...startGroup, servers: newServers };
+                const newGroups = groups.map(g =>
+                    g.id === newGroup.id ? newGroup : g
+                );
+
+                setGroups(newGroups);
+                toast.success(`Servidor "${reorderedItem.name}" reordenado`);
+            } else {
+                // Movimento entre grupos
+                const startServers = Array.from(startGroup.servers);
+                const [movedItem] = startServers.splice(source.index, 1);
+
+                const finishServers = Array.from(finishGroup.servers);
+                finishServers.splice(destination.index, 0, movedItem);
+
+                const newStartGroup = { ...startGroup, servers: startServers };
+                const newFinishGroup = { ...finishGroup, servers: finishServers };
+
+                const newGroups = groups.map(g => {
+                    if (g.id === newStartGroup.id) return newStartGroup;
+                    if (g.id === newFinishGroup.id) return newFinishGroup;
+                    return g;
+                });
+
+                setGroups(newGroups);
+                toast.success(
+                    `Servidor "${movedItem.name}" movido para "${finishGroup.groupName}"`
+                );
+            }
+        } catch (error) {
+            console.error('Erro no drag and drop:', error);
+            toast.error('Erro ao reorganizar items. Tente novamente.');
+        }
+    }, [groups, toast, setGroups]);
 
     useEffect(() => {
-        const loadData = async () => {
-            if (window.api && window.api.storage) {
-                const savedGroups = await window.api.storage.get('groups');
-                setGroups(Array.isArray(savedGroups) ? savedGroups : []);
-                const savedVncGroups = await window.api.storage.get('vncGroups');
-                setVncGroups(Array.isArray(savedVncGroups) ? savedVncGroups : []);
+        const loadTheme = async () => {
+            // 1. Busca e aplica o tema do SO
+            if (window.api && window.api.getOsTheme) {
+                try {
+                    const osTheme = await window.api.getOsTheme();
+                    setTheme(osTheme);
+                } catch (error) {
+                    console.error("Não foi possível obter o tema do SO, usando 'dark' como padrão.", error);
+                    setTheme('dark');
+                }
+            } else {
+                setTheme('dark');
             }
         };
-        loadData();
-    }, []);
 
+        loadTheme();
+    }, []); // Executa apenas uma vez, na montagem do componente
+
+    // EFEITO PARA APLICAR O TEMA GLOBALMENTE
     useEffect(() => {
-        if (window.api && window.api.storage) {
-            window.api.storage.set('groups', groups);
-            window.api.storage.set('vncGroups', vncGroups);
+        // Este efeito agora aguarda o tema ser definido antes de aplicá-lo
+        if (theme) {
+            document.documentElement.setAttribute('data-color-scheme', theme);
         }
-    }, [groups, vncGroups]);
-    
+    }, [theme]); // Este efeito executa sempre que a variável 'theme' mudar
+
     useEffect(() => {
         if (window.api && window.api.onConnectionStatus) {
             window.api.onConnectionStatus((serverId, status) => {
@@ -289,134 +342,200 @@ function AppContent() {
         }
     }, []);
 
+    // Criação do tema MUI memorizado
+    const muiTheme = useMemo(() => getTheme(theme || 'light'), [theme]);
+
     return (
-        <div className="app">
-            <ToastContainer />
-            <header className="app-header">
-                <div className="header-content">
-                    <h1>🖥️ Gerenciador RDP/SSH Enterprise</h1>
-                    <div className="stats-bar">
-                        <div className="stat-item"><TotalIcon /> Total: {allServers.length}</div>
-                        <div className="stat-item active-connections"><OnlineIcon /> Online: {connectivityStats.online}</div>
-                        <div className="stat-item"><OfflineIcon /> Offline: {connectivityStats.offline}</div>
-                        <div className="stat-item"><ConnectionsIcon /> Conexões: {activeConnections.length}</div>
+        <ThemeProvider theme={muiTheme}>
+            <CssBaseline />
+            <div className="app">
+                {isLoading && <LoadingScreen />}
+                <ToastContainer />
+                <header className="app-header">
+                    <div className="header-content">
+                        <h1>
+                            <ComputerIcon sx={{ fontSize: 32, marginRight: 2, verticalAlign: 'middle' }} />
+                            Gerenciador RDP/SSH Enterprise
+                        </h1>
+                        <div className="stats-bar">
+                            <div className="stat-item">
+                                <LayersIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
+                                Total: {allServers.length}
+                            </div>
+                            <div className="stat-item active-connections">
+                                <CheckCircleOutlineIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
+                                Online: {connectivityStats.online}
+                            </div>
+                            <div className="stat-item">
+                                <CancelIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
+                                Offline: {connectivityStats.offline}
+                            </div>
+                            <div className="stat-item">
+                                <LinkIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
+                                Conexões: {activeConnections.length}
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                <div className="toolbar">
+                    <div className="search-container">
+                        <SearchIcon sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 20, color: 'text.secondary', pointerEvents: 'none' }} />
+                        <input
+                            type="text"
+                            className="search-input"
+                            style={{ paddingLeft: '40px' }}
+                            placeholder="Buscar por nome do grupo, servidor ou IP..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="toolbar-actions">
+                        <button onClick={() => setShowADModal(true)} className="toolbar-btn secondary" title="Importar do AD">
+                            <CloudDownloadIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                            Importar AD
+                        </button>
+                        {isEditModeEnabled && (
+                            <button onClick={() => setShowBulkPasswordModal(true)} className="toolbar-btn secondary" title="Alterar Senha Global">
+                                <LockIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                Senha Global
+                            </button>
+                        )}
+                        <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
+                            {theme === 'dark' ? <LightModeIcon sx={{ fontSize: 18 }} /> : <DarkModeIcon sx={{ fontSize: 18 }} />}
+                        </button>
+                        <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
+                            {showAddGroupForm ? (
+                                <><CloseIcon sx={{ fontSize: 18, marginRight: 1 }} /> Cancelar</>
+                            ) : (
+                                <><AddCircleOutlineIcon sx={{ fontSize: 18, marginRight: 1 }} /> Novo Grupo</>
+                            )}
+                        </button>
+                        <label htmlFor="edit-mode-toggle" className="edit-mode-toggle" title="Ativar/Desativar edição">
+                            <span>Modo Edição</span>
+                            <input
+                                id="edit-mode-toggle"
+                                type="checkbox"
+                                checked={isEditModeEnabled}
+                                onChange={() => setIsEditModeEnabled(!isEditModeEnabled)}
+                            />
+                            <span className="toggle-switch"></span>
+                        </label>
                     </div>
                 </div>
-            </header>
-            <div className="toolbar">
-                <div className="search-container">
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Buscar por nome do grupo, servidor ou IP..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                <nav className="view-switcher">
+                    <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
+                    <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
+                    <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
+                </nav>
+                <main className="groups-container">
+                    <DragDropContext onDragEnd={handleOnDragEnd}>
+                        <ADImportModal
+                            isOpen={showADModal}
+                            onClose={() => setShowADModal(false)}
+                            onImport={handleImportFromAD}
+                            groups={groups}
+                            vncGroups={vncGroups}
+                        />
+                        <BulkPasswordModal
+                            isOpen={showBulkPasswordModal}
+                            onClose={() => setShowBulkPasswordModal(false)}
+                            onApply={handleBulkPasswordUpdate}
+                            groups={groups}
+                            vncGroups={vncGroups}
+                        />
+                        <Modal
+                            isOpen={showAddGroupForm}
+                            onClose={() => setShowAddGroupForm(false)}
+                            title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
+                        >
+                            <AddGroupForm
+                                onAddGroup={activeView === 'RDP/SSH' ? handleAddGroup : handleAddVncGroup}
+                                onCancel={() => setShowAddGroupForm(false)}
+                                // O título e subtítulo agora podem ser passados para o próprio formulário
+                                // title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
+                                subtitle={activeView === 'RDP/SSH' ? 'Organize seus servidores.' : 'Organize suas conexões.'}
+                            />
+                        </Modal>
+                        <Modal
+                            isOpen={!!addingToGroupId} // O modal abre se addingToGroupId tiver um valor
+                            onClose={() => setAddingToGroupId(null)}
+                            title={activeView === 'RDP/SSH' ? 'Adicionar Novo Servidor' : 'Adicionar Nova Conexão VNC'}
+                        >
+                            {activeView === 'RDP/SSH' ? (
+                                <AddServerForm
+                                    onAddServer={(serverData) => {
+                                        handleAddServer(addingToGroupId, serverData);
+                                        setAddingToGroupId(null); // Fecha o modal após adicionar
+                                    }}
+                                    onCancel={() => setAddingToGroupId(null)}
+                                />
+                            ) : (
+                                <AddVncConnectionForm
+                                    onAddConnection={(connectionData) => {
+                                        handleAddVncConnection(addingToGroupId, connectionData);
+                                        setAddingToGroupId(null); // Fecha o modal após adicionar
+                                    }}
+                                    onCancel={() => setAddingToGroupId(null)}
+                                />
+                            )}
+                        </Modal>
+                        {activeView === 'RDP/SSH' && (
+                            <RdpSshView
+                                filteredGroups={filteredGroups}
+                                onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
+                                onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
+                                onUpdateServer={handleUpdateServer}
+                                onDeleteGroup={confirmDeleteGroup}
+                                onUpdateGroup={handleUpdateGroup}
+                                activeConnections={activeConnections}
+                                isEditModeEnabled={isEditModeEnabled}
+                                onShowAddGroupForm={() => setShowAddGroupForm(true)}
+                                onShowAddServerModal={setAddingToGroupId}
+
+                            />
+                        )}
+                        {activeView === 'Dashboard' && (
+                            <DashboardView
+                                servers={allServers} // Passamos a lista de todos os servidores
+                                onTestAll={handleTestAllServers}
+                            />
+                        )}
+                        {activeView === 'VNC' && (
+                            <VncView
+                                vncGroups={filteredVncGroups}
+                                onAddGroup={handleAddVncGroup}
+                                onAddConnection={(groupId, connectionData) => handleAddVncConnection(groupId, connectionData)}
+                                onDeleteConnection={confirmDeleteVncConnection}
+                                onDeleteGroup={confirmDeleteVncGroup}
+                                onUpdateConnection={handleUpdateVncConnection}
+                                onUpdateVncGroup={handleUpdateVncGroup}
+                                isEditModeEnabled={isEditModeEnabled}
+                                onShowAddConnectionModal={setAddingToGroupId}
+
+                            />
+                        )
+                        }
+                    </DragDropContext>
+                </main>
+                <footer className="app-footer">
+                    <div className="footer-content">
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
+                            Gerenciador Enterprise v3.1
+                        </div>
+                        <div>{groups.length + vncGroups.length} grupo(s) • {allServers.length + allVncConnections.length} item(ns)</div>
+                    </div>
+                </footer>
+                {dialogConfig && (
+                    <ConfirmationDialog
+                        isOpen={dialogConfig.isOpen}
+                        message={dialogConfig.message}
+                        onConfirm={handleConfirmDelete}
+                        onCancel={() => setDialogConfig(null)}
                     />
-                </div>
-                <div className="toolbar-actions">
-                    {/* 3. ADICIONANDO O BOTÃO DE ALTERNÂNCIA DE TEMA */}
-                    <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
-                        {theme === 'dark' ? '☀️' : '🌙'}
-                    </button>
-                    <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
-                        {showAddGroupForm ? '✖️ Cancelar' : '➕ Novo Grupo'}
-                    </button>
-                    <label htmlFor="edit-mode-toggle" className="edit-mode-toggle">{/* ... */}</label>
-                </div>
+                )}
             </div>
-            <nav className="view-switcher">
-                <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
-                <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
-                <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
-            </nav>
-            <main className="groups-container">
-                <Modal 
-                    isOpen={showAddGroupForm} 
-                    onClose={() => setShowAddGroupForm(false)}
-                    title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
-                >
-                    <AddGroupForm 
-                        onAddGroup={activeView === 'RDP/SSH' ? handleAddGroup : handleAddVncGroup}
-                        onCancel={() => setShowAddGroupForm(false)}
-                        // O título e subtítulo agora podem ser passados para o próprio formulário
-                        // title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
-                        subtitle={activeView === 'RDP/SSH' ? 'Organize seus servidores.' : 'Organize suas conexões.'}
-                    />
-                </Modal>
-                <Modal
-                    isOpen={!!addingToGroupId} // O modal abre se addingToGroupId tiver um valor
-                    onClose={() => setAddingToGroupId(null)}
-                    title={activeView === 'RDP/SSH' ? 'Adicionar Novo Servidor' : 'Adicionar Nova Conexão VNC'}
-                >
-                    {activeView === 'RDP/SSH' ? (
-                        <AddServerForm
-                            onAddServer={(serverData) => {
-                                handleAddServer(addingToGroupId, serverData);
-                                setAddingToGroupId(null); // Fecha o modal após adicionar
-                            }}
-                            onCancel={() => setAddingToGroupId(null)}
-                        />
-                    ) : (
-                        <AddVncConnectionForm
-                            onAddConnection={(connectionData) => {
-                                handleAddVncConnection(addingToGroupId, connectionData);
-                                setAddingToGroupId(null); // Fecha o modal após adicionar
-                            }}
-                            onCancel={() => setAddingToGroupId(null)}
-                        />
-                    )}
-                </Modal>
-                {activeView === 'RDP/SSH' && (
-                    <RdpSshView
-                        filteredGroups={filteredGroups}
-                        onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
-                        onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
-                        onUpdateServer={handleUpdateServer}
-                        onDeleteGroup={(groupId, groupName) => setDialogConfig({ message: `Deletar grupo "${groupName}"?`, onConfirm: () => handleDeleteGroup(groupId), isOpen: true })}
-                        onUpdateGroup={handleUpdateGroup}
-                        activeConnections={activeConnections}
-                        isEditModeEnabled={isEditModeEnabled}
-                        onShowAddGroupForm={() => setShowAddGroupForm(true)}
-                        onShowAddServerModal={setAddingToGroupId}
-                        
-                    />
-                )}
-                {activeView === 'Dashboard' && (
-                    <DashboardView
-                        servers={allServers} // Passamos a lista de todos os servidores
-                        onTestAll={handleTestAllServers}
-                    />
-                )}
-                {activeView === 'VNC' && (
-                    <VncView
-                        vncGroups={vncGroups}
-                        onAddGroup={handleAddVncGroup}
-                        onAddConnection={(groupId, connectionData) => handleAddVncConnection(groupId, connectionData)}
-                        onDeleteConnection={handleDeleteVncConnection}
-                        onDeleteGroup={handleDeleteVncGroup}
-                        onUpdateConnection={handleUpdateVncConnection}
-                        onUpdateVncGroup={handleUpdateVncGroup}
-                        isEditModeEnabled={isEditModeEnabled}
-                        onShowAddConnectionModal={setAddingToGroupId}
-                        
-                    />
-                )}
-            </main>
-            <footer className="app-footer">
-                <div className="footer-content">
-                    <div>🚀 Gerenciador Enterprise v3.1</div>
-                    <div>{groups.length + vncGroups.length} grupo(s) • {allServers.length + allVncConnections.length} item(ns)</div>
-                </div>
-            </footer>
-            {dialogConfig && (
-                <ConfirmationDialog
-                    isOpen={dialogConfig.isOpen} 
-                    message={dialogConfig.message}
-                    onConfirm={handleConfirmDelete}
-                    onCancel={() => setDialogConfig(null)}
-                />
-            )}
-        </div>
+        </ThemeProvider>
     );
 }
 

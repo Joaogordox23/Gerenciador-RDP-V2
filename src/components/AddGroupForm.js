@@ -1,6 +1,16 @@
 // src/components/AddGroupForm.js - VERSÃO AJUSTADA PARA MODAL
 
 import React, { useState } from 'react';
+import {
+    FolderIcon,
+    InfoIcon,
+    CloseIcon,
+    CheckCircleIcon,
+    HourglassEmptyIcon,
+    WarningAmberIcon,
+    CheckIcon,
+    CancelIcon
+} from './MuiIcons';
 
 function AddGroupForm({ onAddGroup, onCancel }) {
     // Estados do formulário
@@ -33,7 +43,7 @@ function AddGroupForm({ onAddGroup, onCancel }) {
     const handleInputChange = (event) => {
         const value = event.target.value;
         setGroupName(value);
-        
+
         // Validação em tempo real
         const validationError = validateGroupName(value);
         setError(validationError);
@@ -41,7 +51,7 @@ function AddGroupForm({ onAddGroup, onCancel }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        
+
         const validationError = validateGroupName(groupName);
         if (validationError) {
             setError(validationError);
@@ -49,7 +59,7 @@ function AddGroupForm({ onAddGroup, onCancel }) {
         }
 
         setIsSubmitting(true);
-        
+
         try {
             await new Promise(resolve => setTimeout(resolve, 300));
             onAddGroup(groupName.trim());
@@ -69,9 +79,9 @@ function AddGroupForm({ onAddGroup, onCancel }) {
             <div className="add-group-input-container">
                 <div className="add-group-input-wrapper">
                     <div className="add-group-input-icon">
-                        🗂️
+                        <FolderIcon sx={{ fontSize: 20, color: 'primary.main' }} />
                     </div>
-                    
+
                     <input
                         type="text"
                         value={groupName}
@@ -82,13 +92,13 @@ function AddGroupForm({ onAddGroup, onCancel }) {
                         maxLength={50}
                         autoFocus
                     />
-                    
+
                     <div className="add-group-input-indicator">
                         {groupName.trim() && !error && (
-                            <span className="validation-success">✓</span>
+                            <CheckIcon sx={{ fontSize: 18, color: 'success.main' }} />
                         )}
                         {error && (
-                            <span className="validation-error">✗</span>
+                            <CancelIcon sx={{ fontSize: 18, color: 'error.main' }} />
                         )}
                     </div>
                 </div>
@@ -101,14 +111,14 @@ function AddGroupForm({ onAddGroup, onCancel }) {
 
                 {error && (
                     <div className="add-group-error">
-                        <span className="error-icon">⚠️</span>
+                        <WarningAmberIcon sx={{ fontSize: 18, color: 'error.main', marginRight: '6px' }} />
                         <span className="error-text">{error}</span>
                     </div>
                 )}
 
                 {!error && groupName.length === 0 && (
                     <div className="add-group-hint">
-                        <span className="hint-icon">💡</span>
+                        <InfoIcon sx={{ fontSize: 18, color: 'info.main', marginRight: '6px' }} />
                         <span className="hint-text">
                             Use nomes descritivos como "Desenvolvimento", "Produção", etc.
                         </span>
@@ -123,17 +133,21 @@ function AddGroupForm({ onAddGroup, onCancel }) {
                     className="add-group-cancel-btn"
                     disabled={isSubmitting}
                 >
-                    <span className="btn-icon">❌</span>
+                    <CloseIcon sx={{ fontSize: 18, marginRight: '6px' }} />
                     <span className="btn-text">Cancelar</span>
                 </button>
-                
+
                 <button
                     type="submit"
                     className={`add-group-submit-btn ${isSubmitting ? 'loading' : ''}`}
                     disabled={!groupName.trim() || error || isSubmitting}
                 >
                     <span className="btn-icon">
-                        {isSubmitting ? '⏳' : '✅'}
+                        {isSubmitting ? (
+                            <HourglassEmptyIcon sx={{ fontSize: 18 }} className="rotating" />
+                        ) : (
+                            <CheckCircleIcon sx={{ fontSize: 18 }} />
+                        )}
                     </span>
                     <span className="btn-text">
                         {isSubmitting ? 'Criando...' : 'Criar Grupo'}

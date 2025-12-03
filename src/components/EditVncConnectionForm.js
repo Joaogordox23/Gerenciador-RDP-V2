@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import {
+    ComputerIcon,
+    SettingsEthernetIcon,
+    LockIcon,
+    VisibilityIcon,
+    SaveIcon,
+    CancelIcon
+} from './MuiIcons';
 
 function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
     const [formData, setFormData] = useState({ ...connectionInfo });
@@ -32,36 +40,96 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
 
     return (
         <div className="server-edit-form-inline">
-            <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
-                <div className="form-grid">
-                    <div className="form-row">
-                        <label className="form-label">Nome *</label>
-                        <input type="text" name="name" value={formData.name} onChange={handleInputChange} className={`form-input ${errors.name ? 'error' : ''}`} autoFocus />
+            <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()} className="server-edit-form">
+                <div className="form-header">
+                    <h3>Editando Conexão VNC</h3>
+                </div>
+
+                <div className="form-group">
+                    <label>Nome *</label>
+                    <div className="input-with-icon">
+                        <ComputerIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            className={`form-control ${errors.name ? 'error' : ''}`}
+                            autoFocus
+                        />
                     </div>
-                    <div className="form-row">
-                        <label className="form-label">IP/Hostname *</label>
-                        <input type="text" name="ipAddress" value={formData.ipAddress} onChange={handleInputChange} className={`form-input ${errors.ipAddress ? 'error' : ''}`} />
+                    {errors.name && <span className="error-text">{errors.name}</span>}
+                </div>
+
+                <div className="form-group">
+                    <label>IP/Hostname *</label>
+                    <div className="input-with-icon">
+                        <SettingsEthernetIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="ipAddress"
+                            value={formData.ipAddress}
+                            onChange={handleInputChange}
+                            className={`form-control ${errors.ipAddress ? 'error' : ''}`}
+                        />
                     </div>
-                    <div className="form-row">
-                        <label className="form-label">Porta *</label>
-                        <input type="number" name="port" value={formData.port} onChange={handleInputChange} className={`form-input ${errors.port ? 'error' : ''}`} />
+                    {errors.ipAddress && <span className="error-text">{errors.ipAddress}</span>}
+                </div>
+
+                <div className="form-row">
+                    <div className="form-group">
+                        <label>Porta *</label>
+                        <div className="input-with-icon">
+                            <SettingsEthernetIcon className="input-icon" />
+                            <input
+                                type="number"
+                                name="port"
+                                value={formData.port}
+                                onChange={handleInputChange}
+                                className={`form-control ${errors.port ? 'error' : ''}`}
+                            />
+                        </div>
                     </div>
-                    <div className="form-row">
-                        <label className="form-label">Nova Senha</label>
-                        <input type="password" name="password" onChange={handleInputChange} className="form-input" placeholder="Deixe em branco para não alterar" />
-                    </div>
-                    <div className="form-row" style={{ alignSelf: 'center' }}>
-                         <div className="protocol-option">
-                            <input type="checkbox" id={`vnc-viewonly-edit-${formData.id}`} name="viewOnly" checked={formData.viewOnly} onChange={handleInputChange} />
-                            <label htmlFor={`vnc-viewonly-edit-${formData.id}`} className="protocol-label">
-                                Apenas Visualização
-                            </label>
+                    <div className="form-group">
+                        <label>Nova Senha</label>
+                        <div className="input-with-icon">
+                            <LockIcon className="input-icon" />
+                            <input
+                                type="password"
+                                name="password"
+                                onChange={handleInputChange}
+                                className="form-control"
+                                placeholder="Deixe em branco para manter"
+                            />
                         </div>
                     </div>
                 </div>
-                <div className="form-actions" style={{ marginTop: '16px' }}>
-                    <button type="button" onClick={onCancel} className="btn-cancel">Cancelar</button>
-                    <button type="submit" className="btn-submit">Salvar</button>
+
+                <div className="form-group checkbox-group">
+                    <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="viewOnly"
+                            checked={formData.viewOnly}
+                            onChange={handleInputChange}
+                        />
+                        <span className="checkbox-custom"></span>
+                        <div className="checkbox-text">
+                            <VisibilityIcon sx={{ fontSize: 18, marginRight: 0.5, verticalAlign: 'middle' }} />
+                            Modo Apenas Visualização
+                        </div>
+                    </label>
+                </div>
+
+                <div className="form-actions">
+                    <button type="button" onClick={onCancel} className="btn btn--secondary">
+                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Cancelar
+                    </button>
+                    <button type="submit" className="btn btn--primary">
+                        <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Salvar
+                    </button>
                 </div>
             </form>
         </div>

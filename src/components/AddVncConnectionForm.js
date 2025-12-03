@@ -1,5 +1,13 @@
-// src/components/AddVncConnectionForm.js (VERSÃO COM UX CORRIGIDA)
+// src/components/AddVncConnectionForm.js
 import React, { useState } from 'react';
+import {
+    ComputerIcon,
+    SettingsEthernetIcon,
+    LockIcon,
+    VisibilityIcon,
+    SaveIcon,
+    CancelIcon
+} from './MuiIcons';
 
 function AddVncConnectionForm({ onAddConnection, onCancel }) {
     const [connectionData, setConnectionData] = useState({ name: '', ipAddress: '', port: '5900', password: '', viewOnly: false });
@@ -12,40 +20,99 @@ function AddVncConnectionForm({ onAddConnection, onCancel }) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        // Adicionar validação aqui se necessário
         onAddConnection(connectionData);
     };
 
     return (
-        <div className="add-group-form-container">
-            <div className="add-group-form-header">
-                <h3 className="add-group-form-title">📺 Nova Conexão VNC</h3>
-                <p className="add-group-form-subtitle">Preencha os dados para a nova conexão VNC</p>
-            </div>
-            <form onSubmit={handleSubmit} className="add-group-form" style={{padding: 'var(--space-24)'}}>
+        <div className="add-server-form-container">
+            <form onSubmit={handleSubmit} className="add-server-form">
+                <div className="form-group">
+                    <label>Nome da Conexão</label>
+                    <div className="input-with-icon">
+                        <ComputerIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="name"
+                            value={connectionData.name}
+                            onChange={handleInputChange}
+                            placeholder="Ex: Servidor Principal"
+                            className="form-control"
+                            autoFocus
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>IP ou Hostname</label>
+                    <div className="input-with-icon">
+                        <SettingsEthernetIcon className="input-icon" />
+                        <input
+                            type="text"
+                            name="ipAddress"
+                            value={connectionData.ipAddress}
+                            onChange={handleInputChange}
+                            placeholder="Ex: 192.168.1.100"
+                            className="form-control"
+                        />
+                    </div>
+                </div>
+
                 <div className="form-row">
-                    <label className="form-label">Nome da Conexão</label>
-                    <input type="text" name="name" value={connectionData.name} onChange={handleInputChange} placeholder="Ex: Servidor Principal" className="form-input" autoFocus />
+                    <div className="form-group">
+                        <label>Porta</label>
+                        <div className="input-with-icon">
+                            <SettingsEthernetIcon className="input-icon" />
+                            <input
+                                type="number"
+                                name="port"
+                                value={connectionData.port}
+                                onChange={handleInputChange}
+                                placeholder="Padrão: 5900"
+                                className="form-control"
+                            />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Senha (opcional)</label>
+                        <div className="input-with-icon">
+                            <LockIcon className="input-icon" />
+                            <input
+                                type="password"
+                                name="password"
+                                value={connectionData.password}
+                                onChange={handleInputChange}
+                                placeholder="Máximo 8 caracteres"
+                                className="form-control"
+                            />
+                        </div>
+                    </div>
                 </div>
-                <div className="form-row">
-                    <label className="form-label">IP ou Hostname</label>
-                    <input type="text" name="ipAddress" value={connectionData.ipAddress} onChange={handleInputChange} placeholder="Ex: 192.168.1.100" className="form-input" />
+
+                <div className="form-group checkbox-group">
+                    <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="viewOnly"
+                            checked={connectionData.viewOnly}
+                            onChange={handleInputChange}
+                        />
+                        <span className="checkbox-custom"></span>
+                        <div className="checkbox-text">
+                            <VisibilityIcon sx={{ fontSize: 18, marginRight: 0.5, verticalAlign: 'middle' }} />
+                            Modo Apenas Visualização
+                        </div>
+                    </label>
                 </div>
-                <div className="form-row">
-                    <label className="form-label">Porta</label>
-                    <input type="number" name="port" value={connectionData.port} onChange={handleInputChange} placeholder="Padrão: 5900" className="form-input" />
-                </div>
-                <div className="form-row">
-                    <label className="form-label">Senha (opcional)</label>
-                    <input type="password" name="password" value={connectionData.password} onChange={handleInputChange} placeholder="Máximo 8 caracteres" className="form-input" />
-                </div>
-                <div className="form-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" id="viewOnlyCheckbox" name="viewOnly" checked={connectionData.viewOnly} onChange={handleInputChange} />
-                    <label htmlFor="viewOnlyCheckbox">Modo Apenas Visualização</label>
-                </div>
+
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn-cancel">Cancelar</button>
-                    <button type="submit" className="btn-submit">Adicionar Conexão</button>
+                    <button type="button" onClick={onCancel} className="btn btn--secondary">
+                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Cancelar
+                    </button>
+                    <button type="submit" className="btn btn--primary">
+                        <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        Adicionar
+                    </button>
                 </div>
             </form>
         </div>

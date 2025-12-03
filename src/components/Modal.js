@@ -1,6 +1,7 @@
 // src/components/Modal.js
 
 import React from 'react';
+import { CloseIcon } from './MuiIcons';
 
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) {
@@ -18,7 +19,7 @@ function Modal({ isOpen, onClose, title, children }) {
                 <div className="modal-header">
                     <h3 className="modal-title">{title}</h3>
                     <button className="modal-close-btn" onClick={onClose} title="Fechar (ESC)">
-                        &times;
+                        <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
                 <div className="modal-body">

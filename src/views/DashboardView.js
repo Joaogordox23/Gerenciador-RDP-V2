@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
+import { SyncIcon, PlayArrowIcon } from '../components/MuiIcons';
 
-const TestIcon = () => ( <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.88.99 6.6 2.6l-2.6 2.6"></path><path d="M21 3v6h-6"></path></svg> );
+
 
 function StatCard({ title, value, color }) {
     return (
@@ -20,7 +21,7 @@ function DashboardView({ servers, onTestAll }) {
     // vvvv LÓGICA DE CÁLCULO REFINADA vvvv
     let onlineCount = 0;
     let offlineCount = 0;
-    
+
     // Itera sobre todos os servidores passados para a dashboard
     servers.forEach(server => {
         const key = generateServerKey(server);
@@ -41,7 +42,10 @@ function DashboardView({ servers, onTestAll }) {
         <div className="dashboard-container">
             <div className="dashboard-header">
                 <h2>Dashboard de Monitoramento</h2>
-                <button onClick={onTestAll} className="toolbar-btn">Testar Todos</button>
+                <button onClick={onTestAll} className="btn btn--primary">
+                    <SyncIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                    Testar Todos
+                </button>
             </div>
 
             <div className="dashboard-stats">
@@ -79,20 +83,27 @@ function DashboardView({ servers, onTestAll }) {
                                         <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
                                     </td>
                                     <td>{server.name}</td>
-                                    <td>{server.ipAddress}{server.port ? `:${server.port}`: ''}</td>
+                                    <td>{server.ipAddress}{server.port ? `:${server.port}` : ''}</td>
                                     <td>{server.groupName}</td>
                                     <td>
-                                        {isCurrentlyTesting ? '...' : (latency ? `${latency} ms` : (result?.tests?.ping ? 'Bloqueado' : '-'))}
+                                        {/* 🔧 CORREÇÃO BUG #4: Diferenciar "Testando..." de "-" */}
+                                        {isCurrentlyTesting ? (
+                                            <span className="latency testing">Testando...</span>
+                                        ) : latency ? (
+                                            <span className="latency">{latency} ms</span>
+                                        ) : (
+                                            <span className="latency unknown">-</span>
+                                        )}
                                     </td>
                                     <td>{result ? new Date(result.timestamp).toLocaleTimeString() : 'Nunca'}</td>
                                     <td>
-                                        <button 
-                                            className="action-button-icon" 
-                                            title="Testar Agora" 
+                                        <button
+                                            className="action-button-icon"
+                                            title="Testar Agora"
                                             onClick={() => testServer(server)}
                                             disabled={isCurrentlyTesting}
                                         >
-                                            <TestIcon />
+                                            <PlayArrowIcon sx={{ fontSize: 18 }} />
                                         </button>
                                     </td>
                                 </tr>
