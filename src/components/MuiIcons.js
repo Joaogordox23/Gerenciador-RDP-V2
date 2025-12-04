@@ -58,6 +58,7 @@ export {
 
     // VNC Wall (v4.0)
     GridView as GridViewIcon,
+    ViewList as ViewListIcon,
     Slideshow as SlideshowIcon,
     NavigateBefore as NavigateBeforeIcon,
     NavigateNext as NavigateNextIcon,

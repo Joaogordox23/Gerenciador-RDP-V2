@@ -1,20 +1,20 @@
-// src/views/VncView.js (VERSÃO CORRIGIDA)
+// src/views/VncView.js (v4.1: Com suporte a viewMode)
 
 import React, { useState } from 'react';
 import VncGroup from '../components/VncGroup';
 
-// CORREÇÃO: Recebendo onShowAddConnectionModal
-function VncView({ 
-    vncGroups, 
-    onAddGroup, 
-    isEditModeEnabled, 
-    onUpdateVncGroup, 
-    onVncConnect, 
+function VncView({
+    vncGroups,
+    onAddGroup,
+    isEditModeEnabled,
+    onUpdateVncGroup,
+    onVncConnect,
     onShowAddConnectionModal,
-    ...groupProps 
+    viewMode = 'grid', // v4.1: Prop viewMode (grid ou list)
+    ...groupProps
 }) {
     const [editingGroupId, setEditingGroupId] = useState(null);
-    
+
     const handleUpdateAndFinishEditing = (groupId, newName) => {
         onUpdateVncGroup(groupId, newName);
         setEditingGroupId(null);
@@ -33,8 +33,8 @@ function VncView({
                         onCancelEdit={() => setEditingGroupId(null)}
                         onUpdateVncGroup={handleUpdateAndFinishEditing}
                         onVncConnect={onVncConnect}
-                        // CORREÇÃO: Passando a função para o componente VncGroup
                         onShowAddConnectionModal={onShowAddConnectionModal}
+                        viewMode={viewMode} // v4.1: Passando viewMode para VncGroup
                         {...groupProps}
                     />
                 ))

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import VncDisplay from '../components/VncDisplay';
+import VncFullscreen from '../components/VncFullscreen';
 import {
     SlideshowIcon,
     GridViewIcon,
@@ -22,6 +23,12 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [carouselInterval, setCarouselInterval] = useState(5000); // 5 segundos
     const timerRef = useRef(null);
+
+    // ✨ v4.1: Fullscreen interativo
+    const [fullscreenConnection, setFullscreenConnection] = useState(null);
+
+    // ✨ v4.1: Controle de colunas do grid
+    const [gridColumns, setGridColumns] = useState(3); // 1-6 colunas
 
     // Flatten all connections from all groups
     const allConnections = useMemo(() => {
@@ -96,6 +103,11 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
 
     const handlePrevious = () => {
         setCurrentIndex(prev => (prev - 1 + allConnections.length) % allConnections.length);
+    };
+
+    // ✨ v4.1: Abrir fullscreen ao duplo clique
+    const handleDoubleClick = (connection) => {
+        setFullscreenConnection(connection);
     };
 
     const handleStopAll = async () => {
@@ -197,6 +209,23 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
                         </>
                     )}
 
+                    {/* ✨ v4.1: Controle de Colunas do Grid */}
+                    {!carouselMode && (
+                        <div className="columns-control">
+                            <label>Colunas do Grid</label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="6"
+                                value={gridColumns}
+                                onChange={(e) => setGridColumns(Number(e.target.value))}
+                                className="columns-slider"
+                                title={`${gridColumns} coluna${gridColumns > 1 ? 's' : ''}`}
+                            />
+                            <div className="columns-value">{gridColumns} {gridColumns === 1 ? 'coluna' : 'colunas'}</div>
+                        </div>
+                    )}
+
                     <button
                         onClick={handleStopAll}
                         className="btn-stop-all"
@@ -233,14 +262,21 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
                         </div>
                     ) : (
                         <div className="vnc-wall-grid" style={{
-                            gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))`
+                            gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
                         }}>
                             {connections.map(conn => (
                                 <div key={conn.id} className="wall-item">
-                                    <div className="wall-item-content">
+                                    <div
+                                        className="wall-item-content"
+                                        onDoubleClick={() => handleDoubleClick(conn)}
+                                        title="Duplo clique para modo interativo"
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <VncDisplay
                                             connectionInfo={conn}
                                             onDisconnect={() => handleStopMonitoring(conn.id)}
+                                            viewOnly={true}
+                                            quality={3}
                                         />
                                     </div>
                                 </div>
@@ -249,6 +285,14 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
                     )
                 )}
             </div>
+
+            {/* ✨ v4.1: Modal Fullscreen */}
+            {fullscreenConnection && (
+                <VncFullscreen
+                    connection={fullscreenConnection}
+                    onClose={() => setFullscreenConnection(null)}
+                />
+            )}
         </div>
     );
 };

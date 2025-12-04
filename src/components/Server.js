@@ -136,6 +136,13 @@ function Server({
     setIsEditing(false);
   }, [serverInfo]);
 
+  const getLatencyClass = (latency) => {
+    if (!latency || latency === null) return null;
+    if (latency < 50) return 'latency-good';
+    if (latency < 150) return 'latency-medium';
+    return 'latency-bad';
+  };
+
   const handleUpdateSubmit = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -381,6 +388,11 @@ function Server({
                 {serverInfo.username}
                 {serverInfo.domain && <span className="domain">@{serverInfo.domain}</span>}
               </p>
+            )}
+            {connectivityResult && connectivityResult.latency && (
+              <div className={`latency-badge ${getLatencyClass(connectivityResult.latency)}`}>
+                {connectivityResult.latency}ms
+              </div>
             )}
           </div>
 

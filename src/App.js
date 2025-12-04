@@ -24,7 +24,9 @@ import {
     CloseIcon,
     SearchIcon,
     RocketLaunchIcon,
-    LockIcon
+    LockIcon,
+    GridViewIcon,
+    ViewListIcon
 } from './components/MuiIcons';
 
 // Sistema de Toasts
@@ -41,7 +43,7 @@ import ADImportModal from './components/ADImportModal';
 import BulkPasswordModal from './components/BulkPasswordModal';
 
 // Tela de Loading
-import LoadingScreen from './components/LoadingScreen';
+import LoadingSpinner from './components/LoadingSpinner';
 
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme/AppTheme';
@@ -89,6 +91,8 @@ function AppContent() {
     const [showAddGroupForm, setShowAddGroupForm] = useState(false);
     const [addingToGroupId, setAddingToGroupId] = useState(null);
     const [theme, setTheme] = useState(null);
+    const [rdpViewMode, setRdpViewMode] = useState('grid');
+    const [vncViewMode, setVncViewMode] = useState('grid');
     const [showADModal, setShowADModal] = useState(false);
     const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
 
@@ -343,7 +347,7 @@ function AppContent() {
         <ThemeProvider theme={muiTheme}>
             <CssBaseline />
             <div className="app">
-                {isLoading && <LoadingScreen />}
+                {isLoading && <LoadingSpinner />}
                 <ToastContainer />
                 <header className="app-header">
                     <div className="header-content">
@@ -388,6 +392,34 @@ function AppContent() {
                             <CloudDownloadIcon sx={{ fontSize: 18, marginRight: 1 }} />
                             Importar AD
                         </button>
+
+                        {/* Toggle View Mode - RDP/SSH */}
+                        {activeView === 'RDP/SSH' && (
+                            <button
+                                onClick={() => setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid')}
+                                className="toolbar-btn secondary"
+                                title={rdpViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                            >
+                                {rdpViewMode === 'grid' ?
+                                    <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                    <GridViewIcon sx={{ fontSize: 18 }} />
+                                }
+                            </button>
+                        )}
+                        {/* Toggle View Mode - VNC */}
+                        {activeView === 'VNC' && (
+                            <button
+                                onClick={() => setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid')}
+                                className="toolbar-btn secondary"
+                                title={vncViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                            >
+                                {vncViewMode === 'grid' ?
+                                    <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                    <GridViewIcon sx={{ fontSize: 18 }} />
+                                }
+                            </button>
+                        )}
+
                         {isEditModeEnabled && (
                             <button onClick={() => setShowBulkPasswordModal(true)} className="toolbar-btn secondary" title="Alterar Senha Global">
                                 <LockIcon sx={{ fontSize: 18, marginRight: 1 }} />
@@ -490,6 +522,7 @@ function AppContent() {
                                 isEditModeEnabled={isEditModeEnabled}
                                 onShowAddGroupForm={() => setShowAddGroupForm(true)}
                                 onShowAddServerModal={setAddingToGroupId}
+                                viewMode={rdpViewMode}
                             />
                         )}
                         {activeView === 'VNC' && (
@@ -503,6 +536,7 @@ function AppContent() {
                                 onUpdateVncGroup={handleUpdateVncGroup}
                                 isEditModeEnabled={isEditModeEnabled}
                                 onShowAddConnectionModal={setAddingToGroupId}
+                                viewMode={vncViewMode}
                             />
                         )}
                         {activeView === 'VNC Wall' && (

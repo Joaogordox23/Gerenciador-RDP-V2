@@ -1,20 +1,20 @@
-// src/views/RdpSshView.js (VERSÃO CORRIGIDA)
+// src/views/RdpSshView.js (v4.1: Com suporte a viewMode)
 
 import React, { useState } from 'react';
-import { Droppable, Draggable } from 'react-beautiful-dnd';
+import { Droppable } from 'react-beautiful-dnd';
 import Group from '../components/Group';
 
-// CORREÇÃO: Recebendo a prop onShowAddServerModal
-function RdpSshView({ 
-    filteredGroups, 
-    onDeleteServer, 
-    onUpdateServer, 
-    onDeleteGroup, 
-    onUpdateGroup, 
-    activeConnections, 
-    isEditModeEnabled, 
+function RdpSshView({
+    filteredGroups,
+    onDeleteServer,
+    onUpdateServer,
+    onDeleteGroup,
+    onUpdateGroup,
+    activeConnections,
+    isEditModeEnabled,
     isConnectivityEnabled,
-    onShowAddServerModal
+    onShowAddServerModal,
+    viewMode = 'grid' // v4.1: Prop viewMode (grid ou list)
 }) {
     const [editingGroupId, setEditingGroupId] = useState(null);
 
@@ -23,16 +23,16 @@ function RdpSshView({
         setEditingGroupId(null);
     };
 
-     return (
+    return (
         <Droppable droppableId="all-groups" type="group">
             {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef}>
                     {filteredGroups.length > 0 ? (
-                        filteredGroups.map((group, index) => ( // Adicionamos 'index' aqui
+                        filteredGroups.map((group, index) => (
                             <Group
                                 key={group.id}
                                 groupInfo={group}
-                                index={index} // Passamos o index para o Group
+                                index={index}
                                 onDeleteServer={onDeleteServer}
                                 onUpdateServer={onUpdateServer}
                                 onDeleteGroup={onDeleteGroup}
@@ -43,8 +43,8 @@ function RdpSshView({
                                 onStartEdit={() => setEditingGroupId(group.id)}
                                 onCancelEdit={() => setEditingGroupId(null)}
                                 onUpdateGroup={handleUpdateAndFinishEditing}
-                                // CORREÇÃO: Passando a função para o componente Group
                                 onShowAddServerModal={onShowAddServerModal}
+                                viewMode={viewMode} // v4.1: Passando viewMode para Group
                             />
                         ))
                     ) : (
@@ -61,4 +61,3 @@ function RdpSshView({
 }
 
 export default RdpSshView;
-
