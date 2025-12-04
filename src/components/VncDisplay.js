@@ -1,72 +1,116 @@
-// src/components/VncDisplay.js
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import RFB from '@novnc/novnc/core/rfb';
 
-// Componente que irá renderizar a tela da conexão VNC
 function VncDisplay({ connectionInfo, onDisconnect }) {
-    // useRef é usado para obter uma referência direta ao elemento <canvas>
-    // onde o noVNC irá "desenhar" a tela remota.
-    const vncCanvasRef = useRef(null);
-    const rfbRef = useRef(null); // Para manter a instância da conexão RFB
+    const vncContainerRef = useRef(null);
+    const rfbRef = useRef(null);
+    const [isMounted, setIsMounted] = useState(false);
 
-    // useEffect é o lugar perfeito para conectar e desconectar,
-    // pois ele lida com o ciclo de vida do componente.
     useEffect(() => {
-    if (!connectionInfo || !connectionInfo.proxyUrl || !vncCanvasRef.current) {
-        return;
-    }
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
 
-    // Pega a URL do proxy e a senha do objeto de conexão
-    const { proxyUrl, password } = connectionInfo;
-    
-    // Agora, a URL já é a do nosso proxy local (ex: ws://localhost:6080)
-    const rfb = new RFB(vncCanvasRef.current, proxyUrl, {
-        credentials: { password: password },
-    });
-
-    rfb.addEventListener('connect', () => {
-        console.log('✅ Conexão VNC via proxy estabelecida com sucesso!');
-    });
-
-    rfb.addEventListener('disconnect', (event) => {
-        // O evento de desconexão pode ter detalhes úteis sobre o erro
-        console.log('🔌 Conexão VNC via proxy encerrada.', event.detail);
-        onDisconnect();
-    });
-    
-    rfb.addEventListener('credentialsrequired', () => {
-        console.warn('🔒 Servidor VNC requer credenciais, mas nenhuma foi fornecida.');
-    });
-
-
-    rfbRef.current = rfb;
-
-    return () => {
-        if (rfbRef.current) {
-            rfbRef.current.disconnect();
-            rfbRef.current = null;
+    useEffect(() => {
+        if (!connectionInfo || !connectionInfo.proxyUrl || !vncContainerRef.current || !isMounted) {
+            return;
         }
-    };
-}, [connectionInfo, onDisconnect]); // O efeito depende dessas props
 
-    if (!connectionInfo) {
-        return null;
-    }
+        // Debounce para evitar múltiplas conexões rápidas (Strict Mode)
+        const timeoutId = setTimeout(() => {
+            try {
+                const { proxyUrl, password } = connectionInfo;
+
+                // Limpa conexão anterior se existir
+                if (rfbRef.current) {
+                    rfbRef.current.disconnect();
+                }
+
+                const rfb = new RFB(vncContainerRef.current, proxyUrl, {
+                    credentials: { password: password },
+                });
+
+                rfb.scaleViewport = true; // Ajusta ao tamanho do container
+                rfb.resizeSession = false; // Não redimensiona a sessão remota
+                rfb.showDotCursor = true;
+
+                rfb.addEventListener('connect', () => {
+                    console.log(`✅ [${connectionInfo.name}] Conectado via proxy!`);
+                });
+
+                rfb.addEventListener('disconnect', (event) => {
+                    console.log(`🔌 [${connectionInfo.name}] Desconectado.`, event.detail);
+                    if (isMounted) {
+                        // Opcional: Auto-reconectar ou notificar pai
+                    }
+                });
+
+                rfb.addEventListener('credentialsrequired', () => {
+                    console.warn(`🔒 [${connectionInfo.name}] Credenciais requeridas.`);
+                });
+
+                rfbRef.current = rfb;
+
+            } catch (error) {
+                console.error(`❌ [${connectionInfo.name}] Erro ao iniciar RFB:`, error);
+            }
+        }, 100); // 100ms debounce
+
+        return () => {
+            clearTimeout(timeoutId);
+            if (rfbRef.current) {
+                console.log(`🧹 [${connectionInfo.name}] Limpando conexão VNC...`);
+                rfbRef.current.disconnect();
+                rfbRef.current = null;
+            }
+        };
+    }, [connectionInfo, isMounted]);
+
+    if (!connectionInfo) return null;
 
     return (
-        <div className="vnc-display-overlay">
-            <div className="vnc-toolbar">
-                <div className="vnc-toolbar-info">
-                    Conectado a: <strong>{connectionInfo.name}</strong> ({connectionInfo.ipAddress})
-                </div>
-                <button onClick={onDisconnect} className="vnc-disconnect-btn">
-                    Desconectar
+        <div style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            backgroundColor: '#000',
+            overflow: 'hidden'
+        }}>
+            <div ref={vncContainerRef} style={{ width: '100%', height: '100%' }} />
+
+            {/* Overlay Compacto para Grid */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                padding: '4px 8px',
+                background: 'rgba(0,0,0,0.6)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                zIndex: 10
+            }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {connectionInfo.name}
+                </span>
+                <button
+                    onClick={onDisconnect}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ff5252',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        padding: '0 4px',
+                        lineHeight: 1
+                    }}
+                    title="Desconectar"
+                >
+                    ×
                 </button>
             </div>
-            {/* O noVNC precisa de um elemento para renderizar a tela. 
-                Usamos a ref que criamos para ligar o noVNC a este div. */}
-            <div ref={vncCanvasRef} className="vnc-canvas"></div>
         </div>
     );
 }

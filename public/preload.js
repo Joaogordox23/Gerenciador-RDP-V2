@@ -81,6 +81,14 @@ const onConnectionStatus = (callback) => {
     });
 };
 
+// Listener para dados iniciais
+const onInitialDataLoaded = (callback) => {
+    ipcRenderer.on('initial-data-loaded', (event, data) => {
+        console.log('📦 Preload: Dados iniciais recebidos');
+        callback(data);
+    });
+};
+
 // ==========================
 // NOVOS EVENT LISTENERS PARA CONECTIVIDADE
 // ==========================
@@ -165,16 +173,19 @@ try {
         connection,
         clearData,
         onConnectionStatus,
+        onInitialDataLoaded, // ADICIONADO: Listener de dados iniciais
+        adSearch: (params) => ipcRenderer.invoke('ad-search', params), // ADICIONADO: Busca AD direta
+        bulkUpdatePassword: (data) => ipcRenderer.invoke('bulk-update-password', data), // ADICIONADO: Atualização em massa
 
         // <-- ADICIONE ESTE NOVO OBJETO PARA VNC -->
         vnc: {
-            startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-start-proxy', connectionInfo),
-            stopProxy: () => ipcRenderer.send('vnc-stop-proxy'),
+            startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-proxy-start', connectionInfo),
+            stopProxy: (serverId) => ipcRenderer.invoke('vnc-proxy-stop', serverId),
         },
-        
+
         // Novas APIs de conectividade
         connectivity,
-        
+
         // Novos event listeners
         onConnectivityStatusUpdate,
         onConnectivityTestStart,
@@ -197,17 +208,17 @@ try {
 // Limpeza automática ao fechar
 window.addEventListener('beforeunload', () => {
     console.log('🧹 Preload: Executando limpeza antes de fechar');
-    
+
     // Para todo monitoramento ativo
     connectivity.stopAllMonitoring();
-    
+
     // Remove todos os listeners
     ipcRenderer.removeAllListeners('connectivity-status-update');
     ipcRenderer.removeAllListeners('connectivity-test-start');
     ipcRenderer.removeAllListeners('connectivity-test-complete');
     ipcRenderer.removeAllListeners('connectivity-monitoring-change');
     ipcRenderer.removeAllListeners('connectivity-error');
-    
+
     console.log('✅ Preload: Limpeza concluída');
 });
 
@@ -235,7 +246,7 @@ setInterval(() => {
 const PRELOAD_VERSION = '2.0.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
-    'batch-testing', 
+    'batch-testing',
     'continuous-monitoring',
     'cache-management',
     'statistics-reporting',

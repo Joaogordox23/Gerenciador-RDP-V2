@@ -1,0 +1,118 @@
+/* ✨ v4.0: Estilos para Visualização em Lista de Conexões VNC */
+
+.vnc-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.vnc-list-item:hover {
+    background: var(--card-hover-background);
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+/* VNC Icon */
+.vnc-list-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-background);
+    border-radius: 6px;
+}
+
+/* Server Info */
+.vnc-list-info {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vnc-list-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.vnc-list-address {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+/* User Info */
+.vnc-list-user {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 120px;
+}
+
+/* Group Badge */
+.vnc-list-group {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    background: var(--secondary-background);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Actions */
+.vnc-list-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.vnc-action-btn {
+    padding: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vnc-action-btn:hover {
+    background: var(--hover-background);
+    color: var(--primary-color);
+}
+
+.vnc-action-btn.delete:hover {
+    color: var(--error-color);
+    background: var(--error-background);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .vnc-list-item {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .vnc-list-user,
+    .vnc-list-group {
+        min-width: auto;
+    }
+}

@@ -17,7 +17,10 @@ export function ConnectivityProvider({ children }) {
 
     // Ouvintes (Listeners) para eventos do backend (Electron)
     useEffect(() => {
-        if (!window.api) return;
+        if (!window.api) {
+            console.warn('⚠️ useConnectivity: window.api não disponível');
+            return;
+        }
 
         const onUpdate = (serverKey, result) => {
             console.log(`[Hook] Recebido status para ${serverKey}:`, result.status);
@@ -30,6 +33,7 @@ export function ConnectivityProvider({ children }) {
         };
 
         const onMonitorChange = (action, serverKey) => {
+            console.log(`[Hook] Monitor ${action} para ${serverKey}`);
             setMonitoredServers(prev => {
                 const newSet = new Set(prev);
                 if (action === 'started') newSet.add(serverKey);
@@ -37,10 +41,33 @@ export function ConnectivityProvider({ children }) {
                 return newSet;
             });
         };
-        
+
+        const onError = (serverKey, error) => {
+            console.error(`[Hook] Erro de conectividade para ${serverKey}:`, error);
+            setIsTesting(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(serverKey);
+                return newSet;
+            });
+        };
+
+        // ✅ OTIMIZAÇÃO: Registrar todos os listeners
         window.api.onConnectivityStatusUpdate(onUpdate);
         window.api.onConnectivityMonitoringChange(onMonitorChange);
+        if (window.api.onConnectivityError) {
+            window.api.onConnectivityError(onError);
+        }
 
+        console.log('✅ useConnectivity: Listeners registrados');
+
+        // ✅ OTIMIZAÇÃO: Cleanup adequado ao desmontar
+        return () => {
+            console.log('🧹 useConnectivity: Limpando listeners');
+            // Para todos os monitoramentos ativos
+            if (window.api.connectivity?.stopAllMonitoring) {
+                window.api.connectivity.stopAllMonitoring();
+            }
+        };
     }, [updateResult]);
 
     // Funções que os componentes irão usar
@@ -49,11 +76,11 @@ export function ConnectivityProvider({ children }) {
         const port = serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22);
         return `${serverInfo.ipAddress}:${port}`;
     }, []);
-    
+
     const testServer = useCallback(async (serverInfo) => {
         const serverKey = generateServerKey(serverInfo);
         if (!serverKey) return;
-        
+
         console.log(`[Hook] Enviando pedido de teste para ${serverKey}`);
         setIsTesting(prev => new Set(prev).add(serverKey));
         try {
@@ -70,9 +97,9 @@ export function ConnectivityProvider({ children }) {
 
     const testAllServers = useCallback(async (servers) => {
         if (!servers || servers.length === 0) return;
-        
+
         console.log(`[Hook] Disparando teste em lote para ${servers.length} servidores.`);
-        
+
         // Usamos a API do backend que já existe para testar múltiplos servidores
         try {
             await window.api.connectivity.testMultiple(servers);

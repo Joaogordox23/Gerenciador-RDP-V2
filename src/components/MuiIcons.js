@@ -54,5 +54,12 @@ export {
     Terminal as TerminalIcon,
     RocketLaunch as RocketLaunchIcon,
     PlayArrow as PlayArrowIcon,
-    Speed as SpeedIcon
+    Speed as SpeedIcon,
+
+    // VNC Wall (v4.0)
+    GridView as GridViewIcon,
+    Slideshow as SlideshowIcon,
+    NavigateBefore as NavigateBeforeIcon,
+    NavigateNext as NavigateNextIcon,
+    Pause as PauseIcon
 } from '@mui/icons-material';

@@ -9,6 +9,10 @@ let idCounter = 0;
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
+    const removeToast = useCallback((id) => {
+        setToasts(currentToasts => currentToasts.filter(t => t.id !== id));
+    }, []);
+
     const addToast = useCallback((message, type) => {
         const id = idCounter++;
         setToasts(currentToasts => [...currentToasts, { id, message, type }]);
@@ -17,11 +21,7 @@ export function ToastProvider({ children }) {
         setTimeout(() => {
             removeToast(id);
         }, 5000);
-    }, []);
-
-    const removeToast = useCallback((id) => {
-        setToasts(currentToasts => currentToasts.filter(t => t.id !== id));
-    }, []);
+    }, [removeToast]);
 
     // Funções de atalho para facilitar o uso
     const toast = {

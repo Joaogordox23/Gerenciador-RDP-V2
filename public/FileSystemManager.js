@@ -176,7 +176,7 @@ class FileSystemManager {
             'screen mode id:i:2',
             `full address:s:${server.ipAddress}${server.port ? ':' + server.port : ''}`,
             `username:s:${fullUsername || ''}`,
-            'prompt for credentials:i:1', // Pede credenciais se não tiver salvo no Windows
+            'prompt for credentials:i:0', // Pede credenciais se não tiver salvo no Windows
             'authentication level:i:2',
             'enablecredsspsupport:i:1',
             'displayconnectionbar:i:1',
@@ -259,7 +259,8 @@ Password=
                                     ...serverData,
                                     name: name,
                                     groupName: groupName,
-                                    protocol: protocol
+                                    protocol: protocol,
+                                    filePath: fullPath // ADICIONADO: Caminho absoluto para validação
                                 });
                             }
                         } catch (err) {

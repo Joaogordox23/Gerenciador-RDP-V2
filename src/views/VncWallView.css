@@ -1,0 +1,124 @@
+/* VncWallView.css */
+
+.vnc-wall-container {
+    display: flex;
+    height: calc(100vh - 100px);
+    gap: 20px;
+}
+
+.vnc-wall-sidebar {
+    width: 280px;
+    background: var(--bg-paper);
+    border-right: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+}
+
+.vnc-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.vnc-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 10px;
+    transition: all 0.2s;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.vnc-list-item:hover {
+    background-color: var(--hover-color);
+}
+
+.vnc-list-item.active {
+    background-color: rgba(29, 233, 182, 0.1);
+    border-left: 3px solid #1de9b6;
+    font-weight: 600;
+}
+
+.vnc-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #1de9b6;
+}
+
+.vnc-server-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.vnc-server-status {
+    font-size: 0.7rem;
+    margin-left: 4px;
+}
+
+.wall-controls {
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-stop-all {
+    width: 100%;
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.vnc-wall-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.vnc-wall-grid {
+    flex: 1;
+    display: grid;
+    gap: 15px;
+    overflow-y: auto;
+    padding: 5px;
+    align-content: start;
+}
+
+.wall-item {
+    background: black;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 16/9;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.wall-item-content {
+    flex: 1;
+    position: relative;
+}
+
+.wall-empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+}

@@ -1,16 +1,17 @@
-// src/views/DashboardView.js (VERSÃO COM STATS DINÂMICOS)
-
-import React from 'react';
+// src/views/DashboardView.js
+import React, { useMemo } from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
 import { SyncIcon, PlayArrowIcon } from '../components/MuiIcons';
+import StatusPieChart from '../components/dashboard/StatusPieChart';
+import LatencyChart from '../components/dashboard/LatencyChart';
+import '../components/dashboard/Dashboard.css';
 
-
-
-function StatCard({ title, value, color }) {
+function StatCard({ title, value, color, icon }) {
     return (
-        <div className="stat-card" style={{ borderColor: color }}>
-            <div className="stat-card-value">{value}</div>
-            <div className="stat-card-title">{title}</div>
+        <div className="glass-panel stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
+            <div className="stat-value">{value}</div>
+            <div className="stat-label">{title}</div>
         </div>
     );
 }
@@ -18,99 +19,134 @@ function StatCard({ title, value, color }) {
 function DashboardView({ servers, onTestAll }) {
     const { results, isTesting, monitoredServers, generateServerKey, testServer } = useConnectivity();
 
-    // vvvv LÓGICA DE CÁLCULO REFINADA vvvv
-    let onlineCount = 0;
-    let offlineCount = 0;
+    // Cálculos de Estatísticas
+    const stats = useMemo(() => {
+        let online = 0;
+        let offline = 0;
+        let alert = 0;
 
-    // Itera sobre todos os servidores passados para a dashboard
-    servers.forEach(server => {
-        const key = generateServerKey(server);
-        const result = results.get(key); // Pega o resultado mais recente para este servidor
+        servers.forEach(server => {
+            const key = generateServerKey(server);
+            const result = results.get(key);
 
-        if (result) {
-            if (result.status === 'online') {
-                onlineCount++;
-            } else if (result.status === 'offline' || result.status === 'error' || result.status === 'partial') {
-                // Consideramos offline, erro ou parcial como um estado que requer atenção
-                offlineCount++;
+            if (result) {
+                if (result.status === 'online') online++;
+                else if (result.status === 'offline') offline++;
+                else alert++;
+            } else {
+                // Considera desconhecido como alerta/pendente
+                alert++;
             }
+        });
+
+        return { online, offline, alert, total: servers.length };
+    }, [servers, results, generateServerKey]);
+
+    // Dados para o Gráfico de Pizza
+    const pieData = useMemo(() => [
+        { name: 'Online', value: stats.online },
+        { name: 'Offline', value: stats.offline },
+        { name: 'Alerta', value: stats.alert },
+    ], [stats]);
+
+    // Dados para o Gráfico de Latência (Simulado/Histórico)
+    // Em um cenário real, isso viria do histórico de monitoramento
+    const latencyData = useMemo(() => {
+        const data = [];
+        const now = new Date();
+        for (let i = 10; i >= 0; i--) {
+            const time = new Date(now.getTime() - i * 60000);
+            data.push({
+                time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                latency: Math.floor(Math.random() * 50) + 20 // Simulação
+            });
         }
-    });
-    // ^^^^ LÓGICA DE CÁLCULO REFINADA ^^^^
+        return data;
+    }, []);
 
     return (
         <div className="dashboard-container">
-            <div className="dashboard-header">
-                <h2>Dashboard de Monitoramento</h2>
-                <button onClick={onTestAll} className="btn btn--primary">
-                    <SyncIcon sx={{ fontSize: 18, marginRight: '8px' }} />
-                    Testar Todos
+            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 600 }}>Dashboard de Monitoramento</h2>
+                <button onClick={onTestAll} className="btn btn--primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
+                    <SyncIcon sx={{ fontSize: 20 }} />
+                    Testar Conectividade
                 </button>
             </div>
 
-            <div className="dashboard-stats">
-                {/* Os valores agora são dinâmicos */}
-                <StatCard title="Total de Servidores" value={servers.length} color="var(--color-info)" />
-                <StatCard title="Online" value={onlineCount} color="var(--color-success)" />
-                <StatCard title="Com Alerta" value={offlineCount} color="var(--color-error)" />
-                <StatCard title="Monitorados" value={monitoredServers.size} color="var(--color-primary)" />
+            {/* Cards de Estatísticas */}
+            <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                <StatCard title="Total de Servidores" value={stats.total} color="#2196f3" icon="🖥️" />
+                <StatCard title="Online" value={stats.online} color="#1de9b6" icon="✅" />
+                <StatCard title="Offline" value={stats.offline} color="#e91e63" icon="❌" />
+                <StatCard title="Monitorados" value={monitoredServers.size} color="#ffc107" icon="📡" />
             </div>
 
-            <div className="dashboard-server-list">
-                <table className="server-table">
-                    <thead>
-                        <tr>
-                            <th>Status</th>
-                            <th>Nome do Servidor</th>
-                            <th>Endereço</th>
-                            <th>Grupo</th>
-                            <th>Latência</th>
-                            <th>Última Verificação</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {servers.map(server => {
-                            const key = generateServerKey(server);
-                            const result = results.get(key);
-                            const isCurrentlyTesting = isTesting.has(key);
-                            const status = result ? result.status : 'unknown';
-                            const latency = result?.tests?.ping?.averageLatency;
+            {/* Gráficos */}
+            <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+                <StatusPieChart data={pieData} />
+                <LatencyChart data={latencyData} />
+            </div>
 
-                            return (
-                                <tr key={server.id}>
-                                    <td>
-                                        <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
-                                    </td>
-                                    <td>{server.name}</td>
-                                    <td>{server.ipAddress}{server.port ? `:${server.port}` : ''}</td>
-                                    <td>{server.groupName}</td>
-                                    <td>
-                                        {/* 🔧 CORREÇÃO BUG #4: Diferenciar "Testando..." de "-" */}
-                                        {isCurrentlyTesting ? (
-                                            <span className="latency testing">Testando...</span>
-                                        ) : latency ? (
-                                            <span className="latency">{latency} ms</span>
-                                        ) : (
-                                            <span className="latency unknown">-</span>
-                                        )}
-                                    </td>
-                                    <td>{result ? new Date(result.timestamp).toLocaleTimeString() : 'Nunca'}</td>
-                                    <td>
-                                        <button
-                                            className="action-button-icon"
-                                            title="Testar Agora"
-                                            onClick={() => testServer(server)}
-                                            disabled={isCurrentlyTesting}
-                                        >
-                                            <PlayArrowIcon sx={{ fontSize: 18 }} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+            {/* Lista de Servidores Recentes/Críticos */}
+            <div className="glass-panel">
+                <h3 className="chart-title">Status dos Servidores</h3>
+                <div className="dashboard-server-list">
+                    <table className="server-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
+                                <th style={{ padding: '15px', textAlign: 'left' }}>Servidor</th>
+                                <th style={{ padding: '15px', textAlign: 'left' }}>Endereço</th>
+                                <th style={{ padding: '15px', textAlign: 'left' }}>Latência</th>
+                                <th style={{ padding: '15px', textAlign: 'left' }}>Última Verificação</th>
+                                <th style={{ padding: '15px', textAlign: 'center' }}>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {servers.map(server => {
+                                const key = generateServerKey(server);
+                                const result = results.get(key);
+                                const isCurrentlyTesting = isTesting.has(key);
+                                const status = result ? result.status : 'unknown';
+                                const latency = result?.tests?.ping?.averageLatency;
+
+                                return (
+                                    <tr key={server.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <td style={{ padding: '15px' }}>
+                                            <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
+                                        </td>
+                                        <td style={{ padding: '15px', fontWeight: 500 }}>{server.name}</td>
+                                        <td style={{ padding: '15px', color: 'rgba(255,255,255,0.7)' }}>{server.ipAddress}</td>
+                                        <td style={{ padding: '15px' }}>
+                                            {isCurrentlyTesting ? (
+                                                <span className="latency testing">Testando...</span>
+                                            ) : latency ? (
+                                                <span className="latency" style={{ color: latency < 100 ? '#1de9b6' : '#ffc107' }}>{latency} ms</span>
+                                            ) : (
+                                                <span className="latency unknown">-</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '15px', color: 'rgba(255,255,255,0.7)' }}>
+                                            {result ? new Date(result.timestamp).toLocaleTimeString() : '-'}
+                                        </td>
+                                        <td style={{ padding: '15px', textAlign: 'center' }}>
+                                            <button
+                                                className="action-button-icon"
+                                                title="Testar Agora"
+                                                onClick={() => testServer(server)}
+                                                disabled={isCurrentlyTesting}
+                                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}
+                                            >
+                                                <PlayArrowIcon sx={{ fontSize: 20 }} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

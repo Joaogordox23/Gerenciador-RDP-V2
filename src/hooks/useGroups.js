@@ -197,11 +197,20 @@ export function useGroups(toast) {
     }, []);
 
     useEffect(() => {
-        if (window.api && window.api.storage) {
-            window.api.storage.set('groups', groups);
-            window.api.storage.set('vncGroups', vncGroups);
+        // ✅ OTIMIZAÇÃO: Debounce para evitar writes excessivos ao storage
+        // Só salva no store se o carregamento inicial já tiver ocorrido
+        if (!isLoading && window.api && window.api.storage) {
+            // Debounce de 500ms - agrupa múltiplas mudanças rápidas
+            const timeoutId = setTimeout(() => {
+                console.log('💾 useGroups: Salvando dados no storage...');
+                window.api.storage.set('groups', groups);
+                window.api.storage.set('vncGroups', vncGroups);
+            }, 500);
+
+            // Cleanup: cancela o timeout se houver nova mudança
+            return () => clearTimeout(timeoutId);
         }
-    }, [groups, vncGroups]);
+    }, [groups, vncGroups, isLoading]);
 
     return {
         groups,

@@ -1,6 +1,6 @@
 {
   "name": "GerenciadorRDP",
-  "version": "3.1.1",
+  "version": "4.0.0",
   "private": true,
   "main": "public/electron.js",
   "homepage": "./",
@@ -9,15 +9,18 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
+    "@novnc/novnc": "^1.3.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "activedirectory2": "^2.2.0",
     "electron-store": "^7.0.3",
+    "lucide-react": "^0.555.0",
     "react": "^18.3.1",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
+    "recharts": "^3.5.1",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {

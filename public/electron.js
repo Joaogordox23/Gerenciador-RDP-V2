@@ -9,6 +9,7 @@ const url = require('url');
 const fs = require('fs');
 const ActiveDirectory = require('activedirectory2');
 const fileSystemManager = require('./FileSystemManager');
+const vncProxyService = require('../src/main/services/VncProxyService');
 
 // ==========================
 // IMPORTS DO SISTEMA DE CONECTIVIDADE (MANTIDOS)
@@ -1150,6 +1151,30 @@ ipcMain.handle('ad-search', async (event, { url, baseDN, username, password }) =
 // ==========================
 // CLEANUP AO FECHAR
 // ==========================
+// ==========================
+// HANDLERS VNC PROXY (VNC WALL)
+// ==========================
+ipcMain.handle('vnc-proxy-start', async (event, serverInfo) => {
+    try {
+        console.log(`🔌 Solicitando proxy VNC para: ${serverInfo.name}`);
+        const port = await vncProxyService.startProxy(serverInfo);
+        return { success: true, port: port };
+    } catch (error) {
+        console.error('❌ Erro ao iniciar proxy VNC:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('vnc-proxy-stop', async (event, serverId) => {
+    try {
+        const stopped = vncProxyService.stopProxy(serverId);
+        return { success: stopped };
+    } catch (error) {
+        console.error('❌ Erro ao parar proxy VNC:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 app.on('before-quit', () => {
     console.log('🧹 Limpando recursos antes de fechar...');
     connectivityMonitors.forEach((interval) => {
