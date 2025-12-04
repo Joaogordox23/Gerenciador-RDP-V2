@@ -1,0 +1,28 @@
+/* AddGroupForm.css - Estilo Premium Refinado */
+
+.add-group-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 16px;
+    background-color: var(--color-surface, #1e1e1e);
+    /* Fallback color */
+    border-radius: 12px;
+}
+
+.add-group-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.add-group-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: none;
+    transform: none;
+}

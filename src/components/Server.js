@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { useConnectivity } from '../hooks/useConnectivity';
 import {
@@ -6,8 +6,6 @@ import {
   DeleteIcon,
   RefreshIcon,
   MonitorHeartIcon,
-  SaveIcon,
-  CloseIcon,
   HourglassEmptyIcon,
   CircleIcon,
   SyncIcon,
@@ -22,8 +20,6 @@ import {
   AccessTimeIcon
 } from './MuiIcons';
 
-
-
 function Server({
   serverInfo,
   onDelete,
@@ -31,19 +27,10 @@ function Server({
   isActive,
   isEditModeEnabled,
   index,
-  isConnectivityEnabled = true
+  isConnectivityEnabled = true,
+  onEdit // Nova prop para modal global
 }) {
-  const [isEditing, setIsEditing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [editData, setEditData] = useState({
-    protocol: serverInfo.protocol || 'rdp',
-    name: serverInfo.name,
-    ipAddress: serverInfo.ipAddress,
-    username: serverInfo.username || '',
-    password: '',
-    domain: serverInfo.domain || '',
-    port: serverInfo.port || (serverInfo.protocol === 'ssh' ? '22' : '')
-  });
 
   const {
     results,
@@ -55,13 +42,6 @@ function Server({
     stopMonitoring
   } = useConnectivity();
 
-  // 🔧 CORREÇÃO BUG #2: Reseta formulário ao desativar modo edição
-  useEffect(() => {
-    if (!isEditModeEnabled && isEditing) {
-      setIsEditing(false);
-    }
-  }, [isEditModeEnabled, isEditing]);
-
   // Memoizar chave do servidor para performance
   const serverKey = useMemo(() => generateServerKey(serverInfo), [serverInfo, generateServerKey]);
   const connectivityResult = results.get(serverKey);
@@ -70,7 +50,7 @@ function Server({
 
   // === HANDLERS ===
   const handleConnect = useCallback(async () => {
-    if (isEditModeEnabled || isEditing) return;
+    if (isEditModeEnabled) return;
 
     setIsConnecting(true);
 
@@ -87,7 +67,7 @@ function Server({
       // Remove estado de conectando após 3 segundos
       setTimeout(() => setIsConnecting(false), 3000);
     }
-  }, [isEditModeEnabled, isEditing, serverInfo]);
+  }, [isEditModeEnabled, serverInfo]);
 
   const handleTestConnectivity = useCallback((e) => {
     e.stopPropagation();
@@ -117,61 +97,12 @@ function Server({
     }
   }, [isMonitored, stopMonitoring, serverKey, serverInfo.name, onDelete]);
 
-  const handleEditStart = useCallback((e) => {
-    e.stopPropagation();
-    setIsEditing(true);
-  }, []);
-
-  const handleEditCancel = useCallback((e) => {
-    if (e) e.stopPropagation();
-    setEditData({
-      protocol: serverInfo.protocol || 'rdp',
-      name: serverInfo.name,
-      ipAddress: serverInfo.ipAddress,
-      username: serverInfo.username || '',
-      password: '',
-      domain: serverInfo.domain || '',
-      port: serverInfo.port || (serverInfo.protocol === 'ssh' ? '22' : '')
-    });
-    setIsEditing(false);
-  }, [serverInfo]);
-
   const getLatencyClass = (latency) => {
     if (!latency || latency === null) return null;
     if (latency < 50) return 'latency-good';
     if (latency < 150) return 'latency-medium';
     return 'latency-bad';
   };
-
-  const handleUpdateSubmit = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Validações básicas
-    if (!editData.name.trim()) {
-      alert('Nome do servidor é obrigatório');
-      return;
-    }
-
-    if (!editData.ipAddress.trim()) {
-      alert('Endereço IP é obrigatório');
-      return;
-    }
-
-    // Remove senha vazia do update
-    const updateData = { ...editData };
-    if (!updateData.password.trim()) {
-      delete updateData.password;
-    }
-
-    onUpdate(updateData);
-    setIsEditing(false);
-  }, [editData, onUpdate]);
-
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({ ...prev, [name]: value }));
-  }, []);
 
   // === STATUS INFO ===
   const statusInfo = useMemo(() => {
@@ -206,126 +137,6 @@ function Server({
       default: return { text: 'Erro', className: 'error', icon: <ErrorOutlineIcon sx={{ fontSize: 16 }} /> };
     }
   }, [isActive, isConnecting, isCurrentlyTesting, connectivityResult]);
-
-
-
-  // === RENDER FORM DE EDIÇÃO ===
-  if (isEditing) {
-    return (
-      <div className="server-item editing" onClick={e => e.stopPropagation()}>
-        <form onSubmit={handleUpdateSubmit} className="server-edit-form">
-          <div className="form-header">
-            <h3>Editando Servidor</h3>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor={`protocol-${serverInfo.id}`}>Protocolo:</label>
-              <select
-                id={`protocol-${serverInfo.id}`}
-                name="protocol"
-                value={editData.protocol}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="rdp">RDP</option>
-                <option value="ssh">SSH</option>
-                <option value="vnc">VNC</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor={`port-${serverInfo.id}`}>Porta:</label>
-              <input
-                type="text"
-                id={`port-${serverInfo.id}`}
-                name="port"
-                value={editData.port}
-                onChange={handleInputChange}
-                placeholder="Porta (opcional)"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor={`name-${serverInfo.id}`}>Nome do Servidor:</label>
-            <input
-              type="text"
-              id={`name-${serverInfo.id}`}
-              name="name"
-              value={editData.name}
-              onChange={handleInputChange}
-              required
-              maxLength={50}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor={`ip-${serverInfo.id}`}>Endereço IP:</label>
-            <input
-              type="text"
-              id={`ip-${serverInfo.id}`}
-              name="ipAddress"
-              value={editData.ipAddress}
-              onChange={handleInputChange}
-              required
-              pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-              title="Insira um IP válido (ex: 192.168.1.100) ou hostname"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor={`username-${serverInfo.id}`}>Usuário:</label>
-              <input
-                type="text"
-                id={`username-${serverInfo.id}`}
-                name="username"
-                value={editData.username}
-                onChange={handleInputChange}
-                maxLength={50}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor={`domain-${serverInfo.id}`}>Domínio:</label>
-              <input
-                type="text"
-                id={`domain-${serverInfo.id}`}
-                name="domain"
-                value={editData.domain}
-                onChange={handleInputChange}
-                maxLength={50}
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor={`password-${serverInfo.id}`}>Nova Senha (deixe vazio para manter):</label>
-            <input
-              type="password"
-              id={`password-${serverInfo.id}`}
-              name="password"
-              value={editData.password}
-              onChange={handleInputChange}
-              autoComplete="new-password"
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="action-btn save-btn">
-              <SaveIcon sx={{ fontSize: 20 }} />
-              Salvar
-            </button>
-            <button type="button" onClick={handleEditCancel} className="action-btn cancel-btn">
-              <CloseIcon sx={{ fontSize: 20 }} />
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
 
   // === RENDER SERVIDOR NORMAL ===
   return (
@@ -426,7 +237,10 @@ function Server({
 
               <button
                 type="button"
-                onClick={handleEditStart}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(serverInfo); // Chama modal global
+                }}
                 className="action-btn edit-btn"
                 title="Editar servidor"
                 aria-label="Editar configurações do servidor"

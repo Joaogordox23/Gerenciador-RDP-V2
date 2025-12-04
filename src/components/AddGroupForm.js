@@ -11,6 +11,7 @@ import {
     CheckIcon,
     CancelIcon
 } from './MuiIcons';
+import './AddGroupForm.css'; // Importando o novo CSS
 
 function AddGroupForm({ onAddGroup, onCancel }) {
     // Estados do formulário
@@ -73,7 +74,6 @@ function AddGroupForm({ onAddGroup, onCancel }) {
     // ==========================
     // RENDER
     // ==========================
-    // Note que o componente agora começa com a tag <form>
     return (
         <form className="add-group-form" onSubmit={handleSubmit}>
             <div className="add-group-input-container">

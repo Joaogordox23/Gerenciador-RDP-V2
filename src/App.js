@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
 import RdpSshView from './views/RdpSshView';
 import VncView from './views/VncView';
-import VncWallView from './views/VncWallView'; // ✨ v4.0:VNC Wall
+import VncWallView from './views/VncWallView';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
@@ -13,10 +13,6 @@ import DashboardView from './views/DashboardView';
 import { DragDropContext } from 'react-beautiful-dnd';
 import {
     ComputerIcon,
-    LayersIcon,
-    CheckCircleOutlineIcon,
-    CancelIcon,
-    LinkIcon,
     CloudDownloadIcon,
     LightModeIcon,
     DarkModeIcon,
@@ -42,6 +38,10 @@ import ADImportModal from './components/ADImportModal';
 // Modal de Alteração de Senha Global
 import BulkPasswordModal from './components/BulkPasswordModal';
 
+// Modais de Edição
+import EditServerModal from './components/EditServerModal';
+import EditVncModal from './components/EditVncModal';
+
 // Tela de Loading
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -60,11 +60,9 @@ function App() {
 
 function AppContent() {
     const { toast } = useToast();
-    // ✨ v4.0: Adicionando dados de conectividade em tempo real para o Dashboard
-    const { testAllServers, results: connectivityResults, isTesting: testingSet, generateServerKey } = useConnectivity();
+    const { testAllServers } = useConnectivity();
     const [activeView, setActiveView] = useState('Dashboard');
 
-    // Usando o hook customizado para gerenciar grupos
     const {
         groups,
         setGroups,
@@ -95,6 +93,10 @@ function AppContent() {
     const [vncViewMode, setVncViewMode] = useState('grid');
     const [showADModal, setShowADModal] = useState(false);
     const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
+
+    // Estados para modais de edição
+    const [editingServer, setEditingServer] = useState(null); // {server, groupId}
+    const [editingVncConnection, setEditingVncConnection] = useState(null); // {connection, groupId}
 
     const toggleTheme = () => {
         setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
@@ -129,7 +131,6 @@ function AppContent() {
                 if (result.failed > 0) {
                     toast.warning(`⚠️ ${result.failed} servidor(es) falharam na atualização`);
                 }
-                // Força reload dos dados para refletir mudanças
                 window.location.reload();
             }
         } catch (error) {
@@ -137,6 +138,23 @@ function AppContent() {
             toast.error(`Erro ao atualizar senhas: ${error.message}`);
         }
     }, [toast]);
+
+    // Handler para Salvar Edição de Servidor RDP/SSH
+    const handleSaveEditedServer = useCallback((updatedServer) => {
+        if (editingServer && editingServer.groupId) {
+            handleUpdateServer(editingServer.groupId, updatedServer);
+            setEditingServer(null);
+            toast.success(`Servidor "${updatedServer.name}" atualizado com sucesso!`);
+        }
+    }, [editingServer, handleUpdateServer, toast]);
+
+    // Handler para Salvar Edição de Conexão VNC
+    const handleSaveEditedVnc = useCallback((groupId, updatedConnection) => {
+        handleUpdateVncConnection(groupId, updatedConnection);
+        setEditingVncConnection(null);
+        toast.success(`Conexão VNC "${updatedConnection.name}" atualizada com sucesso!`);
+    }, [handleUpdateVncConnection, toast]);
+
 
     // Wrappers para deletar com confirmação
     const confirmDeleteGroup = useCallback((groupId, groupName) => {
@@ -189,40 +207,6 @@ function AppContent() {
     }, [allServers, testAllServers, toast]);
 
     const allVncConnections = useMemo(() => vncGroups.flatMap(group => group.connections || []), [vncGroups]);
-
-    // ✨ v4.0: Estatísticas de conectividade em tempo real
-    const connectivityStats = useMemo(() => {
-        const stats = {
-            total: allServers.length,
-            online: 0,
-            offline: 0,
-            partial: 0,
-            testing: 0,
-            unknown: 0,
-            error: 0
-        };
-
-        stats.testing = testingSet.size;
-
-        allServers.forEach(server => {
-            const serverKey = generateServerKey(server);
-            const result = connectivityResults.get(serverKey);
-
-            if (!result) {
-                stats.unknown++;
-            } else {
-                switch (result.status) {
-                    case 'online': stats.online++; break;
-                    case 'offline': stats.offline++; break;
-                    case 'partial': stats.partial++; break;
-                    case 'error': stats.error++; break;
-                    default: stats.unknown++;
-                }
-            }
-        });
-
-        return stats;
-    }, [allServers, connectivityResults, testingSet, generateServerKey]);
 
     const filteredGroups = useMemo(() => {
         if (!searchTerm) return groups;
@@ -314,7 +298,6 @@ function AppContent() {
                     const osTheme = await window.api.getOsTheme();
                     setTheme(osTheme);
                 } catch (error) {
-                    console.error("Não foi possível obter o tema do SO, usando 'dark' como padrão.", error);
                     setTheme('dark');
                 }
             } else {
@@ -349,111 +332,92 @@ function AppContent() {
             <div className="app">
                 {isLoading && <LoadingSpinner />}
                 <ToastContainer />
-                <header className="app-header">
-                    <div className="header-content">
-                        <h1>
-                            <ComputerIcon sx={{ fontSize: 32, marginRight: 2, verticalAlign: 'middle' }} />
-                            Gerenciador RDP/SSH Enterprise
-                        </h1>
-                        <div className="stats-bar">
-                            <div className="stat-item">
-                                <LayersIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                                Total: {allServers.length}
-                            </div>
-                            <div className="stat-item active-connections">
-                                <CheckCircleOutlineIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                                Online: {connectivityStats.online}
-                            </div>
-                            <div className="stat-item">
-                                <CancelIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                                Offline: {connectivityStats.offline}
-                            </div>
-                            <div className="stat-item">
-                                <LinkIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                                Conexões: {activeConnections.length}
-                            </div>
+                {/* Abertura do container sticky */}
+                <div className="sticky-header-container">
+                    <header className="app-header">
+                        <div className="header-content">
+                            <h1>
+                                <ComputerIcon sx={{ fontSize: 32, marginRight: 2, verticalAlign: 'middle' }} />
+                                Gerenciador RDP/SSH Enterprise
+                            </h1>                          </div>                  </header>
+                    <div className="toolbar">
+                        {/* Correção da Busca: removido estilo inline e adicionado className no ícone */}
+                        <div className="search-container">
+                            <SearchIcon className="search-icon-svg" sx={{ fontSize: 20, color: 'text.secondary', pointerEvents: 'none' }} />
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Buscar por nome do grupo, servidor ou IP..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="toolbar-actions">
+                            <button onClick={() => setShowADModal(true)} className="toolbar-btn secondary" title="Importar do AD">
+                                <CloudDownloadIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                Importar AD
+                            </button>
+                            {activeView === 'RDP/SSH' && (
+                                <button
+                                    onClick={() => setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid')}
+                                    className="toolbar-btn secondary"
+                                    title={rdpViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                                >
+                                    {rdpViewMode === 'grid' ?
+                                        <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                        <GridViewIcon sx={{ fontSize: 18 }} />
+                                    }
+                                </button>
+                            )}
+                            {activeView === 'VNC' && (
+                                <button
+                                    onClick={() => setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid')}
+                                    className="toolbar-btn secondary"
+                                    title={vncViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                                >
+                                    {vncViewMode === 'grid' ?
+                                        <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                        <GridViewIcon sx={{ fontSize: 18 }} />
+                                    }
+                                </button>
+                            )}
+                            {isEditModeEnabled && (
+                                <button onClick={() => setShowBulkPasswordModal(true)} className="toolbar-btn secondary" title="Alterar Senha Global">
+                                    <LockIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                    Senha Global
+                                </button>
+                            )}
+                            <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
+                                {theme === 'dark' ? <LightModeIcon sx={{ fontSize: 18 }} /> : <DarkModeIcon sx={{ fontSize: 18 }} />}
+                            </button>
+                            <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
+                                {showAddGroupForm ? (
+                                    <><CloseIcon sx={{ fontSize: 18, marginRight: 1 }} /> Cancelar</>
+                                ) : (
+                                    <><AddCircleOutlineIcon sx={{ fontSize: 18, marginRight: 1 }} /> Novo Grupo</>
+                                )}
+                            </button>
+                            <label htmlFor="edit-mode-toggle" className="edit-mode-toggle" title="Ativar/Desativar edição">
+                                <span>Modo Edição</span>
+                                <input
+                                    id="edit-mode-toggle"
+                                    type="checkbox"
+                                    checked={isEditModeEnabled}
+                                    onChange={() => setIsEditModeEnabled(!isEditModeEnabled)}
+                                />
+                                <span className="toggle-switch"></span>
+                            </label>
                         </div>
                     </div>
-                </header>
-                <div className="toolbar">
-                    <div className="search-container">
-                        <SearchIcon sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 20, color: 'text.secondary', pointerEvents: 'none' }} />
-                        <input
-                            type="text"
-                            className="search-input"
-                            style={{ paddingLeft: '40px' }}
-                            placeholder="Buscar por nome do grupo, servidor ou IP..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="toolbar-actions">
-                        <button onClick={() => setShowADModal(true)} className="toolbar-btn secondary" title="Importar do AD">
-                            <CloudDownloadIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                            Importar AD
-                        </button>
-
-                        {/* Toggle View Mode - RDP/SSH */}
-                        {activeView === 'RDP/SSH' && (
-                            <button
-                                onClick={() => setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid')}
-                                className="toolbar-btn secondary"
-                                title={rdpViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
-                            >
-                                {rdpViewMode === 'grid' ?
-                                    <ViewListIcon sx={{ fontSize: 18 }} /> :
-                                    <GridViewIcon sx={{ fontSize: 18 }} />
-                                }
-                            </button>
-                        )}
-                        {/* Toggle View Mode - VNC */}
-                        {activeView === 'VNC' && (
-                            <button
-                                onClick={() => setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid')}
-                                className="toolbar-btn secondary"
-                                title={vncViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
-                            >
-                                {vncViewMode === 'grid' ?
-                                    <ViewListIcon sx={{ fontSize: 18 }} /> :
-                                    <GridViewIcon sx={{ fontSize: 18 }} />
-                                }
-                            </button>
-                        )}
-
-                        {isEditModeEnabled && (
-                            <button onClick={() => setShowBulkPasswordModal(true)} className="toolbar-btn secondary" title="Alterar Senha Global">
-                                <LockIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                                Senha Global
-                            </button>
-                        )}
-                        <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
-                            {theme === 'dark' ? <LightModeIcon sx={{ fontSize: 18 }} /> : <DarkModeIcon sx={{ fontSize: 18 }} />}
-                        </button>
-                        <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
-                            {showAddGroupForm ? (
-                                <><CloseIcon sx={{ fontSize: 18, marginRight: 1 }} /> Cancelar</>
-                            ) : (
-                                <><AddCircleOutlineIcon sx={{ fontSize: 18, marginRight: 1 }} /> Novo Grupo</>
-                            )}
-                        </button>
-                        <label htmlFor="edit-mode-toggle" className="edit-mode-toggle" title="Ativar/Desativar edição">
-                            <span>Modo Edição</span>
-                            <input
-                                id="edit-mode-toggle"
-                                type="checkbox"
-                                checked={isEditModeEnabled}
-                                onChange={() => setIsEditModeEnabled(!isEditModeEnabled)}
-                            />
-                            <span className="toggle-switch"></span>
-                        </label>
-                    </div>
+                    <nav className="view-switcher">
+                        <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
+                        <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
+                        <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
+                        <button className={`view-tab ${activeView === 'VNC Wall' ? 'active' : ''}`} onClick={() => setActiveView('VNC Wall')}>VNC Wall</button>
+                    </nav>
+                    {/* Fechamento CRÍTICO da div sticky */}
                 </div>
-                <nav className="view-switcher">
-                    <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
-                    <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
-                    <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
-                    <button className={`view-tab ${activeView === 'VNC Wall' ? 'active' : ''}`} onClick={() => setActiveView('VNC Wall')}>VNC Wall</button>
-                </nav>
+
                 <main className="groups-container">
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <ADImportModal
@@ -516,6 +480,7 @@ function AppContent() {
                                 onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
                                 onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
                                 onUpdateServer={handleUpdateServer}
+                                onEditServer={(server, groupId) => setEditingServer({ server, groupId })}
                                 onDeleteGroup={confirmDeleteGroup}
                                 onUpdateGroup={handleUpdateGroup}
                                 activeConnections={activeConnections}
@@ -533,6 +498,7 @@ function AppContent() {
                                 onDeleteConnection={confirmDeleteVncConnection}
                                 onDeleteGroup={confirmDeleteVncGroup}
                                 onUpdateConnection={handleUpdateVncConnection}
+                                onEditVnc={(connection, groupId) => setEditingVncConnection({ connection, groupId })}
                                 onUpdateVncGroup={handleUpdateVncGroup}
                                 isEditModeEnabled={isEditModeEnabled}
                                 onShowAddConnectionModal={setAddingToGroupId}
@@ -554,7 +520,7 @@ function AppContent() {
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
                             Gerenciador Enterprise v4.0
                         </div>
-                        <div>{groups.length + vncGroups.length} grupo(s) • {allServers.length + allVncConnections.length} item(ns)</div>
+                        <div>{groups.length + vncGroups.length}grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>
                 </footer>
                 {dialogConfig && (
@@ -565,8 +531,26 @@ function AppContent() {
                         onCancel={() => setDialogConfig(null)}
                     />
                 )}
+
+                {/* Modais de Edição */}
+                {editingServer && (
+                    <EditServerModal
+                        server={editingServer.server}
+                        onSave={handleSaveEditedServer}
+                        onCancel={() => setEditingServer(null)}
+                    />
+                )}
+
+                {editingVncConnection && (
+                    <EditVncModal
+                        connection={editingVncConnection.connection}
+                        groupId={editingVncConnection.groupId}
+                        onSave={handleSaveEditedVnc}
+                        onCancel={() => setEditingVncConnection(null)}
+                    />
+                )}
             </div>
-        </ThemeProvider>
+        </ThemeProvider >
     );
 }
 

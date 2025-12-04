@@ -25,7 +25,8 @@ function Group({
     onStartEdit,
     onCancelEdit,
     index,
-    viewMode = 'grid' // v4.1: Suporte a viewMode
+    viewMode = 'grid', // v4.1: Suporte a viewMode
+    onEditServer // Nova prop para modal global
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
@@ -60,22 +61,30 @@ function Group({
                     )}
                 </div>
 
-                {isEditModeEnabled && (
-                    <div className="group-actions">
-                        {isEditing ? (
-                            <>
-                                <button className="action-button-icon save" title="Salvar Nome" onClick={handleSaveGroupName}><SaveIcon /></button>
-                                <button className="action-button-icon cancel" title="Cancelar Edição" onClick={onCancelEdit}><CancelIcon /></button>
-                            </>
-                        ) : (
-                            <>
-                                <button className="action-button-icon add" title="Adicionar Servidor" onClick={() => onShowAddServerModal(groupInfo.id)}><AddIcon /></button>
-                                <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
-                                <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
-                            </>
-                        )}
-                    </div>
-                )}
+                <div className="group-actions">
+                    {isEditing && isEditModeEnabled ? (
+                        <>
+                            <button className="action-button-icon save" title="Salvar Nome" onClick={handleSaveGroupName}><SaveIcon /></button>
+                            <button className="action-button-icon cancel" title="Cancelar Edição" onClick={onCancelEdit}><CancelIcon /></button>
+                        </>
+                    ) : (
+                        <>
+                            {/* Botão Adicionar sempre visível */}
+                            <button className="action-button-icon add" title="Adicionar Servidor" onClick={() => {
+                                console.log('Add Server clicked for group:', groupInfo.id);
+                                onShowAddServerModal(groupInfo.id);
+                            }}><AddIcon /></button>
+
+                            {/* Botões de edição de grupo apenas no modo edição */}
+                            {isEditModeEnabled && (
+                                <>
+                                    <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
+                                    <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
+                                </>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* v4.1: Renderização condicional Grid vs Lista */}
@@ -90,6 +99,7 @@ function Group({
                             isActive={activeConnections.includes(server.id)}
                             isEditModeEnabled={isEditModeEnabled}
                             isConnectivityEnabled={isConnectivityEnabled}
+                            onEdit={() => onEditServer(server, groupInfo.id)} // Passando onEdit
                         />
                     ))}
                 </div>
@@ -116,6 +126,7 @@ function Group({
                                     isActive={activeConnections.includes(server.id)}
                                     isEditModeEnabled={isEditModeEnabled}
                                     isConnectivityEnabled={isConnectivityEnabled}
+                                    onEdit={() => onEditServer(server, groupInfo.id)} // Passando onEdit
                                 />
                             ))}
                             {provided.placeholder}

@@ -5,14 +5,12 @@ import {
     DeleteIcon,
     RefreshIcon,
     MonitorHeartIcon,
-    SaveIcon,
-    CloseIcon,
-    PersonOutlineIcon,
+    HelpOutlineIcon,
     CheckCircleOutlineIcon,
     CancelIcon,
     WarningAmberIcon,
-    HelpOutlineIcon,
-    SyncIcon
+    SyncIcon,
+    PersonOutlineIcon
 } from './MuiIcons';
 import './ServerListItem.css';
 
@@ -26,9 +24,9 @@ function ServerListItem({
     onUpdate,
     isActive,
     isEditModeEnabled,
-    isConnectivityEnabled = true
+    isConnectivityEnabled = true,
+    onEdit // Nova prop para modal global
 }) {
-    const [isEditing, setIsEditing] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
 
     const {
@@ -68,7 +66,7 @@ function ServerListItem({
     };
 
     const handleConnect = useCallback(async () => {
-        if (isEditModeEnabled || isEditing) return;
+        if (isEditModeEnabled) return;
         setIsConnecting(true);
         try {
             await window.api.connection.connect(serverInfo);
@@ -77,7 +75,7 @@ function ServerListItem({
         } finally {
             setTimeout(() => setIsConnecting(false), 3000);
         }
-    }, [isEditModeEnabled, isEditing, serverInfo]);
+    }, [isEditModeEnabled, serverInfo]);
 
     const handleTestConnectivity = useCallback((e) => {
         e.stopPropagation();
@@ -163,7 +161,7 @@ function ServerListItem({
                         </>
                     )}
                     <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => onEdit(serverInfo)} // Chama modal global
                         className="list-action-btn"
                         title="Editar"
                     >

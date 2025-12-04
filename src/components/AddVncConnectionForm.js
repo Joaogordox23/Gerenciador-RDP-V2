@@ -105,11 +105,11 @@ function AddVncConnectionForm({ onAddConnection, onCancel }) {
                 </div>
 
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn btn--secondary">
+                    <button type="button" onClick={onCancel} className="btn btn-secondary">
                         <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
                         Cancelar
                     </button>
-                    <button type="submit" className="btn btn--primary">
+                    <button type="submit" className="btn btn-primary">
                         <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
                         Adicionar
                     </button>

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import VncConnection from './VncConnection';
-import EditVncConnectionForm from './EditVncConnectionForm';
-// Removida a importação de AddVncConnectionForm
+// EditVncConnectionForm removido pois usamos modal global
 
 // (Ícones aqui)
 const AddIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
@@ -15,7 +14,6 @@ const CancelIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 function VncGroup({
     groupInfo,
     isEditModeEnabled,
-    // onAddConnection removido, onShowAddConnectionModal adicionado
     onShowAddConnectionModal,
     onDeleteConnection,
     onDeleteGroup,
@@ -24,37 +22,23 @@ function VncGroup({
     isEditing,
     onStartEdit,
     onCancelEdit,
-    onUpdateVncGroup
+    onUpdateVncGroup,
+    onEditVnc // Nova prop para modal global
 }) {
-    // Estado 'isAddingConnection' foi removido
-    const [editingConnectionId, setEditingConnectionId] = useState(null);
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
     useEffect(() => {
         setNewGroupName(groupInfo.groupName);
     }, [groupInfo.groupName]);
 
-    // 🔧 CORREÇÃO BUG #2: Reseta formulário de edição ao desativar modo edição
-    useEffect(() => {
-        if (!isEditModeEnabled && editingConnectionId) {
-            setEditingConnectionId(null);
-        }
-    }, [isEditModeEnabled, editingConnectionId]);
-
     const handleSaveGroupName = (e) => {
         e.preventDefault();
         onUpdateVncGroup(groupInfo.id, newGroupName);
     };
 
-    const handleSaveConnection = (updatedConnectionData) => {
-        onUpdateConnection(groupInfo.id, updatedConnectionData.id, updatedConnectionData);
-        setEditingConnectionId(null);
-    };
-
     return (
         <div className="group-container">
             <div className="group-header">
-                {/* ... (lógica do header mantida) ... */}
                 <div className="group-title-container">
                     {isEditing && isEditModeEnabled ? (
                         <form onSubmit={handleSaveGroupName} style={{ width: '100%' }}>
@@ -83,7 +67,6 @@ function VncGroup({
                             </>
                         ) : (
                             <>
-                                {/* Botão "+" agora chama a função para abrir o modal */}
                                 <button className="action-button-icon add" title="Adicionar Conexão VNC" onClick={() => onShowAddConnectionModal(groupInfo.id)}><AddIcon /></button>
                                 <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
                                 <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
@@ -95,27 +78,16 @@ function VncGroup({
 
             <div className="servers-row">
                 {Array.isArray(groupInfo.connections) && groupInfo.connections.map(conn => (
-                    editingConnectionId === conn.id ? (
-                        <EditVncConnectionForm
-                            key={conn.id}
-                            connectionInfo={conn}
-                            onSave={handleSaveConnection}
-                            onCancel={() => setEditingConnectionId(null)}
-                        />
-                    ) : (
-                        <VncConnection
-                            key={conn.id}
-                            connectionInfo={conn}
-                            isEditModeEnabled={isEditModeEnabled}
-                            onDelete={() => onDeleteConnection(groupInfo.id, conn.id, conn.name)}
-                            onEdit={() => setEditingConnectionId(conn.id)}
-                            onConnect={onVncConnect}
-                        />
-                    )
+                    <VncConnection
+                        key={conn.id}
+                        connectionInfo={conn}
+                        isEditModeEnabled={isEditModeEnabled}
+                        onDelete={() => onDeleteConnection(groupInfo.id, conn.id, conn.name)}
+                        onEdit={() => onEditVnc(conn, groupInfo.id)} // Chama modal global
+                        onConnect={onVncConnect}
+                    />
                 ))}
             </div>
-
-            {/* O formulário inline foi completamente removido daqui */}
         </div>
     );
 }

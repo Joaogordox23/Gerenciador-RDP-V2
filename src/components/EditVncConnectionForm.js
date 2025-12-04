@@ -46,7 +46,7 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                 </div>
 
                 <div className="form-group">
-                    <label>Nome *</label>
+                    <label className="form-label">Nome *</label>
                     <div className="input-with-icon">
                         <ComputerIcon className="input-icon" />
                         <input
@@ -62,7 +62,7 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                 </div>
 
                 <div className="form-group">
-                    <label>IP/Hostname *</label>
+                    <label className="form-label">IP/Hostname *</label>
                     <div className="input-with-icon">
                         <SettingsEthernetIcon className="input-icon" />
                         <input
@@ -76,9 +76,9 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                     {errors.ipAddress && <span className="error-text">{errors.ipAddress}</span>}
                 </div>
 
-                <div className="form-row">
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div className="form-group">
-                        <label>Porta *</label>
+                        <label className="form-label">Porta *</label>
                         <div className="input-with-icon">
                             <SettingsEthernetIcon className="input-icon" />
                             <input
@@ -91,7 +91,7 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                         </div>
                     </div>
                     <div className="form-group">
-                        <label>Nova Senha</label>
+                        <label className="form-label">Nova Senha</label>
                         <div className="input-with-icon">
                             <LockIcon className="input-icon" />
                             <input
@@ -105,29 +105,29 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                     </div>
                 </div>
 
-                <div className="form-group checkbox-group">
-                    <label className="checkbox-label">
+                <div className="form-group">
+                    <label className={`form-checkbox-wrapper ${formData.viewOnly ? 'checked' : ''}`}>
                         <input
                             type="checkbox"
                             name="viewOnly"
                             checked={formData.viewOnly}
                             onChange={handleInputChange}
+                            className="form-checkbox"
                         />
-                        <span className="checkbox-custom"></span>
-                        <div className="checkbox-text">
-                            <VisibilityIcon sx={{ fontSize: 18, marginRight: 0.5, verticalAlign: 'middle' }} />
+                        <div className="checkbox-label-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <VisibilityIcon sx={{ fontSize: 18 }} />
                             Modo Apenas Visualização
                         </div>
                     </label>
                 </div>
 
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn btn--secondary">
-                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                    <button type="button" onClick={onCancel} className="btn btn-secondary">
+                        <CancelIcon sx={{ fontSize: 18 }} />
                         Cancelar
                     </button>
-                    <button type="submit" className="btn btn--primary">
-                        <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                    <button type="submit" className="btn btn-primary">
+                        <SaveIcon sx={{ fontSize: 18 }} />
                         Salvar
                     </button>
                 </div>

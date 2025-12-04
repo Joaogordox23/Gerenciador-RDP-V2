@@ -2,8 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
     EditIcon,
     DeleteIcon,
-    SaveIcon,
-    CloseIcon,
     PersonOutlineIcon,
     MonitorIcon
 } from './MuiIcons';
@@ -17,14 +15,13 @@ function VncListItem({
     onConnect,
     onDelete,
     onUpdate,
-    isEditModeEnabled
+    isEditModeEnabled,
+    onEdit // Nova prop para modal global
 }) {
-    const [isEditing, setIsEditing] = useState(false);
-
     const handleConnect = useCallback(() => {
-        if (isEditModeEnabled || isEditing) return;
+        if (isEditModeEnabled) return;
         onConnect(connection);
-    }, [isEditModeEnabled, isEditing, connection, onConnect]);
+    }, [isEditModeEnabled, connection, onConnect]);
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
@@ -68,7 +65,7 @@ function VncListItem({
             {isEditModeEnabled && (
                 <div className="vnc-list-actions" onClick={(e) => e.stopPropagation()}>
                     <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => onEdit(connection)} // Chama modal global
                         className="vnc-action-btn"
                         title="Editar"
                     >

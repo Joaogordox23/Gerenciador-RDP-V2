@@ -76,7 +76,7 @@ function VncFullscreen({ connection, onClose }) {
                 {/* Display VNC com controle total */}
                 <div className="vnc-fullscreen-display">
                     <VncDisplay
-                        connection={connection}
+                        connectionInfo={connection}
                         scaleViewport={scaleViewport}
                         viewOnly={viewOnly}
                         showControls={false}

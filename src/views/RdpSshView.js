@@ -14,7 +14,8 @@ function RdpSshView({
     isEditModeEnabled,
     isConnectivityEnabled,
     onShowAddServerModal,
-    viewMode = 'grid' // v4.1: Prop viewMode (grid ou list)
+    viewMode = 'grid', // v4.1: Prop viewMode (grid ou list)
+    onEditServer // <--- Adicionando a prop que faltava
 }) {
     const [editingGroupId, setEditingGroupId] = useState(null);
 
@@ -45,6 +46,7 @@ function RdpSshView({
                                 onUpdateGroup={handleUpdateAndFinishEditing}
                                 onShowAddServerModal={onShowAddServerModal}
                                 viewMode={viewMode} // v4.1: Passando viewMode para Group
+                                onEditServer={onEditServer}
                             />
                         ))
                     ) : (

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import RFB from '@novnc/novnc/core/rfb';
 
-function VncDisplay({ connectionInfo, onDisconnect }) {
+function VncDisplay({ connectionInfo, onDisconnect, viewOnly = false, scaleViewport = true, quality = 2 }) {
     const vncContainerRef = useRef(null);
     const rfbRef = useRef(null);
     const [isMounted, setIsMounted] = useState(false);
@@ -10,6 +10,20 @@ function VncDisplay({ connectionInfo, onDisconnect }) {
         setIsMounted(true);
         return () => setIsMounted(false);
     }, []);
+
+    // Atualiza viewOnly dinamicamente se a prop mudar
+    useEffect(() => {
+        if (rfbRef.current) {
+            rfbRef.current.viewOnly = viewOnly;
+        }
+    }, [viewOnly]);
+
+    // Atualiza scaleViewport dinamicamente
+    useEffect(() => {
+        if (rfbRef.current) {
+            rfbRef.current.scaleViewport = scaleViewport;
+        }
+    }, [scaleViewport]);
 
     useEffect(() => {
         if (!connectionInfo || !connectionInfo.proxyUrl || !vncContainerRef.current || !isMounted) {
@@ -30,9 +44,11 @@ function VncDisplay({ connectionInfo, onDisconnect }) {
                     credentials: { password: password },
                 });
 
-                rfb.scaleViewport = true; // Ajusta ao tamanho do container
+                rfb.viewOnly = viewOnly;
+                rfb.scaleViewport = scaleViewport; // Ajusta ao tamanho do container
                 rfb.resizeSession = false; // Não redimensiona a sessão remota
-                rfb.showDotCursor = true;
+                rfb.showDotCursor = !viewOnly; // Esconde cursor no modo viewOnly
+                rfb.qualityLevel = quality; // 0-9
 
                 rfb.addEventListener('connect', () => {
                     console.log(`✅ [${connectionInfo.name}] Conectado via proxy!`);
@@ -64,7 +80,7 @@ function VncDisplay({ connectionInfo, onDisconnect }) {
                 rfbRef.current = null;
             }
         };
-    }, [connectionInfo, isMounted]);
+    }, [connectionInfo, isMounted, viewOnly, scaleViewport, quality]);
 
     if (!connectionInfo) return null;
 
@@ -77,6 +93,19 @@ function VncDisplay({ connectionInfo, onDisconnect }) {
             overflow: 'hidden'
         }}>
             <div ref={vncContainerRef} style={{ width: '100%', height: '100%' }} />
+
+            {/* Escudo de cliques para modo viewOnly - Permite que o doubleClick funcione */}
+            {viewOnly && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 5, // Acima do canvas, abaixo dos controles
+                    cursor: 'pointer'
+                }} />
+            )}
 
             {/* Overlay Compacto para Grid */}
             <div style={{

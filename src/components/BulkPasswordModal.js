@@ -138,7 +138,7 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                 {step === 1 && (
                     <form onSubmit={handleNextStep} className="bulk-form">
                         <div className="form-group">
-                            <label>Tipo de Servidor:</label>
+                            <label className="form-label">Tipo de Servidor:</label>
                             <select
                                 value={targetType}
                                 onChange={e => {
@@ -155,7 +155,7 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                         {targetType === 'rdp' && (
                             <>
                                 <div className="form-group">
-                                    <label>Novo Usuário:</label>
+                                    <label className="form-label">Novo Usuário:</label>
                                     <div className="input-with-icon">
                                         <PersonOutlineIcon className="input-icon" />
                                         <input
@@ -171,7 +171,7 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Novo Domínio (Opcional):</label>
+                                    <label className="form-label">Novo Domínio (Opcional):</label>
                                     <div className="input-with-icon">
                                         <DomainIcon className="input-icon" />
                                         <input
@@ -188,7 +188,7 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                         )}
 
                         <div className="form-group">
-                            <label>Nova Senha:</label>
+                            <label className="form-label">Nova Senha:</label>
                             <div className="input-with-icon">
                                 <LockIcon className="input-icon" />
                                 <input
@@ -205,13 +205,13 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
 
                         {error && <div className="error-banner">{error}</div>}
 
-                        <div className="modal-actions">
-                            <button type="button" onClick={handleClose} className="btn btn--secondary">
-                                <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        <div className="form-actions">
+                            <button type="button" onClick={handleClose} className="btn btn-secondary">
+                                <CancelIcon sx={{ fontSize: 18 }} />
                                 Cancelar
                             </button>
-                            <button type="submit" className="btn btn--primary">
-                                <SearchIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                            <button type="submit" className="btn btn-primary">
+                                <SearchIcon sx={{ fontSize: 18 }} />
                                 Próximo: Selecionar Servidores
                             </button>
                         </div>
@@ -237,31 +237,35 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                         </div>
 
                         <div className="results-list-header">
-                            <label className="checkbox-label">
+                            <label className={`form-checkbox-wrapper ${filteredServers.length > 0 && selectedServers.size === filteredServers.length ? 'checked' : ''}`} style={{ width: '100%', border: 'none', background: 'transparent', padding: 0 }}>
                                 <input
                                     type="checkbox"
                                     checked={filteredServers.length > 0 && selectedServers.size === filteredServers.length}
                                     onChange={handleSelectAll}
+                                    className="form-checkbox"
                                 />
-                                Selecionar Todos ({filteredServers.length})
+                                <span className="checkbox-label-text">Selecionar Todos ({filteredServers.length})</span>
                             </label>
                         </div>
 
                         <div className="results-list">
                             {filteredServers.map(server => (
                                 <div key={server.id} className="result-item">
-                                    <label className="checkbox-label">
+                                    <label className={`form-checkbox-wrapper ${selectedServers.has(server.id) ? 'checked' : ''}`} style={{ width: '100%' }}>
                                         <input
                                             type="checkbox"
                                             checked={selectedServers.has(server.id)}
                                             onChange={() => handleToggleServer(server.id)}
+                                            className="form-checkbox"
                                         />
-                                        <div className="server-info">
-                                            <span className="server-name">
-                                                <ComputerIcon sx={{ fontSize: 16, marginRight: '8px', verticalAlign: 'middle' }} />
+                                        <div className="server-info" style={{ marginLeft: '8px' }}>
+                                            <span className="server-name" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                                                <ComputerIcon sx={{ fontSize: 16 }} />
                                                 {server.name}
                                             </span>
-                                            <span className="server-details">{server.ipAddress} • {server.groupName}</span>
+                                            <span className="server-details" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                                {server.ipAddress} • {server.groupName}
+                                            </span>
                                         </div>
                                     </label>
                                 </div>
@@ -273,18 +277,18 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
 
                         {error && <div className="error-banner">⚠️ {error}</div>}
 
-                        <div className="modal-actions">
-                            <button type="button" onClick={() => setStep(1)} className="btn btn--secondary">
-                                <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        <div className="form-actions">
+                            <button type="button" onClick={() => setStep(1)} className="btn btn-secondary">
+                                <CancelIcon sx={{ fontSize: 18 }} />
                                 Voltar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleApply}
-                                className="btn btn--primary"
+                                className="btn btn-primary"
                                 disabled={selectedServers.size === 0}
                             >
-                                <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                                <SaveIcon sx={{ fontSize: 18 }} />
                                 Aplicar ({selectedServers.size} selecionados)
                             </button>
                         </div>

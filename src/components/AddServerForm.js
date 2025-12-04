@@ -45,9 +45,9 @@ function AddServerForm({ onAddServer, onCancel }) {
         <div className="add-server-form-container">
             <form onSubmit={handleSubmit} className="add-server-form">
                 <div className="form-group">
-                    <label>Protocolo</label>
-                    <div className="protocol-selector">
-                        <label className={`radio-card ${serverData.protocol === 'rdp' ? 'selected' : ''}`}>
+                    <label className="form-label">Protocolo</label>
+                    <div className="form-radio-group">
+                        <label className={`form-radio-card ${serverData.protocol === 'rdp' ? 'selected' : ''}`}>
                             <input
                                 type="radio"
                                 name="protocol"
@@ -56,11 +56,12 @@ function AddServerForm({ onAddServer, onCancel }) {
                                 onChange={handleInputChange}
                             />
                             <div className="radio-content">
-                                <ComputerIcon sx={{ fontSize: 24, marginBottom: 0.5 }} />
-                                <span>RDP</span>
+                                <span className="radio-label">RDP</span>
+                                <span className="radio-description">Remote Desktop Protocol</span>
                             </div>
+                            <ComputerIcon sx={{ fontSize: 20, color: serverData.protocol === 'rdp' ? 'var(--color-primary)' : 'var(--color-text-secondary)', marginLeft: 'auto' }} />
                         </label>
-                        <label className={`radio-card ${serverData.protocol === 'ssh' ? 'selected' : ''}`}>
+                        <label className={`form-radio-card ${serverData.protocol === 'ssh' ? 'selected' : ''}`}>
                             <input
                                 type="radio"
                                 name="protocol"
@@ -69,15 +70,16 @@ function AddServerForm({ onAddServer, onCancel }) {
                                 onChange={handleInputChange}
                             />
                             <div className="radio-content">
-                                <TerminalIcon sx={{ fontSize: 24, marginBottom: 0.5 }} />
-                                <span>SSH</span>
+                                <span className="radio-label">SSH</span>
+                                <span className="radio-description">Secure Shell</span>
                             </div>
+                            <TerminalIcon sx={{ fontSize: 20, color: serverData.protocol === 'ssh' ? 'var(--color-primary)' : 'var(--color-text-secondary)', marginLeft: 'auto' }} />
                         </label>
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label>Nome *</label>
+                    <label className="form-label">Nome *</label>
                     <div className="input-with-icon">
                         <ComputerIcon className="input-icon" />
                         <input
@@ -94,7 +96,7 @@ function AddServerForm({ onAddServer, onCancel }) {
                 </div>
 
                 <div className="form-group">
-                    <label>IP/Hostname *</label>
+                    <label className="form-label">IP/Hostname *</label>
                     <div className="input-with-icon">
                         <SettingsEthernetIcon className="input-icon" />
                         <input
@@ -109,9 +111,9 @@ function AddServerForm({ onAddServer, onCancel }) {
                     {errors.ipAddress && <span className="error-text">{errors.ipAddress}</span>}
                 </div>
 
-                <div className="form-row">
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div className="form-group">
-                        <label>Usuário</label>
+                        <label className="form-label">Usuário</label>
                         <div className="input-with-icon">
                             <PersonOutlineIcon className="input-icon" />
                             <input
@@ -125,7 +127,7 @@ function AddServerForm({ onAddServer, onCancel }) {
                         </div>
                     </div>
                     <div className="form-group">
-                        <label>Senha</label>
+                        <label className="form-label">Senha</label>
                         <div className="input-with-icon">
                             <LockIcon className="input-icon" />
                             <input
@@ -142,7 +144,7 @@ function AddServerForm({ onAddServer, onCancel }) {
 
                 {serverData.protocol === 'rdp' && (
                     <div className="form-group">
-                        <label>Domínio</label>
+                        <label className="form-label">Domínio</label>
                         <div className="input-with-icon">
                             <DomainIcon className="input-icon" />
                             <input
@@ -159,7 +161,7 @@ function AddServerForm({ onAddServer, onCancel }) {
 
                 {serverData.protocol === 'ssh' && (
                     <div className="form-group">
-                        <label>Porta</label>
+                        <label className="form-label">Porta</label>
                         <div className="input-with-icon">
                             <SettingsEthernetIcon className="input-icon" />
                             <input
@@ -175,12 +177,12 @@ function AddServerForm({ onAddServer, onCancel }) {
                 )}
 
                 <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn btn--secondary">
-                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                    <button type="button" onClick={onCancel} className="btn btn-secondary">
+                        <CancelIcon sx={{ fontSize: 18 }} />
                         Cancelar
                     </button>
-                    <button type="submit" className="btn btn--primary" disabled={false}>
-                        <SaveIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                    <button type="submit" className="btn btn-primary">
+                        <SaveIcon sx={{ fontSize: 18 }} />
                         Salvar
                     </button>
                 </div>

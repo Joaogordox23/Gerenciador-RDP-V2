@@ -70,7 +70,8 @@
       "public/electron.js",
       "public/preload.js",
       "public/ConnectivityTester.js",
-      "public/FileSystemManager.js"
+      "public/FileSystemManager.js",
+      "src/main/**/*"
     ],
     "extraResources": [
       {

@@ -265,20 +265,12 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
                             gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
                         }}>
                             {connections.map(conn => (
-                                <div key={conn.id} className="wall-item">
-                                    <div
-                                        className="wall-item-content"
-                                        onDoubleClick={() => handleDoubleClick(conn)}
-                                        title="Duplo clique para modo interativo"
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <VncDisplay
-                                            connectionInfo={conn}
-                                            onDisconnect={() => handleStopMonitoring(conn.id)}
-                                            viewOnly={true}
-                                            quality={3}
-                                        />
-                                    </div>
+                                <div key={conn.id} className="wall-item" onDoubleClick={() => handleDoubleClick(conn)}>
+                                    <VncDisplay
+                                        connectionInfo={conn}
+                                        onDisconnect={() => handleStopMonitoring(conn.id)}
+                                        viewOnly={true}
+                                    />
                                 </div>
                             ))}
                         </div>
