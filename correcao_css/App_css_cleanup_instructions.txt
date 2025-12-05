@@ -1,0 +1,43 @@
+
+/* ============================================================================ */
+/* INSTRUÇÕES DE LIMPEZA - App.css */
+/* ============================================================================ */
+
+REMOVER os seguintes blocos (já definidos em forms.css):
+
+1. REMOVER (~linha 350-380):
+   .form-control,
+   .form-input,
+   input[type="text"],
+   input[type="password"],
+   ... (todo o bloco de inputs)
+
+2. REMOVER (~linha 385-395):
+   .form-label,
+   label {
+   ... (todo o bloco de labels)
+
+3. REMOVER (~linha 398-400):
+   .form-group {
+   margin-bottom: 20px !important;
+   }
+
+4. REMOVER (~linha 410-450):
+   .btn-primary,
+   .btn-submit,
+   button[type="submit"] {
+   ... (todo o bloco de botões primários)
+
+5. REMOVER (~linha 455-465):
+   .btn-secondary,
+   .btn-cancel,
+   button[type="button"] {
+   ... (todo o bloco de botões secundários)
+
+MANTER apenas os estilos de layout global (.app, .toolbar, etc.)
+
+GARANTIR que forms.css seja importado APÓS App.css:
+/* Phase 2 - Cards Design System */
+@import './styles/cards.css';
+/* Phase 4 - Forms Design System */
+@import './styles/forms.css';  ← Este import já existe, está correto!

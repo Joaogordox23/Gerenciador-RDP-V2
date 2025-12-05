@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { useConnectivity } from '../hooks/useConnectivity';
+import './Server.css';
 import {
   EditIcon,
   DeleteIcon,
@@ -17,8 +18,10 @@ import {
   PersonOutlineIcon,
   BarChartIcon,
   LinkIcon,
-  AccessTimeIcon
+  AccessTimeIcon,
+  LoadingIcon
 } from './MuiIcons';
+import LoadingOverlay from './LoadingOverlay';
 
 function Server({
   serverInfo,
@@ -147,7 +150,7 @@ function Server({
     >
       {(provided, snapshot) => (
         <div
-          className={`server-item draggable-item ${statusInfo.className} 
+          className={`server-item server-card-base draggable-item ${statusInfo.className} 
                      ${isMonitored ? 'monitored' : ''} 
                      ${snapshot.isDragging ? 'dragging' : ''}
                      ${isConnecting ? 'connecting' : ''}
@@ -167,98 +170,97 @@ function Server({
             }
           }}
         >
+          {/* Loading Overlay */}
+          {isConnecting && (
+            <LoadingOverlay text="Conectando..." variant="connecting" />
+          )}
+          {isCurrentlyTesting && !isConnecting && (
+            <LoadingOverlay text="Testando..." variant="testing" />
+          )}
 
           {/* === CABEÇALHO DO SERVIDOR === */}
-          <div className="server-header">
-            <div className="server-protocol">
-              <span className={`protocol-badge protocol-${serverInfo.protocol}`}>
-                {serverInfo.protocol.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="server-status">
-              <span className={`status-indicator status-${statusInfo.className}`} title={statusInfo.text}>
-                {statusInfo.icon}
-              </span>
-              <span className="status-text">{statusInfo.text}</span>
-            </div>
-          </div>
-
-          {/* === INFORMAÇÕES DO SERVIDOR === */}
-          <div className="server-info">
-            <h3 className="server-name" title={serverInfo.name}>
-              {serverInfo.name}
-            </h3>
-            <p className="server-address" title={`${serverInfo.ipAddress}${serverInfo.port ? ':' + serverInfo.port : ''}`}>
-              {serverInfo.ipAddress}
-              {serverInfo.port && <span className="port-number">:{serverInfo.port}</span>}
-            </p>
-            {serverInfo.username && (
-              <p className="server-username" title={`Usuário: ${serverInfo.username}`}>
-                <PersonOutlineIcon sx={{ fontSize: 16, marginRight: '4px', verticalAlign: 'middle' }} />
-                {serverInfo.username}
-                {serverInfo.domain && <span className="domain">@{serverInfo.domain}</span>}
-              </p>
-            )}
-            {connectivityResult && connectivityResult.latency && (
-              <div className={`latency-badge ${getLatencyClass(connectivityResult.latency)}`}>
-                {connectivityResult.latency}ms
+          <div className="server-card-header">
+            <div className="server-card-info">
+              <div className="server-card-title">
+                <span className={`protocol-badge protocol-${serverInfo.protocol}`}>
+                  {serverInfo.protocol.toUpperCase()}
+                </span>
+                <span className="server-card-name">{serverInfo.name}</span>
               </div>
-            )}
+
+              <div className="server-card-details">
+                <div className="server-card-address">
+                  <LinkIcon sx={{ fontSize: 12 }} />
+                  <span>{serverInfo.ipAddress}</span>
+                  {serverInfo.port && <span className="port-number">:{serverInfo.port}</span>}
+                </div>
+                {serverInfo.username && (
+                  <div className="server-card-user">
+                    <PersonOutlineIcon sx={{ fontSize: 12 }} />
+                    <span>{serverInfo.username}</span>
+                    {serverInfo.domain && <span className="domain">@{serverInfo.domain}</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
+              <div className="server-status">
+                <span className={`status-indicator status-${statusInfo.className}`} title={statusInfo.text}>
+                  {statusInfo.icon}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* === AÇÕES DO SERVIDOR === */}
-          {isEditModeEnabled && (
-            <div className="server-actions" onClick={(e) => e.stopPropagation()}>
-              {isConnectivityEnabled && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleTestConnectivity}
-                    className={`action-btn test-btn ${isCurrentlyTesting ? 'testing' : ''}`}
-                    title="Testar conectividade"
-                    disabled={isCurrentlyTesting}
-                    aria-label="Testar conectividade do servidor"
-                  >
-                    <RefreshIcon sx={{ fontSize: 20 }} />
-                  </button>
+          <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
+            {isConnectivityEnabled && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleToggleMonitoring}
+                  className={`server-card-action-btn monitor-btn ${isMonitored ? 'active' : ''}`}
+                  title={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
+                >
+                  <MonitorHeartIcon sx={{ fontSize: 20 }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestConnectivity}
+                  className={`server-card-action-btn test-btn ${isCurrentlyTesting ? 'testing' : ''}`}
+                  title="Testar conectividade"
+                  disabled={isCurrentlyTesting}
+                >
+                  <RefreshIcon sx={{ fontSize: 20 }} />
+                </button>
+              </>
+            )}
 
-                  <button
-                    type="button"
-                    onClick={handleToggleMonitoring}
-                    className={`action-btn monitor-btn ${isMonitored ? 'active' : ''}`}
-                    title={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
-                    aria-label={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
-                  >
-                    <MonitorHeartIcon sx={{ fontSize: 20 }} />
-                  </button>
-                </>
-              )}
+            {isEditModeEnabled && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(serverInfo);
+                  }}
+                  className="server-card-action-btn edit-btn"
+                  title="Editar servidor"
+                >
+                  <EditIcon sx={{ fontSize: 20 }} />
+                </button>
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(serverInfo); // Chama modal global
-                }}
-                className="action-btn edit-btn"
-                title="Editar servidor"
-                aria-label="Editar configurações do servidor"
-              >
-                <EditIcon sx={{ fontSize: 20 }} />
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="action-btn delete-btn"
-                title="Excluir servidor"
-                aria-label="Excluir servidor"
-              >
-                <DeleteIcon sx={{ fontSize: 20 }} />
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  className="server-card-action-btn delete-btn"
+                  title="Excluir servidor"
+                >
+                  <DeleteIcon sx={{ fontSize: 20 }} />
+                </button>
+              </>
+            )}
+          </div>
 
           {/* === INDICADORES ADICIONAIS === */}
           <div className="server-indicators">
@@ -277,11 +279,15 @@ function Server({
                 <AccessTimeIcon sx={{ fontSize: 16 }} />
               </span>
             )}
+            {connectivityResult && connectivityResult.latency && (
+              <div className={`latency-badge ${getLatencyClass(connectivityResult.latency)}`}>
+                {connectivityResult.latency}ms
+              </div>
+            )}
           </div>
         </div>
-      )
-      }
-    </Draggable >
+      )}
+    </Draggable>
   );
 }
 

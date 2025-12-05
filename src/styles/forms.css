@@ -1,0 +1,137 @@
+/* ============================================================================ */
+/* 📝 FORMS DESIGN SYSTEM - FORCED OVERRIDE (NUCLEAR OPTION)                   */
+/* ============================================================================ */
+
+/* === FORM GROUPS === */
+.form-group {
+    margin-bottom: 12px !important;
+}
+
+.form-group label,
+.form-label {
+    display: block !important;
+    margin-bottom: 5px !important;
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    color: var(--color-text-secondary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* === TEXT INPUTS === */
+.form-control {
+    width: 100% !important;
+    height: 36px !important;
+    padding: 8px 10px !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--color-text-primary) !important;
+    font-size: 13px !important;
+    font-family: var(--font-family-base) !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+.form-control:focus {
+    border-color: var(--status-online) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(29, 233, 182, 0.1) !important;
+}
+
+/* === INPUT WITH ICON === */
+.input-with-icon {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.input-icon {
+    position: absolute !important;
+    left: 10px !important;
+    color: var(--color-text-secondary) !important;
+    pointer-events: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2 !important;
+    font-size: 12px !important;
+    width: 12px !important;
+    height: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+}
+
+/* Force Material-UI icons to be small */
+.input-icon svg,
+.input-icon .MuiSvgIcon-root {
+    width: 12px !important;
+    height: 12px !important;
+    font-size: 12px !important;
+}
+
+.input-with-icon .form-control {
+    padding-left: 30px !important;
+}
+
+/* === CHECKBOX & RADIO === */
+.form-checkbox,
+.form-radio {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px !important;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    appearance: none !important;
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    position: relative !important;
+    margin: 0 !important;
+}
+
+input[type="radio"] {
+    border-radius: 50% !important;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    background: var(--status-online) !important;
+    border-color: var(--status-online) !important;
+}
+
+/* === FORM ACTIONS === */
+.form-actions {
+    display: flex !important;
+    gap: 10px !important;
+    justify-content: flex-end !important;
+    margin-top: 16px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* === BUTTONS === */
+.btn {
+    height: 36px !important;
+    padding: 0 16px !important;
+    border-radius: 8px !important;
+    border: none !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+.btn svg,
+.btn .MuiSvgIcon-root {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 14px !important;
+}

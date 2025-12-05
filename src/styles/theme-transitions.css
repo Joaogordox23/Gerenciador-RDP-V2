@@ -1,0 +1,149 @@
+/* ============================================================================ */
+/* 🌗 THEME TRANSITIONS - Transições Suaves de Tema                            */
+/* ============================================================================ */
+/* Adiciona transições suaves quando o tema muda de dark para light ou vice-versa */
+
+/* === TRANSIÇÕES GLOBAIS === */
+/* Aplica transição suave em todos os elementos afetados por mudança de tema */
+body,
+.App,
+.app-sidebar,
+.app-header-new,
+.app-main-content,
+.group-container,
+.server-card-base,
+.server-item,
+.vnc-card,
+.modal-content,
+.toolbar,
+.view-switcher,
+.sidebar-menu,
+.toast-item,
+input,
+select,
+textarea,
+button {
+    transition:
+        background-color 0.3s ease,
+        background 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease !important;
+}
+
+/* === TRANSIÇÕES ESPECÍFICAS PARA ELEMENTOS COM BACKDROP === */
+.server-card-base,
+.vnc-card,
+.group-container,
+.modal-overlay,
+.modal-content {
+    transition:
+        background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.35s ease,
+        box-shadow 0.35s ease !important;
+}
+
+/* === TRANSIÇÃO DE ÍCONES E SVG === */
+svg,
+.MuiSvgIcon-root {
+    transition: color 0.3s ease, fill 0.3s ease !important;
+}
+
+/* === TRANSIÇÃO DO SIDEBAR === */
+.app-sidebar,
+.sidebar-menu,
+.sidebar-nav-item {
+    transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease !important;
+}
+
+/* === TRANSIÇÃO DO HEADER === */
+.app-header-new,
+.header-content {
+    transition:
+        background 0.3s ease,
+        border-color 0.3s ease !important;
+}
+
+/* === SCROLLBAR TRANSITION === */
+::-webkit-scrollbar-thumb {
+    transition: background-color 0.3s ease !important;
+}
+
+/* === ANIMAÇÃO DE SUAVIZAÇÃO NO BODY === */
+html {
+    transition: background-color 0.4s ease !important;
+}
+
+/* === ANIMAÇÃO ESPECIAL PARA MUDANÇA DE TEMA === */
+/* Adiciona um fade sutil durante a transição */
+[data-color-scheme] {
+    animation: themeChange 0.3s ease-out;
+}
+
+@keyframes themeChange {
+    0% {
+        opacity: 0.95;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* === STATUS INDICATORS - TRANSIÇÕES SUAVES === */
+.status-badge,
+.protocol-badge,
+.status-indicator {
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease !important;
+}
+
+/* === INPUTS E FORMS === */
+.form-control,
+.form-group input,
+.form-group select,
+.form-group textarea,
+.input-with-icon {
+    transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.2s ease !important;
+}
+
+/* === BOTÕES === */
+.btn,
+.toolbar-btn,
+.action-btn,
+.server-card-action-btn {
+    transition:
+        background 0.25s ease,
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.2s ease,
+        box-shadow 0.25s ease !important;
+}
+
+/* === CARDS E CONTAINERS === */
+.card,
+.panel,
+.dashboard-card,
+.stat-card {
+    transition:
+        background-color 0.35s ease,
+        border-color 0.35s ease,
+        box-shadow 0.35s ease !important;
+}
+
+/* === DISABLE TRANSITIONS ON LOAD === */
+/* Evita flash de transição no carregamento inicial */
+.preload * {
+    transition: none !important;
+    animation: none !important;
+}

@@ -1,5 +1,6 @@
 import React from 'react';
 import EditServerForm from './EditServerForm';
+import './Modal.css';
 
 function EditServerModal({ server, onSave, onCancel }) {
     const handleSave = (updatedData) => {

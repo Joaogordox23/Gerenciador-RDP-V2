@@ -1,0 +1,74 @@
+/* ============================================================================ */
+/* 📺 VNC CONNECTION CARD - PHASE 2 REDESIGN - REFACTORED */
+/* ============================================================================ */
+/* Import base shared styles */
+@import './ServerCard.css';
+
+/* VNC specific card (extends .server-card-base) */
+.vnc-connection {
+    /* Inherits all styles from .server-card-base via className composition */
+}
+
+.vnc-connection.active {
+    background: rgba(79, 172, 254, 0.1);
+    border-color: rgba(79, 172, 254, 0.3);
+    box-shadow: 0 0 20px rgba(79, 172, 254, 0.3), var(--card-shadow-md);
+}
+
+/* VNC accent - gradient top border */
+.vnc-connection::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Light mode overrides for VNC */
+[data-color-scheme="light"] .vnc-connection.active {
+    background: rgba(79, 172, 254, 0.08);
+    border-color: rgba(79, 172, 254, 0.2);
+}
+
+/* === VNC SPECIFIC USER BADGE === */
+.vnc-connection .server-card-user {
+    padding: 4px 8px;
+    background: rgba(79, 172, 254, 0.1);
+    border-radius: 6px;
+    width: fit-content;
+}
+
+/* === VNC SPECIFIC ACTION BUTTONS === */
+.vnc-connection .server-card-action-btn.edit-btn:hover {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .vnc-connection {
+        padding: 12px;
+    }
+}
+
+/* === ALTURA FIXA PARA PADRONIZAÇÃO === */
+/* === ALTURA E LARGURA FIXA PARA PADRONIZAÇÃO === */
+.vnc-connection {
+    min-height: 100px;
+    max-height: 100px;
+    min-width: 200px;
+    max-width: 200px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.vnc-connection .server-card-header {
+    flex: 1;
+}
+
+.vnc-connection .server-card-footer {
+    margin-top: auto;
+}

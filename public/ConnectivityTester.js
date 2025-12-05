@@ -5,42 +5,49 @@ const { exec } = require('child_process');
 const net = require('net');
 const dns = require('dns').promises;
 const os = require('os');
+const { validateIPAddress } = require('./validateIPAddress');
 
 class ConnectivityTester {
     constructor() {
-        // Cache para resultados de testes (evita testes duplicados)
         this.cache = new Map();
-        this.cacheTimeout = 30000; // 30 segundos
-        
-        // Configurações de teste
-        this.config = {
-            ping: {
-                timeout: 5000,      // 5 segundos
-                packets: 4,         // 4 pacotes
-                maxLatency: 1000    // 1 segundo máximo
-            },
-            port: {
-                timeout: 3000,      // 3 segundos
-                retries: 2          // 2 tentativas
-            },
-            dns: {
-                timeout: 2000       // 2 segundos
-            }
-        };
+        this.cacheTimeout = 30000;
 
-        // Contadores para estatísticas
+        // Inicializa estatísticas
         this.stats = {
             testsExecuted: 0,
             cacheHits: 0,
             errors: 0
         };
 
-        console.log('🔌 ConnectivityTester inicializado');
-        console.log(`   Cache timeout: ${this.cacheTimeout}ms`);
-        console.log(`   Ping timeout: ${this.config.ping.timeout}ms`);
-        console.log(`   Port timeout: ${this.config.port.timeout}ms`);
+        // Configurações padrão
+        this.config = {
+            ping: {
+                packets: 4,
+                timeout: 4000
+            },
+            port: {
+                timeout: 2000
+            }
+        };
+
+        // ✅ NOVO: Iniciar cleanup automático
+        this.cleanupInterval = setInterval(() => {
+            this.cleanupExpiredCache();
+        }, 300000); // 5 minutos
+
+        console.log('✅ ConnectivityTester: Cleanup automático inicializado');
     }
 
+    destroy() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+            console.log('✅ ConnectivityTester: Cleanup interval destruído');
+        }
+
+        this.cache.clear();
+        console.log('✅ ConnectivityTester: Cache limpo');
+    }
     /**
      * Testa conectividade completa de um servidor
      * @param {Object} serverInfo - Informações do servidor
@@ -48,17 +55,20 @@ class ConnectivityTester {
      */
     async testServerConnectivity(serverInfo) {
         const startTime = Date.now();
-        
+
         try {
             // Validação básica
             if (!serverInfo || !serverInfo.ipAddress) {
                 throw new Error('Informações do servidor inválidas');
             }
 
+            // SEGURANÇA: Valida IP/hostname contra command injection
+            validateIPAddress(serverInfo.ipAddress);
+
             // Gera chave única para cache
             const port = serverInfo.port || (serverInfo.protocol === 'rdp' ? 3389 : 22);
             const cacheKey = `${serverInfo.ipAddress}:${port}`;
-            
+
             // Verifica cache primeiro
             const cachedResult = this.getCachedResult(cacheKey);
             if (cachedResult) {
@@ -68,7 +78,7 @@ class ConnectivityTester {
             }
 
             console.log(`🧪 Testando conectividade: ${serverInfo.name || serverInfo.ipAddress}:${port}`);
-            
+
             // Executa todos os testes em paralelo
             const [dnsResult, pingResult, portResult] = await Promise.allSettled([
                 this.testDNS(serverInfo.ipAddress),
@@ -94,17 +104,20 @@ class ConnectivityTester {
                 tcpLatency: tcpLatencyResult
             }, serverInfo, Date.now() - startTime);
 
+            // v4.1: Adicionar campo latency diretamente no resultado
+            result.latency = this.calculateLatency(pingResult, tcpLatencyResult, portResult);
+
             // Salva no cache
             this.setCachedResult(cacheKey, result);
             this.stats.testsExecuted++;
 
-            console.log(`✅ Teste concluído para ${cacheKey}: ${result.status} (${result.totalTime}ms)`);
+            console.log(`✅ Teste concluído para ${cacheKey}: ${result.status} (${result.totalTime}ms, latência: ${result.latency}ms)`);
             return result;
 
         } catch (error) {
             this.stats.errors++;
             console.error(`❌ Erro no teste de conectividade: ${error.message}`);
-            
+
             const errorResult = {
                 status: 'error',
                 message: `Erro no teste: ${error.message}`,
@@ -135,7 +148,7 @@ class ConnectivityTester {
             // Executa testes em paralelo (máximo 5 simultâneos para não sobrecarregar)
             const batchSize = 5;
             const results = [];
-            
+
             for (let i = 0; i < servers.length; i += batchSize) {
                 const batch = servers.slice(i, i + batchSize);
                 const batchPromises = batch.map(async (server) => {
@@ -144,14 +157,14 @@ class ConnectivityTester {
                         return { server, result, success: true };
                     } catch (error) {
                         console.error(`❌ Erro no teste de ${server.name}:`, error);
-                        return { 
-                            server, 
-                            result: { 
-                                status: 'error', 
+                        return {
+                            server,
+                            result: {
+                                status: 'error',
                                 error: error.message,
                                 timestamp: Date.now()
-                            }, 
-                            success: false 
+                            },
+                            success: false
                         };
                     }
                 });
@@ -162,9 +175,9 @@ class ConnectivityTester {
 
             const totalTime = Date.now() - startTime;
             console.log(`✅ Teste batch concluído: ${results.length} servidor(es) em ${totalTime}ms`);
-            
+
             return results;
-            
+
         } catch (error) {
             console.error(`❌ Erro no teste batch:`, error);
             throw error;
@@ -212,15 +225,15 @@ class ConnectivityTester {
     async testPing(ipAddress) {
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
-            const pingCommand = isWindows 
+            const pingCommand = isWindows
                 ? `ping -n ${this.config.ping.packets} -w ${this.config.ping.timeout} ${ipAddress}`
-                : `ping -c ${this.config.ping.packets} -W ${Math.floor(this.config.ping.timeout/1000)} ${ipAddress}`;
+                : `ping -c ${this.config.ping.packets} -W ${Math.floor(this.config.ping.timeout / 1000)} ${ipAddress}`;
 
             const startTime = Date.now();
-            
+
             exec(pingCommand, { timeout: this.config.ping.timeout + 1000 }, (error, stdout, stderr) => {
                 const endTime = Date.now();
-                
+
                 if (error) {
                     resolve({
                         success: false,
@@ -255,7 +268,7 @@ class ConnectivityTester {
             // Análise para Windows
             const packetLossMatch = output.match(/\((\d+)% loss\)|perdidos = \d+ \((\d+)%\)/);
             const timeMatch = output.match(/Average = (\d+)ms|Média = (\d+)ms/);
-            
+
             let packetLoss = 100;
             if (packetLossMatch) {
                 packetLoss = parseInt(packetLossMatch[1] || packetLossMatch[2], 10);
@@ -276,7 +289,7 @@ class ConnectivityTester {
             // Análise para Linux/Mac
             const packetLossMatch = output.match(/(\d+)% packet loss/);
             const timeMatch = output.match(/min\/avg\/max\/stddev = ([\d.]+)\/([\d.]+)\/([\d.]+)\/([\d.]+) ms/);
-            
+
             let packetLoss = 100;
             if (packetLossMatch) {
                 packetLoss = parseInt(packetLossMatch[1], 10);
@@ -304,7 +317,7 @@ class ConnectivityTester {
         return new Promise((resolve) => {
             const startTime = Date.now();
             const socket = new net.Socket();
-            
+
             // Timeout do teste
             const timeout = setTimeout(() => {
                 socket.destroy();
@@ -347,7 +360,7 @@ class ConnectivityTester {
      */
     async measureTCPLatency(ipAddress, port, samples = 3) {
         const results = [];
-        
+
         for (let i = 0; i < samples; i++) {
             try {
                 const result = await this.singleTCPLatencyTest(ipAddress, port);
@@ -355,7 +368,7 @@ class ConnectivityTester {
             } catch (error) {
                 // Ignora falhas individuais
             }
-            
+
             // Pequeno delay entre testes
             if (i < samples - 1) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -388,7 +401,7 @@ class ConnectivityTester {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
             const socket = new net.Socket();
-            
+
             const timeout = setTimeout(() => {
                 socket.destroy();
                 reject(new Error('Timeout'));
@@ -416,7 +429,7 @@ class ConnectivityTester {
     analyzeResults(tests, serverInfo, totalTime) {
         let status = 'unknown';
         let message = 'Status desconhecido';
-        
+
         // Verifica se há erros críticos
         if (tests.dns.error && tests.ping.error && tests.port.error) {
             status = 'error';
@@ -425,7 +438,7 @@ class ConnectivityTester {
         // Se ping falha mas porta está aberta (firewall bloqueando ICMP)
         else if (tests.port.isOpen) {
             status = 'online';
-            message = tests.ping.success 
+            message = tests.ping.success
                 ? `Servidor online e porta ${tests.port.port} acessível`
                 : `Servidor online (porta ${tests.port.port} aberta, ping bloqueado)`;
         }
@@ -503,25 +516,42 @@ class ConnectivityTester {
     cleanupExpiredCache() {
         const now = Date.now();
         let cleaned = 0;
-        
+
         for (const [key, value] of this.cache.entries()) {
             if (now - value.timestamp > this.cacheTimeout) {
                 this.cache.delete(key);
                 cleaned++;
             }
         }
-        
+
         if (cleaned > 0) {
             console.log(`🧹 Limpeza automática: ${cleaned} entrada(s) expirada(s) removida(s)`);
         }
     }
-}
 
-// Cleanup automático a cada 5 minutos
-setInterval(() => {
-    if (global.connectivityTester) {
-        global.connectivityTester.cleanupExpiredCache();
+    /**
+     * Calcula latncia final baseada nos testes
+     * v4.1: Prioriza TCP latency > Ping average > Port test time
+     * @private
+     */
+    calculateLatency(pingResult, tcpLatencyResult, portResult) {
+        // Prioridade 1: TCP Latency (mais preciso)
+        if (tcpLatencyResult && tcpLatencyResult.average) {
+            return tcpLatencyResult.average;
+        }
+
+        // Prioridade 2: Ping Average
+        if (pingResult.status === 'fulfilled' && pingResult.value.averageLatency) {
+            return pingResult.value.averageLatency;
+        }
+
+        // Prioridade 3: Port Connect Time
+        if (portResult.status === 'fulfilled' && portResult.value.time) {
+            return portResult.value.time;
+        }
+
+        // Fallback: null (no mensurvel)
+        return null;
     }
-}, 300000);
-
+}
 module.exports = ConnectivityTester;

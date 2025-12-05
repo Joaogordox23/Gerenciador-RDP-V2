@@ -1,0 +1,236 @@
+/* ============================================ */
+/* 🎨 HEADER - Modern App Bar                   */
+/* ============================================ */
+
+.app-header-new {
+    position: fixed;
+    top: 0;
+    left: 260px;
+    right: 0;
+    height: 70px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    gap: 32px;
+    z-index: 90;
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Adjust when sidebar is collapsed */
+.sidebar-collapsed .app-header-new {
+    left: 72px;
+}
+
+/* Left Section: Breadcrumb */
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 200px;
+}
+
+.header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.breadcrumb-item {
+    transition: color 0.2s;
+}
+
+.breadcrumb-item:not(.active) {
+    cursor: pointer;
+}
+
+.breadcrumb-item:not(.active):hover {
+    color: var(--color-primary);
+}
+
+.breadcrumb-item.active {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.breadcrumb-separator {
+    opacity: 0.5;
+}
+
+/* Center Section: Search */
+.header-center {
+    flex: 1;
+    max-width: 600px;
+}
+
+.header-search {
+    position: relative;
+    width: 100%;
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    font-size: 20px;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 20px 0 48px;
+    background: var(--color-background);
+    border: 2px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--color-text);
+    transition: all 0.2s;
+    outline: none;
+}
+
+.search-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+}
+
+.search-input:focus {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 4px rgba(var(--color-teal-500-rgb), 0.1);
+}
+
+/* Right Section: Actions */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-background);
+    border: 2px solid var(--color-border);
+    border-radius: 10px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.header-action-btn:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.header-action-btn.active {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    border-color: var(--color-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.3);
+}
+
+.action-label {
+    font-size: 13px;
+}
+
+/* User Avatar */
+.header-user {
+    margin-left: 8px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(var(--color-teal-500-rgb), 0.25);
+}
+
+.user-avatar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.35);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .app-header-new {
+        left: 72px;
+        padding: 0 20px;
+        gap: 16px;
+    }
+
+    .header-left {
+        min-width: auto;
+    }
+
+    .header-title {
+        font-size: 18px;
+    }
+
+    .header-breadcrumb {
+        display: none;
+    }
+
+    .action-label {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-header-new {
+        left: 0;
+        padding: 0 16px;
+        height: 60px;
+    }
+
+    .header-left {
+        display: none;
+    }
+
+    .header-center {
+        max-width: 100%;
+    }
+
+    .search-input {
+        height: 40px;
+        font-size: 13px;
+    }
+
+    .header-action-btn {
+        padding: 8px 12px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+    }
+}

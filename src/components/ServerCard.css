@@ -1,0 +1,168 @@
+/* ============================================================================ */
+/* 🎴 SERVER CARD BASE - SHARED STYLES (Phase 2 Design System) */
+/* ============================================================================ */
+/* Base styles shared between Server (RDP/SSH) and VNC Connection cards */
+
+/* === BASE CARD CONTAINER === */
+.server-card-base {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--card-radius);
+    padding: var(--card-padding);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--card-shadow-sm);
+}
+
+.server-card-base:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: var(--card-shadow-md);
+    transform: translateY(-4px);
+}
+
+.server-card-base.active {
+    background: rgba(0, 175, 116, 0.1);
+    border-color: rgba(0, 175, 116, 0.3);
+    box-shadow: 0 0 20px rgba(0, 175, 116, 0.3), var(--card-shadow-md);
+}
+
+/* Light mode */
+[data-color-scheme="light"] .server-card-base {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .server-card-base:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-color-scheme="light"] .server-card-base.active {
+    background: rgba(0, 175, 116, 0.08);
+    border-color: rgba(0, 175, 116, 0.2);
+}
+
+/* === SHARED HEADER === */
+.server-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+.server-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.server-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.server-card-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* === SHARED DETAILS === */
+.server-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.server-card-address {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+}
+
+.server-card-user {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+/* === SHARED ACTIONS === */
+.server-card-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.server-card-base:hover .server-card-actions {
+    opacity: 1;
+}
+
+.server-card-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.server-card-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+    transform: scale(1.1);
+}
+
+.server-card-action-btn.delete-btn:hover {
+    background: rgba(233, 30, 99, 0.2);
+    color: var(--status-offline);
+}
+
+.server-card-action-btn.edit-btn:hover {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+}
+
+[data-color-scheme="light"] .server-card-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .server-card-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .server-card-base {
+        padding: 12px;
+    }
+
+    .server-card-actions {
+        opacity: 1;
+        /* Always visible on mobile */
+    }
+
+    .server-card-name {
+        font-size: 14px;
+    }
+}

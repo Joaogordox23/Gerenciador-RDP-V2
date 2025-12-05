@@ -1,5 +1,6 @@
 import React from 'react';
 import EditVncConnectionForm from './EditVncConnectionForm';
+import './Modal.css';
 
 function EditVncModal({ connection, groupId, onSave, onCancel }) {
     const handleSave = (updatedData) => {

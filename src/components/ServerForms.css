@@ -1,0 +1,52 @@
+/* ============================================================================ */
+/* 🖥️ SERVER FORMS - FORCED OVERRIDE                                          */
+/* ============================================================================ */
+
+/* === PROTOCOLO SELECTOR === */
+.protocol-selector {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+}
+
+.protocol-option {
+    position: relative !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.protocol-icon {
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    color: var(--color-text-secondary) !important;
+}
+
+.protocol-name {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+.protocol-description {
+    font-size: 9px !important;
+}
+
+/* === FORM HEADER === */
+.form-header h3 {
+    font-size: 14px !important;
+    margin: 0 !important;
+    margin-bottom: 12px !important;
+}
+
+/* === PASSWORD TOGGLE === */
+.password-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+}

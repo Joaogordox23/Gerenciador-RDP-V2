@@ -1,0 +1,192 @@
+/* ============================================================================ */
+/* 📺 VNC LIST ITEM (LIST MODE) - PHASE 2 REDESIGN - REFACTORED */
+/* ============================================================================ */
+
+/* RENAMED: .vnc-list-item → .vnc-list-item-card (to avoid conflict with VncWallView) */
+.vnc-list-item-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.vnc-list-item-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateX(4px);
+}
+
+.vnc-list-item-card.active {
+  background: rgba(79, 172, 254, 0.1);
+  border-color: rgba(79, 172, 254, 0.3);
+  box-shadow: 0 0 20px rgba(79, 172, 254, 0.2);
+}
+
+/* VNC gradient border */
+.vnc-list-item-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Light mode */
+[data-color-scheme="light"] .vnc-list-item-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .vnc-list-item-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-color-scheme="light"] .vnc-list-item-card.active {
+  background: rgba(79, 172, 254, 0.08);
+  border-color: rgba(79, 172, 254, 0.2);
+}
+
+/* === ICON === */
+.vnc-list-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+  border-radius: 10px;
+}
+
+/* === INFO === */
+.vnc-list-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vnc-list-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vnc-list-address {
+  font-size: 12px;
+  font-family: var(--font-family-mono);
+  color: var(--color-text-secondary);
+}
+
+/* === USER INFO === */
+.vnc-list-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  padding: 4px 8px;
+  background: rgba(79, 172, 254, 0.1);
+  border-radius: 6px;
+}
+
+[data-color-scheme="light"] .vnc-list-user {
+  background: rgba(79, 172, 254, 0.1);
+}
+
+/* === GROUP BADGE === */
+.vnc-list-group {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+[data-color-scheme="light"] .vnc-list-group {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* === ACTIONS === */
+.vnc-list-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.vnc-list-item-card:hover .vnc-list-actions {
+  opacity: 1;
+}
+
+.vnc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vnc-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.vnc-action-btn.delete:hover {
+  background: rgba(233, 30, 99, 0.2);
+  color: var(--status-offline);
+}
+
+[data-color-scheme="light"] .vnc-action-btn {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .vnc-action-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .vnc-list-item-card {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .vnc-list-actions {
+    opacity: 1;
+  }
+
+  .vnc-list-user,
+  .vnc-list-group {
+    width: 100%;
+  }
+}

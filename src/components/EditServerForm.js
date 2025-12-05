@@ -8,8 +8,12 @@ import {
     LockIcon,
     DomainIcon,
     SaveIcon,
-    CancelIcon
+    CancelIcon,
+    InfoIcon
 } from './MuiIcons';
+import './ServerForms.css';
+
+import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
 function EditServerForm({ serverInfo, onSave, onCancel }) {
     const [serverData, setServerData] = useState({
@@ -163,6 +167,20 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
                     </div>
                     <div className="form-group">
                         <label>Nova Senha</label>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 12px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderRadius: '6px',
+                            marginBottom: '8px',
+                            fontSize: '12px',
+                            color: '#3B82F6'
+                        }}>
+                            <InfoIcon sx={{ fontSize: 16 }} />
+                            <span>💡 Deixe em branco para manter a senha atual</span>
+                        </div>
                         <div className="input-with-icon">
                             <LockIcon className="input-icon" />
                             <input
@@ -171,9 +189,10 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
                                 value={serverData.password}
                                 onChange={handleInputChange}
                                 className="form-control"
-                                placeholder="Deixe em branco para manter"
+                                placeholder="Digite nova senha ou deixe vazio"
                             />
                         </div>
+                        <PasswordStrengthIndicator password={serverData.password} />
                     </div>
                 </div>
 

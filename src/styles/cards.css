@@ -1,0 +1,264 @@
+/* ============================================================================ */
+/* 🎴 PHASE 2 - CARDS DESIGN SYSTEM                                            */
+/* ============================================================================ */
+/* Styles reutilizáveis para todos os cards (Server, VNC, etc.)                */
+
+/* === STATUS COLORS === */
+:root {
+    /* Status - Online/Offline */
+    --status-online: #1DE9B6;
+    --status-offline: #E91E63;
+    --status-partial: #FFC107;
+    --status-unknown: #777;
+    --status-testing: #0FCBEB;
+    --status-active: #00AF74;
+
+    /* Status RGB (para opacity) */
+    --status-online-rgb: 29, 233, 182;
+    --status-offline-rgb: 233, 30, 99;
+    --status-partial-rgb: 255, 193, 7;
+    --status-testing-rgb: 15, 203, 235;
+
+    /* Card Elevations */
+    --card-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --card-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+    --card-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --card-shadow-glow: 0 0 20px rgba(0, 175, 116, 0.3);
+
+    /* Card Spacing */
+    --card-padding: 16px;
+    --card-padding-sm: 12px;
+    --card-gap: 12px;
+    --card-radius: 12px;
+    --card-radius-sm: 8px;
+}
+
+/* === GLASSMORPHISM MIXIN === */
+.card-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--card-shadow-sm);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-glass:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: var(--card-shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-glass.active {
+    background: rgba(0, 175, 116, 0.1);
+    border-color: rgba(0, 175, 116, 0.3);
+    box-shadow: var(--card-shadow-glow);
+}
+
+/* Light mode adjustments */
+[data-color-scheme="light"] .card-glass {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .card-glass:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-color-scheme="light"] .card-glass.active {
+    background: rgba(0, 175, 116, 0.08);
+    border-color: rgba(0, 175, 116, 0.2);
+}
+
+/* === STATUS INDICATORS === */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-indicator.online {
+    background: rgba(var(--status-online-rgb), 0.15);
+    color: var(--status-online);
+}
+
+.status-indicator.offline {
+    background: rgba(var(--status-offline-rgb), 0.15);
+    color: var(--status-offline);
+}
+
+.status-indicator.partial {
+    background: rgba(var(--status-partial-rgb), 0.15);
+    color: var(--status-partial);
+}
+
+.status-indicator.testing {
+    background: rgba(var(--status-testing-rgb), 0.15);
+    color: var(--status-testing);
+}
+
+/* Status dot com pulse animation */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.status-dot.online {
+    background: var(--status-online);
+    box-shadow: 0 0 0 0 rgba(var(--status-online-rgb), 0.7);
+    animation: pulse-online 2s infinite;
+}
+
+.status-dot.offline {
+    background: var(--status-offline);
+}
+
+.status-dot.testing {
+    background: var(--status-testing);
+    animation: pulse-testing 1.5s infinite;
+}
+
+/* === PROTOCOL BADGES === */
+.protocol-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.protocol-badge.protocol-rdp {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.protocol-badge.protocol-ssh {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.protocol-badge.protocol-vnc {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+/* === CARD ACTIONS === */
+.card-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.card-glass:hover .card-actions {
+    opacity: 1;
+}
+
+.card-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.card-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+    transform: scale(1.1);
+}
+
+.card-action-btn.delete:hover {
+    background: rgba(233, 30, 99, 0.2);
+    color: var(--status-offline);
+}
+
+.card-action-btn.active {
+    background: rgba(0, 175, 116, 0.2);
+    color: var(--status-online);
+}
+
+[data-color-scheme="light"] .card-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .card-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* === ANIMATIONS === */
+@keyframes pulse-online {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--status-online-rgb), 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(var(--status-online-rgb), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--status-online-rgb), 0);
+    }
+}
+
+@keyframes pulse-testing {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.loading-shimmer {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0.05) 100%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    :root {
+        --card-padding: 12px;
+        --card-gap: 8px;
+    }
+
+    .card-actions {
+        opacity: 1;
+        /* Always visible on mobile */
+    }
+}

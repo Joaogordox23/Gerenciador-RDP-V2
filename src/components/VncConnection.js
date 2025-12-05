@@ -6,6 +6,7 @@ import {
     ComputerIcon,
     PersonOutlineIcon
 } from './MuiIcons';
+import './VncConnection.css';
 
 function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) {
 
@@ -22,19 +23,19 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) 
     };
 
     return (
-        <div className="server-item vnc-connection" onClick={handleConnect}>
-            <div className="server-header">
-                <div className="server-info">
-                    <div className="server-title">
+        <div className="vnc-connection server-card-base" onClick={handleConnect}>
+            <div className="server-card-header">
+                <div className="server-card-info">
+                    <div className="server-card-title">
                         <ComputerIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                        <span className="server-name">{connectionInfo.name}</span>
+                        <span className="server-card-name">{connectionInfo.name}</span>
                     </div>
-                    <div className="server-details">
-                        <div className="server-address">
+                    <div className="server-card-details">
+                        <div className="server-card-address">
                             <span>{connectionInfo.ipAddress}:{connectionInfo.port}</span>
                         </div>
                         {connectionInfo.viewOnly && (
-                            <div className="server-user">
+                            <div className="server-card-user">
                                 <PersonOutlineIcon sx={{ fontSize: 16, marginRight: '4px', verticalAlign: 'middle' }} />
                                 <span>Apenas Visualização</span>
                             </div>
@@ -43,9 +44,9 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) 
                 </div>
 
                 {isEditModeEnabled && (
-                    <div className="server-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
                         <button
-                            className="action-btn edit-btn"
+                            className="server-card-action-btn edit-btn"
                             type="button"
                             title="Editar Conexão"
                             onClick={(e) => { e.stopPropagation(); onEdit(); }}
@@ -53,7 +54,7 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) 
                             <EditIcon sx={{ fontSize: 20 }} />
                         </button>
                         <button
-                            className="action-btn delete-btn"
+                            className="server-card-action-btn delete-btn"
                             type="button"
                             title="Deletar Conexão"
                             onClick={(e) => { e.stopPropagation(); onDelete(); }}

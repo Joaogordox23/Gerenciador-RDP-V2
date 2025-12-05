@@ -10,6 +10,7 @@ const fs = require('fs');
 const ActiveDirectory = require('activedirectory2');
 const fileSystemManager = require('./FileSystemManager');
 const vncProxyService = require('../src/main/services/VncProxyService');
+const { sanitizeLog } = require('./sanitizeLog'); // Proteção de dados sensíveis nos logs
 
 // ==========================
 // IMPORTS DO SISTEMA DE CONECTIVIDADE (MANTIDOS)
@@ -540,8 +541,7 @@ ipcMain.on('set-data', (event, key, value) => {
 // HANDLER DE CONEXÃO VNC com RealVNC
 // ==========================
 ipcMain.handle('connect-vnc', async (event, connectionInfo) => {
-    console.log(`🖥️ Pedido de conexão VNC (TightVNC) recebido para: ${connectionInfo.name}`);
-
+    console.log(`🖥️ Pedido de conexão VNC (TightVNC) recebido:`, sanitizeLog(connectionInfo));
     // O caminho deve apontar para o tvnviewer.exe na sua pasta assets
     const vncViewerPath = isDev
         ? path.join(__dirname, '..', 'assets', 'tvnviewer.exe')
@@ -568,6 +568,9 @@ ipcMain.handle('connect-vnc', async (event, connectionInfo) => {
     if (connectionInfo.viewOnly) {
         command += ` -viewonly`;
     }
+
+    // Escala automática
+    command += ` -scale=auto`;
 
     console.log(`⚡ Executando comando TightVNC (senha omitida para segurança)`);
 
@@ -695,7 +698,7 @@ ipcMain.handle('bulk-update-password', async (event, { type, servers, credential
 // ==========================
 ipcMain.on('start-connection', async (event, serverInfo) => {
     const protocol = serverInfo.protocol || 'rdp';
-    console.log(`🔗 Pedido de conexão [${protocol.toUpperCase()}] recebido para: ${serverInfo.name}`);
+    console.log(`🔗 Pedido de conexão [${protocol.toUpperCase()}] recebido:`, sanitizeLog(serverInfo));
 
     // Teste prévio de conectividade (mantido)
     try {
@@ -1158,7 +1161,24 @@ ipcMain.handle('vnc-proxy-start', async (event, serverInfo) => {
     try {
         console.log(`🔌 Solicitando proxy VNC para: ${serverInfo.name}`);
         const port = await vncProxyService.startProxy(serverInfo);
-        return { success: true, port: port };
+
+        // Descriptografa a senha para enviar ao noVNC
+        let decryptedPassword = null;
+        if (serverInfo.password) {
+            try {
+                const encryptedBuffer = Buffer.from(serverInfo.password, 'base64');
+                decryptedPassword = safeStorage.decryptString(encryptedBuffer);
+            } catch (e) {
+                console.warn('⚠️ Senha não criptografada ou inválida, usando original');
+                decryptedPassword = serverInfo.password;
+            }
+        }
+
+        return {
+            success: true,
+            port: port,
+            decryptedPassword: decryptedPassword  // Envia senha descriptografada
+        };
     } catch (error) {
         console.error('❌ Erro ao iniciar proxy VNC:', error);
         return { success: false, error: error.message };

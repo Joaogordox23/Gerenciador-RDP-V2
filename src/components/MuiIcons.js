@@ -62,5 +62,11 @@ export {
     Slideshow as SlideshowIcon,
     NavigateBefore as NavigateBeforeIcon,
     NavigateNext as NavigateNextIcon,
-    Pause as PauseIcon
+    Pause as PauseIcon,
+
+    // Phase 1 - Layout (v4.2)
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+    Person as PersonIcon,
+    Videocam as VideoLabelIcon
 } from '@mui/icons-material';

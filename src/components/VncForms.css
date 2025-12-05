@@ -1,0 +1,47 @@
+/* ============================================================================ */
+/* 📺 VNC FORMS - FORCED OVERRIDE                                              */
+/* ============================================================================ */
+
+/* === VIEW ONLY CHECKBOX === */
+.checkbox-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px !important;
+}
+
+.checkbox-text {
+    font-size: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.checkbox-text svg,
+.checkbox-text .MuiSvgIcon-root {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 14px !important;
+}
+
+/* === FORM CHECKBOX WRAPPER === */
+.form-checkbox-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px !important;
+}
+
+.checkbox-label-text {
+    font-size: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.checkbox-label-text svg,
+.checkbox-label-text .MuiSvgIcon-root {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 14px !important;
+}

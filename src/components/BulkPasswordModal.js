@@ -10,6 +10,7 @@ import {
     CancelIcon
 } from './MuiIcons';
 import './BulkPasswordModal.css';
+import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
 function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
     const [step, setStep] = useState(1); // 1: Credenciais, 2: Seleção
@@ -201,6 +202,7 @@ function BulkPasswordModal({ isOpen, onClose, onApply, groups, vncGroups }) {
                                     placeholder="Digite a nova senha"
                                 />
                             </div>
+                            <PasswordStrengthIndicator password={credentials.password} />
                         </div>
 
                         {error && <div className="error-banner">{error}</div>}

@@ -1,11 +1,15 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
+import RdpSshView from './views/RdpSshView';
+import VncView from './views/VncView';
+import VncWallView from './views/VncWallView';
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
 import Modal from './components/Modal';
 import AddServerForm from './components/AddServerForm';
 import AddVncConnectionForm from './components/AddVncConnectionForm';
+import DashboardView from './views/DashboardView';
 import { DragDropContext } from 'react-beautiful-dnd';
 import {
     ComputerIcon,
@@ -20,8 +24,6 @@ import {
     GridViewIcon,
     ViewListIcon
 } from './components/MuiIcons';
-
-
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
@@ -42,16 +44,9 @@ import EditVncModal from './components/EditVncModal';
 
 // Tela de Loading
 import LoadingSpinner from './components/LoadingSpinner';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme/AppTheme';
-
-// Lazy loading de views
-const RdpSshView = lazy(() => import('./views/RdpSshView'));
-const VncView = lazy(() => import('./views/VncView'));
-const VncWallView = lazy(() => import('./views/VncWallView'));
-const DashboardView = lazy(() => import('./views/DashboardView'));
 
 function App() {
     return (
@@ -98,9 +93,6 @@ function AppContent() {
     const [vncViewMode, setVncViewMode] = useState('grid');
     const [showADModal, setShowADModal] = useState(false);
     const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    // Estados para modais de edição
-
 
     // Estados para modais de edição
     const [editingServer, setEditingServer] = useState(null); // {server, groupId}
@@ -337,42 +329,96 @@ function AppContent() {
     return (
         <ThemeProvider theme={muiTheme}>
             <CssBaseline />
-            <div className={`App ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`} data-color-scheme={theme || 'light'}>
+            <div className="app">
                 {isLoading && <LoadingSpinner />}
                 <ToastContainer />
+                {/* Abertura do container sticky */}
+                <div className="sticky-header-container">
+                    <header className="app-header">
+                        <div className="header-content">
+                            <h1>
+                                <ComputerIcon sx={{ fontSize: 32, marginRight: 2, verticalAlign: 'middle' }} />
+                                Gerenciador RDP/SSH Enterprise
+                            </h1>                          </div>                  </header>
+                    <div className="toolbar">
+                        {/* Correção da Busca: removido estilo inline e adicionado className no ícone */}
+                        <div className="search-container">
+                            <SearchIcon className="search-icon-svg" sx={{ fontSize: 20, color: 'text.secondary', pointerEvents: 'none' }} />
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Buscar por nome do grupo, servidor ou IP..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="toolbar-actions">
+                            <button onClick={() => setShowADModal(true)} className="toolbar-btn secondary" title="Importar do AD">
+                                <CloudDownloadIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                Importar AD
+                            </button>
+                            {activeView === 'RDP/SSH' && (
+                                <button
+                                    onClick={() => setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid')}
+                                    className="toolbar-btn secondary"
+                                    title={rdpViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                                >
+                                    {rdpViewMode === 'grid' ?
+                                        <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                        <GridViewIcon sx={{ fontSize: 18 }} />
+                                    }
+                                </button>
+                            )}
+                            {activeView === 'VNC' && (
+                                <button
+                                    onClick={() => setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid')}
+                                    className="toolbar-btn secondary"
+                                    title={vncViewMode === 'grid' ? 'Visualização em Lista' : 'Visualização em Grid'}
+                                >
+                                    {vncViewMode === 'grid' ?
+                                        <ViewListIcon sx={{ fontSize: 18 }} /> :
+                                        <GridViewIcon sx={{ fontSize: 18 }} />
+                                    }
+                                </button>
+                            )}
+                            {isEditModeEnabled && (
+                                <button onClick={() => setShowBulkPasswordModal(true)} className="toolbar-btn secondary" title="Alterar Senha Global">
+                                    <LockIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                    Senha Global
+                                </button>
+                            )}
+                            <button onClick={toggleTheme} className="toolbar-btn secondary" title="Alternar Tema">
+                                {theme === 'dark' ? <LightModeIcon sx={{ fontSize: 18 }} /> : <DarkModeIcon sx={{ fontSize: 18 }} />}
+                            </button>
+                            <button onClick={() => setShowAddGroupForm(!showAddGroupForm)} className="toolbar-btn">
+                                {showAddGroupForm ? (
+                                    <><CloseIcon sx={{ fontSize: 18, marginRight: 1 }} /> Cancelar</>
+                                ) : (
+                                    <><AddCircleOutlineIcon sx={{ fontSize: 18, marginRight: 1 }} /> Novo Grupo</>
+                                )}
+                            </button>
+                            <label htmlFor="edit-mode-toggle" className="edit-mode-toggle" title="Ativar/Desativar edição">
+                                <span>Modo Edição</span>
+                                <input
+                                    id="edit-mode-toggle"
+                                    type="checkbox"
+                                    checked={isEditModeEnabled}
+                                    onChange={() => setIsEditModeEnabled(!isEditModeEnabled)}
+                                />
+                                <span className="toggle-switch"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <nav className="view-switcher">
+                        <button className={`view-tab ${activeView === 'Dashboard' ? 'active' : ''}`} onClick={() => setActiveView('Dashboard')}>Dashboard</button>
+                        <button className={`view-tab ${activeView === 'RDP/SSH' ? 'active' : ''}`} onClick={() => setActiveView('RDP/SSH')}>RDP/SSH</button>
+                        <button className={`view-tab ${activeView === 'VNC' ? 'active' : ''}`} onClick={() => setActiveView('VNC')}>VNC</button>
+                        <button className={`view-tab ${activeView === 'VNC Wall' ? 'active' : ''}`} onClick={() => setActiveView('VNC Wall')}>VNC Wall</button>
+                    </nav>
+                    {/* Fechamento CRÍTICO da div sticky */}
+                </div>
 
-                {/* Phase 1 - Sidebar */}
-                <Sidebar
-                    activeView={activeView}
-                    onViewChange={setActiveView}
-                    theme={theme}
-                    onThemeToggle={toggleTheme}
-                    isCollapsed={isSidebarCollapsed}
-                    onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                />
-
-                {/* Phase 1 - Header */}
-                <Header
-                    activeView={activeView}
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    isEditModeEnabled={isEditModeEnabled}
-                    onToggleEditMode={() => setIsEditModeEnabled(!isEditModeEnabled)}
-                    onTestConnectivity={handleTestAllServers}
-                    onShowImportAD={() => setShowADModal(true)}
-                    onShowAddGroup={() => setShowAddGroupForm(true)}
-                    onShowBulkPassword={() => setShowBulkPasswordModal(true)}
-                    viewMode={activeView === 'RDP/SSH' ? rdpViewMode : vncViewMode}
-                    onToggleViewMode={() => {
-                        if (activeView === 'RDP/SSH') {
-                            setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid');
-                        } else if (activeView === 'VNC') {
-                            setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid');
-                        }
-                    }}
-                />
-                {/* Main Content Area */}
-                <main className="app-main-content">
+                <main className="groups-container">
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <ADImportModal
                             isOpen={showADModal}
@@ -422,52 +468,50 @@ function AppContent() {
                                 />
                             )}
                         </Modal>
-                        <Suspense fallback={<LoadingSpinner />}>
-                            {activeView === 'Dashboard' && (
-                                <DashboardView
-                                    servers={allServers}
-                                    onTestAll={handleTestAllServers}
-                                />
-                            )}
-                            {activeView === 'RDP/SSH' && (
-                                <RdpSshView
-                                    filteredGroups={filteredGroups}
-                                    onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
-                                    onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
-                                    onUpdateServer={handleUpdateServer}
-                                    onEditServer={(server, groupId) => setEditingServer({ server, groupId })}
-                                    onDeleteGroup={confirmDeleteGroup}
-                                    onUpdateGroup={handleUpdateGroup}
-                                    activeConnections={activeConnections}
-                                    isEditModeEnabled={isEditModeEnabled}
-                                    onShowAddGroupForm={() => setShowAddGroupForm(true)}
-                                    onShowAddServerModal={setAddingToGroupId}
-                                    viewMode={rdpViewMode}
-                                />
-                            )}
-                            {activeView === 'VNC' && (
-                                <VncView
-                                    vncGroups={filteredVncGroups}
-                                    onAddGroup={handleAddVncGroup}
-                                    onAddConnection={(groupId, connectionData) => handleAddVncConnection(groupId, connectionData)}
-                                    onDeleteConnection={confirmDeleteVncConnection}
-                                    onDeleteGroup={confirmDeleteVncGroup}
-                                    onUpdateConnection={handleUpdateVncConnection}
-                                    onEditVnc={(connection, groupId) => setEditingVncConnection({ connection, groupId })}
-                                    onUpdateVncGroup={handleUpdateVncGroup}
-                                    isEditModeEnabled={isEditModeEnabled}
-                                    onShowAddConnectionModal={setAddingToGroupId}
-                                    viewMode={vncViewMode}
-                                />
-                            )}
-                            {activeView === 'VNC Wall' && (
-                                <VncWallView
-                                    vncGroups={vncGroups}
-                                    activeConnections={activeConnections}
-                                    setActiveConnections={setActiveConnections}
-                                />
-                            )}
-                        </Suspense>
+                        {activeView === 'Dashboard' && (
+                            <DashboardView
+                                servers={allServers}
+                                onTestAll={handleTestAllServers}
+                            />
+                        )}
+                        {activeView === 'RDP/SSH' && (
+                            <RdpSshView
+                                filteredGroups={filteredGroups}
+                                onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
+                                onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
+                                onUpdateServer={handleUpdateServer}
+                                onEditServer={(server, groupId) => setEditingServer({ server, groupId })}
+                                onDeleteGroup={confirmDeleteGroup}
+                                onUpdateGroup={handleUpdateGroup}
+                                activeConnections={activeConnections}
+                                isEditModeEnabled={isEditModeEnabled}
+                                onShowAddGroupForm={() => setShowAddGroupForm(true)}
+                                onShowAddServerModal={setAddingToGroupId}
+                                viewMode={rdpViewMode}
+                            />
+                        )}
+                        {activeView === 'VNC' && (
+                            <VncView
+                                vncGroups={filteredVncGroups}
+                                onAddGroup={handleAddVncGroup}
+                                onAddConnection={(groupId, connectionData) => handleAddVncConnection(groupId, connectionData)}
+                                onDeleteConnection={confirmDeleteVncConnection}
+                                onDeleteGroup={confirmDeleteVncGroup}
+                                onUpdateConnection={handleUpdateVncConnection}
+                                onEditVnc={(connection, groupId) => setEditingVncConnection({ connection, groupId })}
+                                onUpdateVncGroup={handleUpdateVncGroup}
+                                isEditModeEnabled={isEditModeEnabled}
+                                onShowAddConnectionModal={setAddingToGroupId}
+                                viewMode={vncViewMode}
+                            />
+                        )}
+                        {activeView === 'VNC Wall' && (
+                            <VncWallView
+                                vncGroups={vncGroups}
+                                activeConnections={activeConnections}
+                                setActiveConnections={setActiveConnections}
+                            />
+                        )}
                     </DragDropContext>
                 </main>
                 <footer className="app-footer">

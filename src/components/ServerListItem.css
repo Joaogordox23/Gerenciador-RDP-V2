@@ -1,142 +1,216 @@
-/* ✨ v4.0: Estilos para Visualização em Lista de Servidores */
+/* ============================================================================ */
+/* 📋 SERVER LIST ITEM (LIST MODE) - PHASE 2 REDESIGN                          */
+/* ============================================================================ */
 
 .server-list-item {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 16px 20px !important;
-}
-
-.server-list-info {
-    flex: 1 1 auto !important;
-}
-
-.server-list-actions {
-    display: flex !important;
-    gap: 8px !important;
-    margin-left: 20px !important;
-    flex-shrink: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
 }
 
 .server-list-item:hover {
-    background: var(--card-hover-background);
-    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transform: translateX(4px);
 }
 
 .server-list-item.active {
-    border-color: var(--success-color);
-    background: var(--success-background);
+    background: rgba(0, 175, 116, 0.1);
+    border-color: rgba(0, 175, 116, 0.3);
+    box-shadow: 0 0 20px rgba(0, 175, 116, 0.2);
 }
 
 .server-list-item.monitored {
-    border-left: 4px solid var(--primary-color);
+    border-left: 3px solid var(--status-online);
 }
 
-/* Status Icon */
+/* Light mode */
+[data-color-scheme="light"] .server-list-item {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .server-list-item:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-color-scheme="light"] .server-list-item.active {
+    background: rgba(0, 175, 116, 0.08);
+    border-color: rgba(0, 175, 116, 0.2);
+}
+
+/* === STATUS ICON === */
 .list-item-status {
-    flex-shrink: 0;
-    width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
 }
 
-/* Protocol Badge */
+/* === PROTOCOL BADGE === */
 .list-item-protocol {
     flex-shrink: 0;
 }
 
-.list-item-protocol .protocol-badge {
+.protocol-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 4px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Server Info */
+.protocol-badge.protocol-rdp {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.protocol-badge.protocol-ssh {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+/* === INFO === */
 .list-item-info {
     flex: 1;
-    min-width: 200px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .list-item-name {
-    font-weight: 600;
     font-size: 14px;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .list-item-address {
     font-size: 12px;
-    color: var(--text-secondary);
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-family-mono);
+    color: var(--color-text-secondary);
 }
 
-/* User Info */
+/* === USER INFO === */
 .list-item-user {
-    flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 4px;
     font-size: 12px;
-    color: var(--text-secondary);
-    min-width: 150px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
 }
 
-/* Status Text */
+[data-color-scheme="light"] .list-item-user {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* === STATUS TEXT === */
 .list-item-status-text {
-    flex-shrink: 0;
-    min-width: 100px;
-    text-align: right;
     font-size: 12px;
     font-weight: 500;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    min-width: 80px;
+    text-align: right;
 }
 
-/* Actions */
+/* === ACTIONS === */
 .list-item-actions {
-    flex-shrink: 0;
     display: flex;
-    gap: 4px;
-    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.server-list-item:hover .list-item-actions {
+    opacity: 1;
 }
 
 .list-action-btn {
-    padding: 6px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-    color: var(--text-secondary);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .list-action-btn:hover {
-    background: var(--hover-background);
-    color: var(--primary-color);
-}
-
-.list-action-btn.active {
-    color: var(--primary-color);
-    background: var(--primary-background);
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+    transform: scale(1.1);
 }
 
 .list-action-btn.delete:hover {
-    color: var(--error-color);
-    background: var(--error-background);
+    background: rgba(233, 30, 99, 0.2);
+    color: var(--status-offline);
 }
 
-.list-action-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.list-action-btn.active {
+    background: rgba(0, 175, 116, 0.2);
+    color: var(--status-online);
 }
 
-/* Rotating animation for sync icon */
+[data-color-scheme="light"] .list-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .list-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .server-list-item {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .list-item-actions {
+        opacity: 1;
+    }
+
+    .list-item-user,
+    .list-item-status-text {
+        width: 100%;
+    }
+}
+
+/* === ANIMATIONS === */
+.rotating {
+    animation: rotate 1s linear infinite;
+}
+
 @keyframes rotate {
     from {
         transform: rotate(0deg);
@@ -144,22 +218,5 @@
 
     to {
         transform: rotate(360deg);
-    }
-}
-
-.rotating {
-    animation: rotate 1s linear infinite;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .server-list-item {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .list-item-user,
-    .list-item-status-text {
-        min-width: auto;
     }
 }

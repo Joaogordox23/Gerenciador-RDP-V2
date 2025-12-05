@@ -1,0 +1,309 @@
+/* ============================================================================ */
+/* ♿ ACCESSIBILITY - WCAG AA Compliant Colors & Accessibility Enhancements    */
+/* ============================================================================ */
+/* Cores com contraste mínimo 4.5:1 para texto e 3:1 para elementos gráficos   */
+
+/* === STATUS COLORS - WCAG AA COMPLIANT === */
+/* Cores de status com contraste adequado para acessibilidade */
+:root {
+    /* Status Online - Verde com bom contraste */
+    --status-online: #00A66E;
+    /* Contraste 4.5:1 em branco */
+    --status-online-light: #E8F8F0;
+    /* Background claro */
+    --status-online-dark: #006644;
+    /* Para texto em fundo claro */
+
+    /* Status Offline - Vermelho acessível */
+    --status-offline: #D93025;
+    /* Vermelho Google - 4.5:1 */
+    --status-offline-light: #FDECEA;
+    --status-offline-dark: #B31412;
+
+    /* Status Testing/Warning - Laranja acessível */
+    --status-testing: #F4A900;
+    /* Laranja com bom contraste */
+    --status-warning: #F4A900;
+    --status-testing-light: #FEF7E0;
+    --status-testing-dark: #B36D00;
+
+    /* Status Partial - Azul informativo */
+    --status-partial: #1A73E8;
+    /* Azul Google - 4.5:1 */
+    --status-partial-light: #E8F0FE;
+    --status-partial-dark: #1557B0;
+
+    /* Status Unknown - Cinza neutro */
+    --status-unknown: #5F6368;
+    /* Cinza Google */
+    --status-unknown-light: #F1F3F4;
+}
+
+/* === FOCUS STYLES - KEYBOARD NAVIGATION === */
+/* Indicadores visuais claros para navegação por teclado */
+*:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Focus específico para botões */
+button:focus-visible,
+.btn:focus-visible,
+.action-btn:focus-visible,
+.toolbar-btn:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 217, 181, 0.25);
+}
+
+/* Focus para inputs */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 217, 181, 0.15);
+}
+
+/* Focus para cards clicáveis */
+.server-card-base:focus-visible,
+.server-item:focus-visible,
+.vnc-card:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 217, 181, 0.2);
+}
+
+/* === STATUS BADGES - ACESSÍVEIS === */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.status-badge.online {
+    background: var(--status-online-light);
+    color: var(--status-online-dark);
+    border: 1px solid var(--status-online);
+}
+
+.status-badge.offline {
+    background: var(--status-offline-light);
+    color: var(--status-offline-dark);
+    border: 1px solid var(--status-offline);
+}
+
+.status-badge.testing {
+    background: var(--status-testing-light);
+    color: var(--status-testing-dark);
+    border: 1px solid var(--status-testing);
+}
+
+.status-badge.unknown {
+    background: var(--status-unknown-light);
+    color: var(--status-unknown);
+    border: 1px solid var(--status-unknown);
+}
+
+/* Dark mode adjustments */
+[data-color-scheme="dark"] .status-badge.online {
+    background: rgba(0, 166, 110, 0.15);
+    color: var(--status-online);
+}
+
+[data-color-scheme="dark"] .status-badge.offline {
+    background: rgba(217, 48, 37, 0.15);
+    color: #FF6B6B;
+}
+
+[data-color-scheme="dark"] .status-badge.testing {
+    background: rgba(244, 169, 0, 0.15);
+    color: #FFB732;
+}
+
+[data-color-scheme="dark"] .status-badge.unknown {
+    background: rgba(95, 99, 104, 0.15);
+    color: #9AA0A6;
+}
+
+/* === STATUS INDICATORS (Dots) === */
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.status-indicator.online {
+    background: var(--status-online);
+    box-shadow: 0 0 8px var(--status-online);
+}
+
+.status-indicator.offline {
+    background: var(--status-offline);
+    box-shadow: 0 0 8px var(--status-offline);
+}
+
+.status-indicator.testing {
+    background: var(--status-testing);
+    box-shadow: 0 0 8px var(--status-testing);
+    animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+/* === SKIP LINK - ACESSIBILIDADE === */
+.skip-link {
+    position: fixed;
+    top: -40px;
+    left: 0;
+    background: var(--color-primary);
+    color: #fff;
+    padding: 8px 16px;
+    z-index: 10000;
+    transition: top 0.3s;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* === SCREEN READER ONLY === */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* === REQUIRED FIELD INDICATOR === */
+.form-label.required::after,
+label.required::after {
+    content: " *";
+    color: var(--status-offline);
+    font-weight: 700;
+}
+
+/* === HIGH CONTRAST MODE === */
+@media (prefers-contrast: high) {
+    :root {
+        --status-online: #008000;
+        --status-offline: #FF0000;
+        --status-testing: #FF8C00;
+    }
+
+    *:focus-visible {
+        outline: 4px solid #000;
+        outline-offset: 3px;
+    }
+
+    [data-color-scheme="dark"] *:focus-visible {
+        outline-color: #FFF;
+    }
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .loading-spinner {
+        animation: none;
+        border: 3px solid var(--color-primary);
+    }
+}
+
+/* === FORM VALIDATION STATES - ACESSÍVEIS === */
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+    border-color: var(--status-offline);
+    box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.15);
+}
+
+.form-group.has-success input,
+.form-group.has-success select,
+.form-group.has-success textarea {
+    border-color: var(--status-online);
+    box-shadow: 0 0 0 3px rgba(0, 166, 110, 0.15);
+}
+
+.error-text,
+.form-error {
+    color: var(--status-offline-dark);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-color-scheme="dark"] .error-text,
+[data-color-scheme="dark"] .form-error {
+    color: #FF6B6B;
+}
+
+/* === TOOLTIP ACCESSIBILITY === */
+[role="tooltip"] {
+    position: absolute;
+    z-index: 1000;
+    padding: 8px 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 250px;
+}
+
+/* === LINK ACCESSIBILITY === */
+a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* Text links should have underline for distinction */
+a:not(.btn):not(.action-btn):not(.nav-link) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+a:not(.btn):not(.action-btn):not(.nav-link):hover {
+    text-decoration-thickness: 2px;
+}

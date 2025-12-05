@@ -1,0 +1,82 @@
+/* ============================================================================ */
+/* 🖥️ SERVER CARD (RDP/SSH) - PHASE 2 REDESIGN - REFACTORED */
+/* ============================================================================ */
+/* Import base shared styles */
+@import './ServerCard.css';
+
+/* RDP/SSH specific card (extends .server-card-base) */
+.server-item {
+    /* Inherits all styles from .server-card-base via className composition */
+}
+
+.server-item.monitored::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--status-online), var(--status-testing));
+    animation: shimmer 2s infinite;
+}
+
+/* === RDP/SSH SPECIFIC STATUS SECTION === */
+.server-status-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+[data-color-scheme="light"] .server-status-section {
+    border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.server-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.server-latency {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.latency-good {
+    color: var(--status-online);
+}
+
+.latency-moderate {
+    color: var(--status-partial);
+}
+
+.latency-poor {
+    color: var(--status-offline);
+}
+
+/* === RDP/SSH SPECIFIC ACTION BUTTONS === */
+.server-item .action-btn.monitor-btn.active {
+    background: rgba(0, 175, 116, 0.2);
+    color: var(--status-online);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .server-item {
+        padding: 12px;
+    }
+
+    .server-status-section {
+        flex-wrap: wrap;
+    }
+}

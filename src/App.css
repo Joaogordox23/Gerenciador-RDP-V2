@@ -1,3 +1,16 @@
+/* Phase 2 - Cards Design System */
+@import './styles/cards.css';
+/* Phase 4 - Forms Design System */
+@import './styles/forms.css';
+/* Phase 2 - Cards Design System */
+@import './styles/cards.css';
+/* Phase 4 - Forms Design System */
+@import './styles/forms.css';
+/* Theme Transitions */
+@import './styles/theme-transitions.css';
+/* Accessibility */
+@import './styles/accessibility.css';
+
 :root {
     /* --- CORES PRIMITIVAS --- */
     --color-black: rgba(0, 0, 0, 1);
@@ -42,6 +55,11 @@
     --duration-fast: 150ms;
     --duration-normal: 250ms;
     --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+    /* Card-specific variables */
+    --card-radius: 12px;
+    --card-padding: 16px;
+    --card-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --card-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* ======================================= */
@@ -91,6 +109,109 @@
 /* ======================================= */
 /* 🛠️ RESET & BASE STYLES                */
 /* ======================================= */
+/* ============================================================================ */
+/* 📐 PHASE 1 - NEW LAYOUT STRUCTURE (Grid System)                             */
+/* ============================================================================ */
+
+/* Main App Container - Grid Layout */
+.App {
+    display: grid;
+    grid-template-areas:
+        "sidebar header"
+        "sidebar main";
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 70px 1fr;
+    height: 100vh;
+    overflow: hidden;
+    transition: grid-template-columns 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* When sidebar is collapsed */
+.App.sidebar-collapsed {
+    grid-template-columns: 72px 1fr;
+}
+
+/* Sidebar Area (handled by Sidebar component CSS) */
+.app-sidebar {
+    grid-area: sidebar;
+}
+
+/* Header Area (handled by Header component CSS) */
+.app-header-new {
+    grid-area: header;
+}
+
+/* Main Content Area */
+.app-main-content {
+    grid-area: main;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--color-background);
+    padding: 32px;
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.app-main-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-main-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.app-main-content::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+}
+
+.app-main-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
+/* Mobile Sidebar Overlay */
+@media (max-width: 768px) {
+    .App {
+        grid-template-areas:
+            "header"
+            "main";
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr;
+    }
+
+    .app-main-content {
+        padding: 16px;
+    }
+
+    /* Sidebar becomes overlay on mobile */
+    .app-sidebar {
+        position: fixed;
+        z-index: 1000;
+    }
+
+    /* Mobile sidebar backdrop */
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        display: none;
+    }
+
+    .sidebar-backdrop.active {
+        display: block;
+    }
+}
+
+/* ============================================================================ */
+/* 📱 OLD LAYOUT STRUCTURE (Keep for compatibility, will migrate gradually)    */
+/* ============================================================================ */
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -283,150 +404,12 @@ button {
     padding: var(--space-24);
 }
 
-.server-item {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
-    padding: var(--space-24);
-    position: relative;
-    transition: all 0.2s;
-    min-height: 180px !important;
-    min-width: 320px !important;
-    max-width: 450px !important;
-}
-
-.server-item:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-}
-
-/* Indicador lateral de status */
-.server-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--color-gray-400);
-    border-radius: 4px 0 0 4px;
-}
-
-.server-item.online::before {
-    background: var(--color-success);
-}
-
-.server-item.offline::before {
-    background: var(--color-error);
-}
-
-.server-item.testing::before {
-    background: var(--color-primary);
-    animation: pulse 1s infinite;
-}
-
-.server-header {
-    display: flex;
-    gap: var(--space-16);
-    align-items: flex-start;
-}
-
-.server-info {
-    flex: 1;
-}
-
-.server-name {
-    font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 4px;
-}
-
-.server-address {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Botões de Ação do Servidor */
-.server-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.action-btn {
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.action-btn:hover {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-}
+/* Server styles moved to components/Server.css and components/ServerCard.css */
 
 /* ======================================= */
 /* 📝 FORMS & MODALS                       */
 /* ======================================= */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
 
-.modal-content {
-    background: var(--color-surface);
-    width: 100%;
-    max-width: 500px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    animation: bounceIn 0.3s ease;
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid var(--color-border);
-    display: flex;
-    justify-content: space-between;
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.form-group {
-    margin-bottom: 16px;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
-    background: var(--color-background);
-    color: var(--color-text);
-}
 
 .add-group-form-container {
     padding: 24px;
@@ -1181,13 +1164,8 @@ select.form-control {
 /* ======================================= */
 /* 🎨 GLASSMORPHISM EXTRAS                 */
 /* ======================================= */
-.modal-content {
-    background: rgba(var(--color-surface), 0.95) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 1px solid rgba(var(--color-border), 0.3) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-}
+/* .modal-content styles moved to Modal.css - Phase 4 */
+
 
 .toast-item {
     background: rgba(var(--color-surface), 0.95) !important;
@@ -1288,71 +1266,9 @@ label {
 /* ======================================= */
 /* 🎨 MODAL PREMIUM - GLASSMORPHISM       */
 /* ======================================= */
-.modal-overlay {
-    background: rgba(0, 0, 0, 0.7) !important;
-    backdrop-filter: blur(8px) saturate(120%) !important;
-    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
-}
+/* ALL MODAL STYLES MOVED TO components/Modal.css - Phase 4 */
+/* This section is removed to prevent conflicts */
 
-.modal-content {
-    background: rgba(var(--color-surface), 0.98) !important;
-    backdrop-filter: blur(30px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(var(--color-border), 0.4) !important;
-    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.35), 0 12px 36px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.05) !important;
-    animation: modal-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-@keyframes modal-appear {
-    0% {
-        opacity: 0;
-        transform: scale(0.9) translateY(-20px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.modal-header {
-    padding: 24px !important;
-    border-bottom: 1px solid rgba(var(--color-border), 0.3) !important;
-    background: linear-gradient(135deg, rgba(var(--color-secondary), 0.4) 0%, transparent 100%) !important;
-}
-
-.modal-title {
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    color: var(--color-text) !important;
-    margin: 0 !important;
-}
-
-.modal-body {
-    padding: 28px !important;
-}
-
-.modal-close-btn {
-    background: transparent !important;
-    border: none !important;
-    color: var(--color-text-secondary) !important;
-    font-size: 24px !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.modal-close-btn:hover {
-    background: rgba(var(--color-error-rgb), 0.1) !important;
-    color: var(--color-error) !important;
-    transform: rotate(90deg) !important;
-}
 
 /* ======================================= */
 /* 🔘 FORM BUTTONS PREMIUM                */
@@ -3646,13 +3562,22 @@ main.groups-container {
 .app-footer {
     position: fixed !important;
     bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
+    left: 260px !important;
+    /* Largura da sidebar */
+    width: calc(100% - 260px) !important;
+    /* Subtrai a largura da sidebar */
     z-index: 2000 !important;
     background: var(--color-surface) !important;
     border-top: 1px solid var(--color-border) !important;
     padding: 8px 24px !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1) !important;
+    transition: left 0.3s, width 0.3s;
+}
+
+/* Quando sidebar está colapsada */
+.sidebar-collapsed .app-footer {
+    left: 72px !important;
+    width: calc(100% - 72px) !important;
 }
 
 /* Padding no app para não sobrepor rodapé */

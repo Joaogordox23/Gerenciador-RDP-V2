@@ -1,28 +1,33 @@
-/* AddGroupForm.css - Estilo Premium Refinado */
+/* ============================================================================ */
+/* 📁 ADD GROUP FORM - FORCED OVERRIDE                                         */
+/* ============================================================================ */
 
 .add-group-form {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    padding: 16px;
-    background-color: var(--color-surface, #1e1e1e);
-    /* Fallback color */
-    border-radius: 12px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
 }
 
-.add-group-input-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+/* Form subtitle info */
+.form-info {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+    line-height: 1.4 !important;
 }
 
-.add-group-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    box-shadow: none;
-    transform: none;
+.form-info svg,
+.form-info .MuiSvgIcon-root {
+    width: 12px !important;
+    height: 12px !important;
+    font-size: 12px !important;
+    margin-top: 1px !important;
+}
+
+/* Character counter */
+.char-counter {
+    font-size: 10px !important;
+    margin-top: -8px !important;
 }

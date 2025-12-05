@@ -8,6 +8,8 @@ import {
     SaveIcon,
     CancelIcon
 } from './MuiIcons';
+import './VncForms.css';
+import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
 function AddVncConnectionForm({ onAddConnection, onCancel }) {
     const [connectionData, setConnectionData] = useState({ name: '', ipAddress: '', port: '5900', password: '', viewOnly: false });
@@ -85,6 +87,7 @@ function AddVncConnectionForm({ onAddConnection, onCancel }) {
                                 className="form-control"
                             />
                         </div>
+                        <PasswordStrengthIndicator password={connectionData.password} />
                     </div>
                 </div>
 

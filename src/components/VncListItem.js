@@ -32,7 +32,7 @@ function VncListItem({
 
     return (
         <div
-            className="vnc-list-item"
+            className="vnc-list-item-card"
             onClick={handleConnect}
         >
             {/* VNC Icon */}

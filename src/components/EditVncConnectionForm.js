@@ -7,6 +7,7 @@ import {
     SaveIcon,
     CancelIcon
 } from './MuiIcons';
+import './VncForms.css';
 
 function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
     const [formData, setFormData] = useState({ ...connectionInfo });

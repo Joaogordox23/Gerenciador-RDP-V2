@@ -9,6 +9,8 @@ import {
     SaveIcon,
     CancelIcon
 } from './MuiIcons';
+import './ServerForms.css';
+import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
 function AddServerForm({ onAddServer, onCancel }) {
     const [serverData, setServerData] = useState({
@@ -139,6 +141,7 @@ function AddServerForm({ onAddServer, onCancel }) {
                                 placeholder="Opcional"
                             />
                         </div>
+                        <PasswordStrengthIndicator password={serverData.password} />
                     </div>
                 </div>
 
