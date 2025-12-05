@@ -26,7 +26,8 @@ function Group({
     onCancelEdit,
     index,
     viewMode = 'grid',
-    onEditServer
+    onEditServer,
+    onRemoteConnect
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
@@ -136,6 +137,7 @@ function Group({
                                             isEditModeEnabled={isEditModeEnabled}
                                             isConnectivityEnabled={isConnectivityEnabled}
                                             onEdit={() => onEditServer(server, groupInfo.id)}
+                                            onRemoteConnect={onRemoteConnect}
                                         />
                                     ))}
                                     {provided.placeholder}

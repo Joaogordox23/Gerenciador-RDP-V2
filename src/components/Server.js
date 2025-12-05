@@ -31,7 +31,8 @@ function Server({
   isEditModeEnabled,
   index,
   isConnectivityEnabled = true,
-  onEdit // Nova prop para modal global
+  onEdit,
+  onRemoteConnect // Nova prop para conexão Guacamole
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -58,7 +59,12 @@ function Server({
     setIsConnecting(true);
 
     try {
-      if (window.api?.connection?.connect) {
+      // Usa Guacamole se disponível, senão fallback para API antiga
+      if (onRemoteConnect) {
+        console.log('🥑 Conectando via Guacamole:', serverInfo.name);
+        onRemoteConnect(serverInfo);
+      } else if (window.api?.connection?.connect) {
+        console.log('🖥️ Conectando via mstsc.exe:', serverInfo.name);
         await window.api.connection.connect(serverInfo);
       } else {
         console.error('❌ API de conexão não disponível');
@@ -67,10 +73,10 @@ function Server({
     } catch (error) {
       console.error('❌ Erro ao conectar:', error);
     } finally {
-      // Remove estado de conectando após 3 segundos
-      setTimeout(() => setIsConnecting(false), 3000);
+      // Remove estado de conectando após 1 segundo
+      setTimeout(() => setIsConnecting(false), 1000);
     }
-  }, [isEditModeEnabled, serverInfo]);
+  }, [isEditModeEnabled, serverInfo, onRemoteConnect]);
 
   const handleTestConnectivity = useCallback((e) => {
     e.stopPropagation();

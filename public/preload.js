@@ -183,6 +183,31 @@ try {
             stopProxy: (serverId) => ipcRenderer.invoke('vnc-proxy-stop', serverId),
         },
 
+        // API Guacamole (RDP/SSH/VNC integrado)
+        guacamole: {
+            generateToken: (connectionInfo) => ipcRenderer.invoke('generate-guacamole-token', connectionInfo),
+        },
+
+        // ==========================
+        // API SQLite (CRUD PONTUAL - PERFORMANCE!)
+        // ==========================
+        db: {
+            // Grupos
+            getGroups: (type) => ipcRenderer.invoke('db-get-groups', type),
+            addGroup: (name, type) => ipcRenderer.invoke('db-add-group', { name, type }),
+            updateGroup: (groupId, name) => ipcRenderer.invoke('db-update-group', { groupId, name }),
+            deleteGroup: (groupId) => ipcRenderer.invoke('db-delete-group', groupId),
+
+            // Conexões (OPERAÇÕES PONTUAIS!)
+            addConnection: (groupId, connectionData) => ipcRenderer.invoke('db-add-connection', { groupId, connectionData }),
+            updateConnection: (connectionId, updatedData) => ipcRenderer.invoke('db-update-connection', { connectionId, updatedData }),
+            deleteConnection: (connectionId) => ipcRenderer.invoke('db-delete-connection', connectionId),
+
+            // Busca e estatísticas
+            searchConnections: (term, protocol) => ipcRenderer.invoke('db-search-connections', { term, protocol }),
+            getStats: () => ipcRenderer.invoke('db-get-stats'),
+        },
+
         // Novas APIs de conectividade
         connectivity,
 

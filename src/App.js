@@ -7,6 +7,7 @@ import Modal from './components/Modal';
 import AddServerForm from './components/AddServerForm';
 import AddVncConnectionForm from './components/AddVncConnectionForm';
 import { DragDropContext } from 'react-beautiful-dnd';
+
 import {
     ComputerIcon,
     CloudDownloadIcon,
@@ -20,7 +21,6 @@ import {
     GridViewIcon,
     ViewListIcon
 } from './components/MuiIcons';
-
 
 
 // Sistema de Toasts
@@ -46,12 +46,15 @@ import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme/AppTheme';
+import VncViewerModal from './components/VncViewerModal';
+import ConnectionViewerModal from './components/ConnectionViewerModal';
 
 // Lazy loading de views
 const RdpSshView = lazy(() => import('./views/RdpSshView'));
 const VncView = lazy(() => import('./views/VncView'));
 const VncWallView = lazy(() => import('./views/VncWallView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
+const GuacamoleTestView = lazy(() => import('./views/GuacamoleTestView'));
 
 function App() {
     return (
@@ -105,6 +108,12 @@ function AppContent() {
     // Estados para modais de edição
     const [editingServer, setEditingServer] = useState(null); // {server, groupId}
     const [editingVncConnection, setEditingVncConnection] = useState(null); // {connection, groupId}
+
+    // Estado para conexão VNC ativa (modal noVNC)
+    const [activeVncConnection, setActiveVncConnection] = useState(null);
+
+    // Estado para conexão remota ativa (modal Guacamole)
+    const [activeRemoteConnection, setActiveRemoteConnection] = useState(null);
 
     const toggleTheme = () => {
         setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
@@ -442,6 +451,7 @@ function AppContent() {
                                     isEditModeEnabled={isEditModeEnabled}
                                     onShowAddGroupForm={() => setShowAddGroupForm(true)}
                                     onShowAddServerModal={setAddingToGroupId}
+                                    onRemoteConnect={setActiveRemoteConnection}
                                     viewMode={rdpViewMode}
                                 />
                             )}
@@ -458,6 +468,7 @@ function AppContent() {
                                     isEditModeEnabled={isEditModeEnabled}
                                     onShowAddConnectionModal={setAddingToGroupId}
                                     viewMode={vncViewMode}
+                                    onVncConnect={setActiveRemoteConnection}
                                 />
                             )}
                             {activeView === 'VNC Wall' && (
@@ -467,6 +478,9 @@ function AppContent() {
                                     setActiveConnections={setActiveConnections}
                                     searchTerm={searchTerm}
                                 />
+                            )}
+                            {activeView === 'guacamole-test' && (
+                                <GuacamoleTestView />
                             )}
                         </Suspense>
                     </DragDropContext>
@@ -504,6 +518,22 @@ function AppContent() {
                         groupId={editingVncConnection.groupId}
                         onSave={handleSaveEditedVnc}
                         onCancel={() => setEditingVncConnection(null)}
+                    />
+                )}
+
+                {/* Modal de conexão VNC (noVNC) */}
+                {activeVncConnection && (
+                    <VncViewerModal
+                        connectionInfo={activeVncConnection}
+                        onClose={() => setActiveVncConnection(null)}
+                    />
+                )}
+
+                {/* Modal de conexão remota (Guacamole) */}
+                {activeRemoteConnection && (
+                    <ConnectionViewerModal
+                        connectionInfo={activeRemoteConnection}
+                        onClose={() => setActiveRemoteConnection(null)}
                     />
                 )}
             </div>

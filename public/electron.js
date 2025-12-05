@@ -1,4 +1,4 @@
-// electron.js - VERSÃO 3.1 com RealVNC externo
+// electron.js - VERSÃO 4.0 com SQLite para performance
 
 const { app, BrowserWindow, ipcMain, Notification, Menu, safeStorage, dialog, nativeTheme } = require('electron');
 const path = require('path');
@@ -9,9 +9,11 @@ const url = require('url');
 const fs = require('fs');
 const ActiveDirectory = require('activedirectory2');
 const fileSystemManager = require('./FileSystemManager');
+const databaseManager = require('./DatabaseManager');
 const vncProxyService = require('../src/main/services/VncProxyService');
-const { sanitizeLog } = require('./sanitizeLog'); // Proteção de dados sensíveis nos logs
-
+const { sanitizeLog } = require('./sanitizeLog');
+const GuacamoleServer = require('./GuacamoleServer');
+let guacamoleServer = null;
 // ==========================
 // IMPORTS DO SISTEMA DE CONECTIVIDADE (MANTIDOS)
 // ==========================
@@ -33,157 +35,86 @@ const connectivityMonitors = new Map(); // Armazena intervalos de monitoramento 
 // FUNÇÃO DE INICIALIZAÇÃO DO STORE E SINCRONIZAÇÃO
 // ==========================
 async function initializeStore() {
-    console.log('📦 Inicializando electron-store...');
+    console.log('📦 Inicializando sistemas de armazenamento...');
+
+    // 1. Inicializa electron-store para configurações gerais
     store = new Store();
-    console.log('✅ Electron-store inicializado');
+    console.log('✅ Electron-store inicializado (configurações)');
 
-    // Sincronização Bidirecional: O Disco é a Fonte da Verdade
+    // 2. Inicializa SQLite para conexões (PERFORMANCE!)
     try {
-        // 1. Garante que diretórios existam (mas não recria arquivos ainda)
-        fileSystemManager.ensureDirectories();
-
-        // 0. IMPORTAÇÃO MANUAL VIA JSON (PRIORIDADE MÁXIMA)
-        // Verifica se existe arquivo vnc_import.json na raiz do projeto
-        const jsonImportPath = path.join(__dirname, '..', 'vnc_import.json');
-        if (fs.existsSync(jsonImportPath)) {
-            try {
-                console.log('📂 Encontrado arquivo de importação manual vnc_import.json');
-                fileSystemManager.logToFile('📂 Encontrado arquivo de importação manual vnc_import.json');
-
-                const importContent = fs.readFileSync(jsonImportPath, 'utf8');
-                const importData = JSON.parse(importContent);
-
-                if (importData.vncGroups && Array.isArray(importData.vncGroups)) {
-                    console.log(`📥 Importando ${importData.vncGroups.length} grupos VNC do JSON...`);
-                    fileSystemManager.logToFile(`📥 Importando ${importData.vncGroups.length} grupos VNC do JSON...`);
-
-                    store.set('vncGroups', importData.vncGroups);
-
-                    console.log('✅ Importação via JSON concluída com sucesso!');
-                    fileSystemManager.logToFile('✅ Importação via JSON concluída com sucesso!');
-
-                    // Renomeia para não importar novamente
-                    fs.renameSync(jsonImportPath, jsonImportPath + '.imported');
-                    console.log('📝 Arquivo renomeado para vnc_import.json.imported');
-                }
-            } catch (err) {
-                console.error('❌ Erro ao importar JSON manual:', err);
-                fileSystemManager.logToFile(`❌ Erro ao importar JSON manual: ${err.message}`);
-            }
-        }
-
-        const diskServers = fileSystemManager.scanServers();
-        let currentGroups = store.get('groups') || [];
-        let currentVncGroups = store.get('vncGroups') || [];
-        let dataChanged = false;
-
-        // A. IMPORTAÇÃO: Adiciona ao store o que está no disco e não no store
-        diskServers.forEach(server => {
-            const isVnc = server.protocol === 'vnc';
-
-            // Seleciona o array correto (VNC ou RDP/SSH)
-            const targetArray = isVnc ? currentVncGroups : currentGroups;
-            const listKey = isVnc ? 'connections' : 'servers';
-
-            // Busca ou cria o grupo
-            let group = targetArray.find(g => (g.name || g.groupName) === server.groupName);
-            if (!group) {
-                group = {
-                    id: Date.now() + Math.random(),
-                    name: server.groupName,
-                    groupName: server.groupName,
-                    [listKey]: []
-                };
-                targetArray.push(group);
-                dataChanged = true;
-                console.log(`📂 Criando grupo: ${server.groupName} (VNC: ${isVnc})`);
-            }
-
-            // Adiciona o servidor ao grupo se não existir
-            const existingServer = group[listKey].find(s =>
-                s.name.toLowerCase() === server.name.toLowerCase()
-            );
-
-            if (!existingServer) {
-                console.log(`📥 Importando novo servidor do disco: ${server.name} (Protocolo: ${server.protocol})`);
-                group[listKey].push(server);
-                dataChanged = true;
-            }
-        });
-
-        // B. LIMPEZA: Remove do store o que NÃO está no disco
-        // Função auxiliar para limpar listas
-        const cleanList = (groupsList, isVnc) => {
-            const listKey = isVnc ? 'connections' : 'servers';
-            return groupsList.map(group => {
-                if (!group[listKey]) return group;
-
-                const originalLength = group[listKey].length;
-                group[listKey] = group[listKey].filter(server => {
-                    // Verifica se o arquivo existe no disco
-                    const filePath = fileSystemManager.getFilePath(server);
-                    const exists = require('fs').existsSync(filePath);
-
-                    // Log detalhado para debug
-                    const logMsg = `   Verificando ${isVnc ? 'VNC' : 'RDP/SSH'} "${server.name}" (grupo: ${server.groupName}): ${filePath} -> ${exists ? 'EXISTE' : 'NÃO EXISTE'}`;
-                    console.log(logMsg);
-                    fileSystemManager.logToFile(logMsg);
-
-                    if (!exists) {
-                        console.log(`🗑️ Removendo servidor órfão do store (arquivo não encontrado): ${server.name}`);
-                        dataChanged = true;
-                    }
-                    return exists;
-                });
-
-                return group;
-            }).filter(group => group[listKey] && group[listKey].length > 0); // Remove grupos vazios
-        };
-
-        console.log(`🔍 ANTES da limpeza - VNC: ${currentVncGroups.length} grupos`);
-        currentVncGroups.forEach(g => console.log(`   - Grupo "${g.name}": ${g.connections?.length || 0} conexões`));
-
-        currentGroups = cleanList(currentGroups, false);
-        currentVncGroups = cleanList(currentVncGroups, true);
-
-        console.log(`🔍 DEPOIS da limpeza - VNC: ${currentVncGroups.length} grupos`);
-        currentVncGroups.forEach(g => console.log(`   - Grupo "${g.name}": ${g.connections?.length || 0} conexões`));
-
-        // SEMPRE salva no store após sincronização, mesmo que não tenha mudado
-        // Isso garante que os dados estejam sempre sincronizados
-        console.log(`💾 Salvando no store: ${currentGroups.length} grupos RDP/SSH, ${currentVncGroups.length} grupos VNC`);
-        fileSystemManager.logToFile(`💾 Salvando no store: ${currentGroups.length} grupos RDP/SSH, ${currentVncGroups.length} grupos VNC`);
-
-        store.set('groups', currentGroups);
-        store.set('vncGroups', currentVncGroups);
-
-        console.log('✅ Store sincronizado com o disco.');
-        fileSystemManager.logToFile('✅ Store sincronizado com o disco.');
-
-        // Log resumo da importação VNC
-        const totalVncServers = currentVncGroups.reduce((sum, g) => sum + (g.connections?.length || 0), 0);
-        console.log(`📊 Importação VNC: ${currentVncGroups.length} grupo(s), ${totalVncServers} servidor(es)`);
-        fileSystemManager.logToFile(`📊 Importação VNC: ${currentVncGroups.length} grupo(s), ${totalVncServers} servidor(es)`);
-
-        const totalRdpSshServers = currentGroups.reduce((sum, g) => sum + (g.servers?.length || 0), 0);
-        console.log(`📊 Importação RDP/SSH: ${currentGroups.length} grupo(s), ${totalRdpSshServers} servidor(es)`);
-        fileSystemManager.logToFile(`📊 Importação RDP/SSH: ${currentGroups.length} grupo(s), ${totalRdpSshServers} servidor(es)`);
-
+        databaseManager.initialize();
+        console.log('✅ SQLite inicializado para conexões');
     } catch (error) {
-        console.error('Erro na sincronização com disco:', error);
+        console.error('❌ Erro ao inicializar SQLite:', error);
+        // Fallback: continua sem SQLite
     }
 
-    console.log('🔄 Sincronização de arquivos de conexão concluída.');
+    // 3. Garante que diretórios existam
+    fileSystemManager.ensureDirectories();
 
-    // 🎯 SOLUÇÃO DEFINITIVA: Retorna os dados para serem enviados ao frontend
-    return {
-        groups: store.get('groups') || [],
-        vncGroups: store.get('vncGroups') || []
-    };
+    // 4. Migração: Se SQLite está vazio, migra dados existentes
+    if (!databaseManager.isMigrated()) {
+        console.log('🔄 Primeira execução com SQLite - iniciando migração...');
+
+        try {
+            // Tenta ler dados do electron-store
+            let existingGroups = store.get('groups') || [];
+            let existingVncGroups = store.get('vncGroups') || [];
+
+            // Se store está vazio, escaneia o disco
+            if (existingGroups.length === 0 && existingVncGroups.length === 0) {
+                console.log('📂 Store vazio, escaneando disco...');
+                const diskServers = fileSystemManager.scanServers();
+
+                // Agrupa por groupName e protocolo
+                diskServers.forEach(server => {
+                    const isVnc = server.protocol === 'vnc';
+                    const targetArray = isVnc ? existingVncGroups : existingGroups;
+                    const listKey = isVnc ? 'connections' : 'servers';
+
+                    let group = targetArray.find(g => (g.name || g.groupName) === server.groupName);
+                    if (!group) {
+                        group = {
+                            id: Date.now() + Math.random(),
+                            name: server.groupName,
+                            groupName: server.groupName,
+                            [listKey]: []
+                        };
+                        targetArray.push(group);
+                    }
+
+                    if (!group[listKey]) group[listKey] = [];
+                    group[listKey].push(server);
+                });
+            }
+
+            // Migra para SQLite
+            const totalMigrated = databaseManager.migrateFromStore(existingGroups, existingVncGroups);
+            console.log(`✅ Migração concluída: ${totalMigrated} conexões movidas para SQLite`);
+
+        } catch (error) {
+            console.error('❌ Erro na migração:', error);
+        }
+    }
+
+    // 5. Carrega dados do SQLite (RÁPIDO!)
+    const startTime = Date.now();
+    const groups = databaseManager.getAllGroups('rdp');
+    const vncGroups = databaseManager.getAllGroups('vnc');
+
+    const stats = databaseManager.getStats();
+    console.log(`⚡ Dados carregados em ${Date.now() - startTime}ms`);
+    console.log(`📊 SQLite: ${stats.totalGroups} grupos, ${stats.totalConnections} conexões`);
+    console.log(`   RDP: ${stats.byProtocol.rdp || 0}, SSH: ${stats.byProtocol.ssh || 0}, VNC: ${stats.byProtocol.vnc || 0}`);
+
+    console.log('🔄 Inicialização concluída.');
+
+    return { groups, vncGroups };
 }
 
-console.log('🔌 Sistema de conectividade inicializado no Electron v3.1');
-console.log('📂 Sistema de arquivos local inicializado');
+console.log('🔌 Sistema de conectividade inicializado no Electron v4.0')
+console.log('📂 SQLite + FileSystem inicializados')
 console.log('🎯 VNC agora usa RealVNC externo');
 
 // ==========================
@@ -421,6 +352,15 @@ function createWindow() {
 // EVENTOS ELECTRON (MANTIDOS)
 // ==========================
 app.whenReady().then(async () => {
+    // Iniciar GuacamoleServer
+    try {
+        guacamoleServer = new GuacamoleServer(8080);
+        await guacamoleServer.start();
+        console.log('✅ GuacamoleServer pronto para conexões');
+    } catch (error) {
+        console.error('❌ Falha ao iniciar GuacamoleServer:', error);
+    }
+
     console.log('🚀 Electron App pronto, iniciando sincronização...');
     const syncedData = await initializeStore(); // Aguarda sincronização completar e recebe dados
     console.log('🪟 Criando janela principal...');
@@ -534,6 +474,153 @@ ipcMain.on('set-data', (event, key, value) => {
         store.set(key, newGroups);
     } else {
         store.set(key, value);
+    }
+});
+
+// ==========================
+// HANDLERS IPC PARA SQLITE (CRUD PONTUAL - PERFORMANCE!)
+// ==========================
+
+// Obtém todos os grupos de um tipo
+ipcMain.handle('db-get-groups', async (event, type) => {
+    try {
+        return databaseManager.getAllGroups(type);
+    } catch (error) {
+        console.error('❌ Erro ao obter grupos:', error);
+        return [];
+    }
+});
+
+// Adiciona um grupo
+ipcMain.handle('db-add-group', async (event, { name, type }) => {
+    try {
+        const groupId = databaseManager.addGroup(name, type);
+        console.log(`✅ Grupo adicionado: ${name} (ID: ${groupId})`);
+        return { success: true, id: groupId };
+    } catch (error) {
+        console.error('❌ Erro ao adicionar grupo:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Atualiza um grupo
+ipcMain.handle('db-update-group', async (event, { groupId, name }) => {
+    try {
+        databaseManager.updateGroup(groupId, name);
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Erro ao atualizar grupo:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Remove um grupo
+ipcMain.handle('db-delete-group', async (event, groupId) => {
+    try {
+        databaseManager.deleteGroup(groupId);
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Erro ao remover grupo:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Adiciona uma conexão (PONTUAL!)
+ipcMain.handle('db-add-connection', async (event, { groupId, connectionData }) => {
+    try {
+        // Criptografa senha antes de salvar
+        if (connectionData.password && typeof connectionData.password === 'string') {
+            try {
+                const encryptedPassword = safeStorage.encryptString(connectionData.password);
+                connectionData.password = encryptedPassword.toString('base64');
+            } catch (e) {
+                console.error('Falha ao criptografar senha:', e);
+            }
+        }
+
+        const connectionId = databaseManager.addConnection(groupId, connectionData);
+
+        // Salva arquivo físico também
+        fileSystemManager.saveConnectionFile({
+            ...connectionData,
+            id: connectionId
+        });
+
+        return { success: true, id: connectionId };
+    } catch (error) {
+        console.error('❌ Erro ao adicionar conexão:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Atualiza uma conexão (PONTUAL - SUPER RÁPIDO!)
+ipcMain.handle('db-update-connection', async (event, { connectionId, updatedData }) => {
+    try {
+        const startTime = Date.now();
+
+        // Criptografa senha se foi alterada
+        if (updatedData.password && typeof updatedData.password === 'string') {
+            try {
+                const encryptedPassword = safeStorage.encryptString(updatedData.password);
+                updatedData.password = encryptedPassword.toString('base64');
+            } catch (e) {
+                console.error('Falha ao criptografar senha:', e);
+            }
+        }
+
+        databaseManager.updateConnection(connectionId, updatedData);
+
+        // Atualiza arquivo físico se necessário
+        const connection = databaseManager.getConnectionById(connectionId);
+        if (connection) {
+            fileSystemManager.saveConnectionFile(connection);
+        }
+
+        console.log(`⚡ Conexão ${connectionId} atualizada em ${Date.now() - startTime}ms`);
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Erro ao atualizar conexão:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Remove uma conexão (PONTUAL!)
+ipcMain.handle('db-delete-connection', async (event, connectionId) => {
+    try {
+        // Obtém conexão antes de deletar (para remover arquivo)
+        const connection = databaseManager.getConnectionById(connectionId);
+
+        databaseManager.deleteConnection(connectionId);
+
+        // Remove arquivo físico
+        if (connection) {
+            fileSystemManager.deleteConnectionFile(connection);
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Erro ao remover conexão:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Busca conexões
+ipcMain.handle('db-search-connections', async (event, { term, protocol }) => {
+    try {
+        return databaseManager.searchConnections(term, protocol);
+    } catch (error) {
+        console.error('❌ Erro na busca:', error);
+        return [];
+    }
+});
+
+// Estatísticas do banco
+ipcMain.handle('db-get-stats', async () => {
+    try {
+        return databaseManager.getStats();
+    } catch (error) {
+        console.error('❌ Erro ao obter estatísticas:', error);
+        return { totalGroups: 0, totalConnections: 0, byProtocol: {} };
     }
 });
 
@@ -1195,8 +1282,29 @@ ipcMain.handle('vnc-proxy-stop', async (event, serverId) => {
     }
 });
 
+// Handler para geração de token Guacamole
+ipcMain.handle('generate-guacamole-token', async (event, connectionInfo) => {
+    if (!guacamoleServer) {
+        throw new Error('Servidor Guacamole não está rodando');
+    }
+    try {
+        const token = guacamoleServer.generateConnectionToken(connectionInfo);
+        console.log('🔐 Token Guacamole gerado para:', connectionInfo.protocol);
+        return token;
+    } catch (error) {
+        console.error('Erro ao gerar token Guacamole:', error);
+        throw error;
+    }
+});
+
 app.on('before-quit', () => {
     console.log('🧹 Limpando recursos antes de fechar...');
+
+    // Parar GuacamoleServer
+    if (guacamoleServer) {
+        guacamoleServer.stop();
+    }
+
     connectivityMonitors.forEach((interval) => {
         clearInterval(interval);
     });

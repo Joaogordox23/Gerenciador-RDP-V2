@@ -17,7 +17,8 @@ function Sidebar({ activeView, onViewChange, theme, onThemeToggle, isCollapsed, 
         { id: 'Dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
         { id: 'RDP/SSH', label: 'RDP/SSH', icon: <ComputerIcon /> },
         { id: 'VNC', label: 'VNC', icon: <VideoLabelIcon /> },
-        { id: 'VNC Wall', label: 'VNC Wall', icon: <GridViewIcon /> }
+        { id: 'VNC Wall', label: 'VNC Wall', icon: <GridViewIcon /> },
+        { id: 'guacamole-test', label: '🥑 Guacamole', icon: <VideoLabelIcon /> }
     ];
 
     return (

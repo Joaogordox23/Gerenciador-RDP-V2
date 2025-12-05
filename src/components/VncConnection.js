@@ -1,4 +1,4 @@
-// src/components/VncConnection.js (Versão para RealVNC)
+// src/components/VncConnection.js (Versão noVNC integrado)
 import React from 'react';
 import {
     EditIcon,
@@ -8,17 +8,21 @@ import {
 } from './MuiIcons';
 import './VncConnection.css';
 
-function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit }) {
+function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect }) {
 
     const handleConnect = () => {
         if (isEditModeEnabled) return;
 
-        // VOLTAMOS A CHAMAR A API DO BACKEND
-        if (window.api && window.api.connection && window.api.connection.connectVnc) {
-            console.log("Enviando pedido de conexão VNC para o backend:", connectionInfo);
-            window.api.connection.connectVnc(connectionInfo);
+        // Chama callback para abrir o modal Guacamole
+        if (onConnect) {
+            console.log("🥑 Abrindo conexão VNC (Guacamole):", connectionInfo.name);
+            // Adiciona protocolo para o Guacamole
+            onConnect({
+                ...connectionInfo,
+                protocol: 'vnc'
+            });
         } else {
-            console.error('API de conexão VNC (window.api.connection.connectVnc) não encontrada!');
+            console.error('Callback onConnect não fornecido para VncConnection!');
         }
     };
 

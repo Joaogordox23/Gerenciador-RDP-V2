@@ -1,9 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export function useGroups(toast) {
     const [groups, setGroups] = useState([]);
     const [vncGroups, setVncGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Flag para evitar salvamento automático logo após carregar dados iniciais
+    // Só salva quando o usuário faz uma alteração real
+    const hasUserMadeChanges = useRef(false);
 
     // Helper para mostrar erros/sucessos se o toast estiver disponível
     const showError = useCallback((message) => {
@@ -22,6 +26,7 @@ export function useGroups(toast) {
             showError('Nome do grupo não pode estar vazio.');
             return;
         }
+        hasUserMadeChanges.current = true;
         setGroups(prevGroups => {
             if (prevGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError('Já existe um grupo com este nome.');
@@ -39,6 +44,7 @@ export function useGroups(toast) {
             showError('O nome do grupo não pode estar vazio.');
             return;
         }
+        hasUserMadeChanges.current = true;
         setGroups(prev => {
             if (prev.some(g => g.id !== groupId && g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError('Já existe um grupo com este nome.');
@@ -50,6 +56,7 @@ export function useGroups(toast) {
     }, [showError, showSuccess]);
 
     const handleDeleteGroup = useCallback((groupId) => {
+        hasUserMadeChanges.current = true;
         setGroups(prev => prev.filter(g => g.id !== groupId));
         showSuccess('Grupo removido com sucesso');
     }, [showSuccess]);
@@ -57,6 +64,7 @@ export function useGroups(toast) {
     // --- RDP/SSH SERVERS ---
 
     const handleAddServer = useCallback((groupId, serverData) => {
+        hasUserMadeChanges.current = true;
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 const newServer = { ...serverData, id: Date.now() + Math.floor(Math.random() * 10000) };
@@ -69,6 +77,7 @@ export function useGroups(toast) {
     }, [showSuccess]);
 
     const handleUpdateServer = useCallback((groupId, serverId, updatedData) => {
+        hasUserMadeChanges.current = true;
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...updatedData } : s)) };
@@ -79,6 +88,7 @@ export function useGroups(toast) {
     }, [showSuccess]);
 
     const handleDeleteServer = useCallback((groupId, serverId) => {
+        hasUserMadeChanges.current = true;
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
@@ -96,6 +106,7 @@ export function useGroups(toast) {
             showError('Nome do grupo não pode estar vazio.');
             return;
         }
+        hasUserMadeChanges.current = true;
         setVncGroups(prevVncGroups => {
             if (prevVncGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError('Já existe um grupo VNC com este nome.');
@@ -113,6 +124,7 @@ export function useGroups(toast) {
             showError("O novo nome do grupo não pode estar vazio.");
             return;
         }
+        hasUserMadeChanges.current = true;
         setVncGroups(prev => {
             if (prev.some(g => g.id !== groupId && g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
                 showError("Já existe um grupo VNC com este nome.");
@@ -125,6 +137,7 @@ export function useGroups(toast) {
 
     const handleDeleteVncGroup = useCallback((groupId, groupName) => {
         // A confirmação deve ser feita no componente UI antes de chamar esta função
+        hasUserMadeChanges.current = true;
         setVncGroups(prev => prev.filter(g => g.id !== groupId));
         showSuccess(`Grupo VNC "${groupName}" deletado.`);
     }, [showSuccess]);
@@ -132,6 +145,7 @@ export function useGroups(toast) {
     // --- VNC CONNECTIONS ---
 
     const handleAddVncConnection = useCallback((groupId, connectionData) => {
+        hasUserMadeChanges.current = true;
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 const newConnection = { ...connectionData, id: Date.now() + Math.floor(Math.random() * 10000) };
@@ -144,6 +158,7 @@ export function useGroups(toast) {
     }, [showSuccess]);
 
     const handleUpdateVncConnection = useCallback((groupId, connectionId, updatedData) => {
+        hasUserMadeChanges.current = true;
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...updatedData } : c)) };
@@ -155,6 +170,7 @@ export function useGroups(toast) {
 
     const handleDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
         // A confirmação deve ser feita no componente UI
+        hasUserMadeChanges.current = true;
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
@@ -197,12 +213,12 @@ export function useGroups(toast) {
     }, []);
 
     useEffect(() => {
-        // ✅ OTIMIZAÇÃO: Debounce para evitar writes excessivos ao storage
-        // Só salva no store se o carregamento inicial já tiver ocorrido
-        if (!isLoading && window.api && window.api.storage) {
+        // ✅ OTIMIZAÇÃO: Só salva quando o usuário fez alterações reais
+        // Evita o loop de salvamento logo após carregar dados iniciais
+        if (!isLoading && hasUserMadeChanges.current && window.api && window.api.storage) {
             // Debounce de 500ms - agrupa múltiplas mudanças rápidas
             const timeoutId = setTimeout(() => {
-                console.log('💾 useGroups: Salvando dados no storage...');
+                console.log('💾 useGroups: Salvando dados no storage (mudança do usuário)...');
                 window.api.storage.set('groups', groups);
                 window.api.storage.set('vncGroups', vncGroups);
             }, 500);

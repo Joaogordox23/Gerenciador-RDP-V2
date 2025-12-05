@@ -14,8 +14,9 @@ function RdpSshView({
     isEditModeEnabled,
     isConnectivityEnabled,
     onShowAddServerModal,
-    viewMode = 'grid', // v4.1: Prop viewMode (grid ou list)
-    onEditServer // <--- Adicionando a prop que faltava
+    viewMode = 'grid',
+    onEditServer,
+    onRemoteConnect // Nova prop para conexão Guacamole
 }) {
     const [editingGroupId, setEditingGroupId] = useState(null);
 
@@ -45,8 +46,9 @@ function RdpSshView({
                                 onCancelEdit={() => setEditingGroupId(null)}
                                 onUpdateGroup={handleUpdateAndFinishEditing}
                                 onShowAddServerModal={onShowAddServerModal}
-                                viewMode={viewMode} // v4.1: Passando viewMode para Group
+                                viewMode={viewMode}
                                 onEditServer={onEditServer}
+                                onRemoteConnect={onRemoteConnect}
                             />
                         ))
                     ) : (

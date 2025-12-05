@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: gerenciador-rdp-guacd
+    restart: unless-stopped
+    ports:
+      - "4822:4822"
+    volumes:
+      # Drive mappings para acesso a arquivos locais (opcional)
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    environment:
+      - GUACD_LOG_LEVEL=info
+    networks:
+      - guacamole-net
+
+networks:
+  guacamole-net:
+    driver: bridge
