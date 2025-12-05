@@ -13,7 +13,9 @@ import {
 } from '../components/MuiIcons';
 import './VncWallView.css';
 
-const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => {
+
+
+const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searchTerm = '' }) => {
     // Estado local para conexões ativas se não for passado via props (fallback)
     const [localActiveConnections, setLocalActiveConnections] = useState([]);
     const connections = activeConnections || localActiveConnections;
@@ -34,13 +36,23 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections }) => 
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     // Flatten all connections from all groups
     const allConnections = useMemo(() => {
-        return vncGroups.flatMap(group =>
-            (group.connections || []).map(conn => ({
+        const connections = vncGroups.flatMap(group =>
+            group.connections.map(conn => ({
                 ...conn,
                 groupName: group.groupName
             }))
         );
-    }, [vncGroups]);
+
+        // Filtrar por searchTerm
+        if (!searchTerm) return connections;
+
+        const term = searchTerm.toLowerCase();
+        return connections.filter(conn =>
+            conn.name?.toLowerCase().includes(term) ||
+            conn.ipAddress?.toLowerCase().includes(term) ||
+            conn.groupName?.toLowerCase().includes(term)
+        );
+    }, [vncGroups, searchTerm]);
 
     // ✨ v4.0: Lógica do carrossel automático
     useEffect(() => {

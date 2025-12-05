@@ -150,7 +150,7 @@ function AppContent() {
     // Handler para Salvar Edição de Servidor RDP/SSH
     const handleSaveEditedServer = useCallback((updatedServer) => {
         if (editingServer && editingServer.groupId) {
-            handleUpdateServer(editingServer.groupId, updatedServer);
+            handleUpdateServer(editingServer.groupId, updatedServer.id, updatedServer);
             setEditingServer(null);
             toast.success(`Servidor "${updatedServer.name}" atualizado com sucesso!`);
         }
@@ -465,6 +465,7 @@ function AppContent() {
                                     vncGroups={vncGroups}
                                     activeConnections={activeConnections}
                                     setActiveConnections={setActiveConnections}
+                                    searchTerm={searchTerm}
                                 />
                             )}
                         </Suspense>

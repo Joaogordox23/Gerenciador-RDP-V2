@@ -372,7 +372,7 @@ button {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-32);
+    gap: var(--space-24);
 }
 
 .group-container {
@@ -381,6 +381,11 @@ button {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
     transition: transform 0.2s;
+}
+
+.group-container {
+    margin-bottom: 16px;
+    /* Adiciona margem extra */
 }
 
 .group-container:hover {
@@ -3930,4 +3935,81 @@ main.groups-container {
     .modal-content {
         max-width: 500px !important;
     }
+}
+
+/* === FIX FOOTER OVERLAP === */
+.app-main-content {
+    padding-bottom: 60px !important;
+}
+
+/* === DRAG HANDLE PARA GRUPOS === */
+.group-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    padding: 4px 8px;
+    color: var(--color-text-secondary);
+    opacity: 0.4;
+    transition: all 0.2s;
+    font-size: 16px;
+    letter-spacing: 3px;
+    margin-right: 8px;
+    border-radius: 4px;
+}
+
+.group-drag-handle:hover {
+    opacity: 1;
+    color: var(--color-primary);
+    background: rgba(var(--color-teal-500-rgb), 0.1);
+}
+
+.group-drag-handle:active {
+    cursor: grabbing;
+}
+
+.group-container.dragging {
+    opacity: 0.9;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-color: var(--color-primary);
+}
+
+/* === INDICADOR VISUAL DE DRAG PARA SERVIDORES === */
+.server-drag-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    margin-right: 8px;
+    color: var(--color-text-secondary);
+    opacity: 0.4;
+    font-size: 14px;
+    letter-spacing: 2px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.server-item.edit-mode-draggable:hover .server-drag-indicator {
+    opacity: 0.7;
+    color: var(--color-primary);
+}
+
+.server-item.edit-mode-draggable {
+    position: relative;
+}
+
+/* Desabilitar transforms que causam offset no drag */
+.server-item.edit-mode-draggable:hover {
+    transform: none !important;
+}
+
+.server-item.dragging {
+    opacity: 0.95;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-color: var(--color-primary);
+}
+
+.server-item.dragging:hover {
+    transform: none !important;
 }

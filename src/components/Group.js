@@ -1,7 +1,7 @@
-// src/components/Group.js (v4.1: Com suporte a viewMode)
+// src/components/Group.js (v4.2: Com DnD de grupos e viewMode)
 
 import React, { useState, useEffect } from 'react';
-import { Droppable } from 'react-beautiful-dnd';
+import { Droppable, Draggable } from 'react-beautiful-dnd';
 import Server from './Server';
 import ServerListItem from './ServerListItem';
 
@@ -25,8 +25,8 @@ function Group({
     onStartEdit,
     onCancelEdit,
     index,
-    viewMode = 'grid', // v4.1: Suporte a viewMode
-    onEditServer // Nova prop para modal global
+    viewMode = 'grid',
+    onEditServer
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
@@ -40,102 +40,113 @@ function Group({
     };
 
     return (
-        <div className="group-container">
-            <div className="group-header">
-                <div className="group-title-container">
-                    {isEditing && isEditModeEnabled ? (
-                        <form onSubmit={handleSaveGroupName} style={{ width: '100%' }}>
-                            <input
-                                type="text"
-                                value={newGroupName}
-                                onChange={(e) => setNewGroupName(e.target.value)}
-                                onBlur={handleSaveGroupName}
-                                onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
-                                className="group-title-edit-input"
-                                autoFocus
-                                onFocus={(e) => e.target.select()}
-                            />
-                        </form>
-                    ) : (
-                        <h2 className="group-title">{groupInfo.groupName}</h2>
-                    )}
-                </div>
+        <Draggable draggableId={`group-${groupInfo.id}`} index={index}>
+            {(provided, snapshot) => (
+                <div
+                    className={`group-container ${snapshot.isDragging ? 'dragging' : ''}`}
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                >
+                    <div className="group-header">
+                        {/* Handle de arrastar grupo */}
+                        <div className="group-drag-handle" {...provided.dragHandleProps} title="Arrastar grupo">
+                            <span>⋮⋮</span>
+                        </div>
 
-                <div className="group-actions">
-                    {isEditing && isEditModeEnabled ? (
-                        <>
-                            <button className="action-button-icon save" title="Salvar Nome" onClick={handleSaveGroupName}><SaveIcon /></button>
-                            <button className="action-button-icon cancel" title="Cancelar Edição" onClick={onCancelEdit}><CancelIcon /></button>
-                        </>
-                    ) : (
-                        <>
-                            {/* Botão Adicionar sempre visível */}
-                            <button className="action-button-icon add" title="Adicionar Servidor" onClick={() => {
-                                console.log('Add Server clicked for group:', groupInfo.id);
-                                onShowAddServerModal(groupInfo.id);
-                            }}><AddIcon /></button>
+                        <div className="group-title-container">
+                            {isEditing && isEditModeEnabled ? (
+                                <form onSubmit={handleSaveGroupName} style={{ width: '100%' }}>
+                                    <input
+                                        type="text"
+                                        value={newGroupName}
+                                        onChange={(e) => setNewGroupName(e.target.value)}
+                                        onBlur={handleSaveGroupName}
+                                        onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
+                                        className="group-title-edit-input"
+                                        autoFocus
+                                        onFocus={(e) => e.target.select()}
+                                    />
+                                </form>
+                            ) : (
+                                <h2 className="group-title">{groupInfo.groupName}</h2>
+                            )}
+                        </div>
 
-                            {/* Botões de edição de grupo apenas no modo edição */}
-                            {isEditModeEnabled && (
+                        <div className="group-actions">
+                            {isEditing && isEditModeEnabled ? (
                                 <>
-                                    <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
-                                    <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
+                                    <button className="action-button-icon save" title="Salvar Nome" onClick={handleSaveGroupName}><SaveIcon /></button>
+                                    <button className="action-button-icon cancel" title="Cancelar Edição" onClick={onCancelEdit}><CancelIcon /></button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className="action-button-icon add" title="Adicionar Servidor" onClick={() => {
+                                        console.log('Add Server clicked for group:', groupInfo.id);
+                                        onShowAddServerModal(groupInfo.id);
+                                    }}><AddIcon /></button>
+
+                                    {isEditModeEnabled && (
+                                        <>
+                                            <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
+                                            <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
+                                        </>
+                                    )}
                                 </>
                             )}
-                        </>
-                    )}
-                </div>
-            </div>
+                        </div>
+                    </div>
 
-            {/* v4.1: Renderização condicional Grid vs Lista */}
-            {viewMode === 'list' ? (
-                <div className="servers-list">
-                    {groupInfo.servers && groupInfo.servers.map((server) => (
-                        <ServerListItem
-                            key={server.id}
-                            serverInfo={server}
-                            onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
-                            onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
-                            isActive={activeConnections.includes(server.id)}
-                            isEditModeEnabled={isEditModeEnabled}
-                            isConnectivityEnabled={isConnectivityEnabled}
-                            onEdit={() => onEditServer(server, groupInfo.id)} // Passando onEdit
-                        />
-                    ))}
-                </div>
-            ) : (
-                <Droppable droppableId={groupInfo.id.toString()} type="server" direction="horizontal">
-                    {(provided, snapshot) => (
-                        <div
-                            className="servers-row"
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            style={{
-                                backgroundColor: snapshot.isDraggingOver ? 'rgba(0, 217, 181, 0.05)' : 'transparent',
-                                minHeight: '100px',
-                                transition: 'background-color 0.2s ease'
-                            }}
-                        >
-                            {groupInfo.servers && groupInfo.servers.map((server, idx) => (
-                                <Server
+                    {/* Renderização condicional Grid vs Lista */}
+                    {viewMode === 'list' ? (
+                        <div className="servers-list">
+                            {groupInfo.servers && groupInfo.servers.map((server) => (
+                                <ServerListItem
                                     key={server.id}
                                     serverInfo={server}
-                                    index={idx}
                                     onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
                                     onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
                                     isActive={activeConnections.includes(server.id)}
                                     isEditModeEnabled={isEditModeEnabled}
                                     isConnectivityEnabled={isConnectivityEnabled}
-                                    onEdit={() => onEditServer(server, groupInfo.id)} // Passando onEdit
+                                    onEdit={() => onEditServer(server, groupInfo.id)}
                                 />
                             ))}
-                            {provided.placeholder}
                         </div>
+                    ) : (
+                        <Droppable droppableId={groupInfo.id.toString()} type="server" direction="horizontal">
+                            {(provided, snapshot) => (
+                                <div
+                                    className="servers-row"
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    style={{
+                                        backgroundColor: snapshot.isDraggingOver ? 'rgba(0, 217, 181, 0.05)' : 'transparent',
+                                        minHeight: '100px',
+                                        transition: 'background-color 0.2s ease'
+                                    }}
+                                >
+                                    {groupInfo.servers && groupInfo.servers.map((server, idx) => (
+                                        <Server
+                                            key={server.id}
+                                            serverInfo={server}
+                                            index={idx}
+                                            onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
+                                            onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
+                                            isActive={activeConnections.includes(server.id)}
+                                            isEditModeEnabled={isEditModeEnabled}
+                                            isConnectivityEnabled={isConnectivityEnabled}
+                                            onEdit={() => onEditServer(server, groupInfo.id)}
+                                        />
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
                     )}
-                </Droppable>
+                </div>
             )}
-        </div>
+        </Draggable>
     );
 }
 
-export default Group;
+export default React.memo(Group);

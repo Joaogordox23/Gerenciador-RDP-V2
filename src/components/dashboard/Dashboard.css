@@ -92,3 +92,27 @@
     opacity: 0.2;
     color: #1de9b6;
 }
+
+/* === LIGHT MODE === */
+[data-color-scheme="light"] .dashboard-container {
+    color: var(--color-text);
+}
+
+[data-color-scheme="light"] .glass-panel {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .chart-title {
+    color: var(--color-text);
+}
+
+[data-color-scheme="light"] .stat-value {
+    background: linear-gradient(45deg, var(--color-text), #555);
+    -webkit-background-clip: text;
+}
+
+[data-color-scheme="light"] .stat-label {
+    color: var(--color-text-secondary);
+}

@@ -170,6 +170,15 @@ function Server({
             }
           }}
         >
+          {/* Indicador visual de arrastar - apenas visual, não drag handle */}
+          {isEditModeEnabled && (
+            <div
+              className="server-drag-indicator"
+              title="Arraste o card para reordenar"
+            >
+              <span>⋮⋮</span>
+            </div>
+          )}
           {/* Loading Overlay */}
           {isConnecting && (
             <LoadingOverlay text="Conectando..." variant="connecting" />
