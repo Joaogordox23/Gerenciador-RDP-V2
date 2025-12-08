@@ -468,7 +468,7 @@ function AppContent() {
                                     isEditModeEnabled={isEditModeEnabled}
                                     onShowAddConnectionModal={setAddingToGroupId}
                                     viewMode={vncViewMode}
-                                    onVncConnect={setActiveRemoteConnection}
+                                    onVncConnect={setActiveVncConnection}
                                 />
                             )}
                             {activeView === 'VNC Wall' && (
@@ -491,7 +491,7 @@ function AppContent() {
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
                             Gerenciador Enterprise v4.0
                         </div>
-                        <div>{groups.length + vncGroups.length}grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
+                        <div>{groups.length + vncGroups.length} grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>
                 </footer>
                 {dialogConfig && (

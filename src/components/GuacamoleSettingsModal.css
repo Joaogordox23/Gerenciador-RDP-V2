@@ -1,0 +1,303 @@
+/**
+ * GuacamoleSettingsModal.css
+ * Estilos para o modal de configurações do Guacamole
+ */
+
+.guac-settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.guac-settings-modal {
+    background: var(--card-bg, #1e1e2e);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.guac-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.guac-settings-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+}
+
+.guac-settings-header .close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.guac-settings-header .close-btn:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #fff);
+}
+
+.guac-settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.guac-settings-loading,
+.guac-settings-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 1rem;
+    color: var(--text-secondary, #888);
+}
+
+.guac-settings-loading .loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--primary-color, #4f9cf9);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.settings-section {
+    margin-bottom: 1.5rem;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+/* Quality Presets */
+.quality-presets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.quality-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    background: var(--input-bg, rgba(255, 255, 255, 0.05));
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.quality-btn:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+.quality-btn.active {
+    border-color: var(--primary-color, #4f9cf9);
+    background: rgba(79, 156, 249, 0.1);
+}
+
+.quality-label {
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    font-size: 0.95rem;
+}
+
+.quality-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+    margin-top: 0.25rem;
+}
+
+/* Settings Grid */
+.settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--input-bg, rgba(255, 255, 255, 0.05));
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.setting-item:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color, #4f9cf9);
+    cursor: pointer;
+}
+
+.setting-item span {
+    color: var(--text-primary, #fff);
+    font-size: 0.9rem;
+}
+
+.setting-item.select-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.setting-item.select-item span {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+}
+
+.setting-item select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--card-bg, #1e1e2e);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.setting-item select:focus {
+    outline: none;
+    border-color: var(--primary-color, #4f9cf9);
+}
+
+/* Footer */
+.guac-settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.guac-settings-footer button {
+    padding: 0.625rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    color: var(--text-secondary, #888);
+}
+
+.btn-cancel:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary, #fff);
+}
+
+.btn-save {
+    background: var(--primary-color, #4f9cf9);
+    border: none;
+    color: white;
+}
+
+.btn-save:hover {
+    background: var(--primary-hover, #3d8be8);
+}
+
+.btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Hint text */
+.setting-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--input-bg, rgba(255, 255, 255, 0.03));
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color, #4f9cf9);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .quality-presets {
+        grid-template-columns: 1fr;
+    }
+
+    .guac-settings-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+}

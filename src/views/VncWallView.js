@@ -292,6 +292,10 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                         }}>
                             {connections.map(conn => (
                                 <div key={conn.id} className="vnc-wall-item" onDoubleClick={() => handleDoubleClick(conn)}>
+                                    {/* Label com nome do computador */}
+                                    <div className="vnc-wall-item-label">
+                                        <span className="vnc-wall-item-name">{conn.name}</span>
+                                    </div>
                                     <VncDisplay
                                         connectionInfo={conn}
                                         onDisconnect={() => handleStopMonitoring(conn.id)}
