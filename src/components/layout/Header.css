@@ -88,8 +88,9 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--color-text-secondary);
-    font-size: 20px;
+    font-size: 18px;
     pointer-events: none;
+    opacity: 0.6;
 }
 
 .search-input {

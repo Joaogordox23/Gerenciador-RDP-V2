@@ -7,7 +7,7 @@
 /* 📐 FOOTER - Estilos e Z-Index          */
 /* ======================================= */
 .app-footer {
-    grid-area: unset;
+    grid-area: footer;
     position: relative;
     z-index: 1;
     /* Muito baixo para ficar ABAIXO de qualquer modal */
@@ -16,7 +16,6 @@
     padding: 8px 24px;
     font-size: 12px;
     color: var(--color-text-secondary);
-    margin-top: auto;
 }
 
 .footer-content {
@@ -43,10 +42,24 @@
 .modal-overlay,
 .guac-settings-overlay,
 .vnc-viewer-modal,
+.vnc-viewer-modal-overlay,
 .connection-viewer-modal,
+.connection-viewer-modal-overlay,
 .confirmation-dialog-overlay,
 .edit-modal-overlay {
     z-index: 10000 !important;
+}
+
+/* === ESCONDER FOOTER QUANDO MODAL ABERTO === */
+/* Usar :has() para detectar quando qualquer modal está presente */
+/* Isso funciona para todos os modais que usam modal-overlay */
+.App:has(.modal-overlay) .app-footer,
+.App:has(.vnc-viewer-modal-overlay) .app-footer,
+.App:has(.connection-viewer-modal-overlay) .app-footer,
+.App:has(.guac-settings-overlay) .app-footer {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
 }
 
 /* ======================================= */
@@ -196,5 +209,7 @@
 
 /* Esconder footer quando modal está aberto (alternativa ao z-index) */
 body.modal-open .app-footer {
+    opacity: 0;
+    pointer-events: none;
     visibility: hidden;
 }

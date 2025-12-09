@@ -9,6 +9,9 @@ export function useGroups(toast) {
     // Só salva quando o usuário faz uma alteração real
     const hasUserMadeChanges = useRef(false);
 
+    // Flag para pular o sync no storage quando a operação já foi feita pontualmente via SQLite
+    const skipNextStorageSync = useRef(false);
+
     // Helper para mostrar erros/sucessos se o toast estiver disponível
     const showError = useCallback((message) => {
         if (toast && typeof message === 'string' && message.trim()) toast.error(message.trim());
@@ -76,8 +79,20 @@ export function useGroups(toast) {
         showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
     }, [showSuccess]);
 
-    const handleUpdateServer = useCallback((groupId, serverId, updatedData) => {
-        hasUserMadeChanges.current = true;
+    const handleUpdateServer = useCallback(async (groupId, serverId, updatedData) => {
+        // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
+        // Não define hasUserMadeChanges para evitar salvamento em massa
+        if (window.api && window.api.db) {
+            try {
+                await window.api.db.updateConnection(serverId, updatedData);
+                console.log(`⚡ Servidor ${serverId} atualizado via SQLite (pontual)`);
+                skipNextStorageSync.current = true; // Pula o sync em massa
+            } catch (error) {
+                console.error('❌ Erro ao atualizar servidor no SQLite:', error);
+            }
+        }
+
+        // Atualiza o state local (apenas para refletir na UI)
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...updatedData } : s)) };
@@ -157,8 +172,20 @@ export function useGroups(toast) {
         showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
     }, [showSuccess]);
 
-    const handleUpdateVncConnection = useCallback((groupId, connectionId, updatedData) => {
-        hasUserMadeChanges.current = true;
+    const handleUpdateVncConnection = useCallback(async (groupId, connectionId, updatedData) => {
+        // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
+        // Não define hasUserMadeChanges para evitar salvamento em massa
+        if (window.api && window.api.db) {
+            try {
+                await window.api.db.updateConnection(connectionId, { ...updatedData, protocol: 'vnc' });
+                console.log(`⚡ Conexão VNC ${connectionId} atualizada via SQLite (pontual)`);
+                skipNextStorageSync.current = true; // Pula o sync em massa
+            } catch (error) {
+                console.error('❌ Erro ao atualizar conexão VNC no SQLite:', error);
+            }
+        }
+
+        // Atualiza o state local (apenas para refletir na UI)
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
                 return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...updatedData } : c)) };
@@ -182,6 +209,7 @@ export function useGroups(toast) {
 
     // --- INITIAL DATA LOADING & PERSISTENCE ---
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         // 🎯 SOLUÇÃO MINIMALISTA: Aguarda dados do backend via IPC
         if (window.api && window.api.onInitialDataLoaded) {
@@ -213,17 +241,24 @@ export function useGroups(toast) {
     }, []);
 
     useEffect(() => {
-        // ✅ OTIMIZAÇÃO: Só salva quando o usuário fez alterações reais
-        // Evita o loop de salvamento logo após carregar dados iniciais
+        // ✅ NOTA: Salvamento pontual agora é feito diretamente nos handlers via SQLite.
+        // Este useEffect é APENAS para operações de add/delete (que precisam do sync em massa).
+        // Updates (handleUpdateServer, handleUpdateVncConnection) são pontuais e pulam este sync.
+
+        // Se a flag skipNextStorageSync estiver ativa, apenas reseta e não faz o sync
+        if (skipNextStorageSync.current) {
+            console.log('⏭️ useGroups: Pulando sync em massa (operação já foi pontual)');
+            skipNextStorageSync.current = false;
+            return;
+        }
+
         if (!isLoading && hasUserMadeChanges.current && window.api && window.api.storage) {
-            // Debounce de 500ms - agrupa múltiplas mudanças rápidas
             const timeoutId = setTimeout(() => {
-                console.log('💾 useGroups: Salvando dados no storage (mudança do usuário)...');
+                console.log('💾 useGroups: Sync de grupos no storage...');
                 window.api.storage.set('groups', groups);
                 window.api.storage.set('vncGroups', vncGroups);
-            }, 500);
+            }, 2000); // Aumentado para 2s para reduzir frequência
 
-            // Cleanup: cancela o timeout se houver nova mudança
             return () => clearTimeout(timeoutId);
         }
     }, [groups, vncGroups, isLoading]);

@@ -29,3 +29,12 @@
     flex: 1;
     min-height: 0;
 }
+
+/* Container do viewer abaixo da toolbar */
+.connection-viewer-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}

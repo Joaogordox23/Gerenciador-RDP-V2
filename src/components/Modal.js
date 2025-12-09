@@ -1,10 +1,25 @@
 // src/components/Modal.js
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CloseIcon } from './MuiIcons';
 
 function Modal({ isOpen, onClose, title, children }) {
+    // Adiciona/remove classe no body para esconder o footer quando modal está aberto
+    useEffect(() => {
+        if (isOpen) {
+            document.body.classList.add('modal-open');
+        } else {
+            document.body.classList.remove('modal-open');
+        }
+
+        // Cleanup ao desmontar
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, [isOpen]);
+
     if (!isOpen) {
+
         return null;
     }
 

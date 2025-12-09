@@ -1,33 +1,277 @@
 /* ============================================================================ */
-/* 📁 ADD GROUP FORM - FORCED OVERRIDE                                         */
+/* 📁 ADD GROUP FORM - DESIGN SYSTEM v4.0                                       */
 /* ============================================================================ */
 
 .add-group-form {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 16px !important;
 }
 
-/* Form subtitle info */
-.form-info {
-    display: flex !important;
-    align-items: flex-start !important;
-    gap: 6px !important;
-    padding: 8px 10px !important;
-    font-size: 10px !important;
-    line-height: 1.4 !important;
+/* =============================================== */
+/* INPUT CONTAINER                                 */
+/* =============================================== */
+.add-group-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.form-info svg,
-.form-info .MuiSvgIcon-root {
-    width: 12px !important;
-    height: 12px !important;
-    font-size: 12px !important;
-    margin-top: 1px !important;
+.add-group-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
 }
 
-/* Character counter */
-.char-counter {
-    font-size: 10px !important;
-    margin-top: -8px !important;
+.add-group-input-icon {
+    position: absolute;
+    left: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.add-group-input-icon svg,
+.add-group-input-icon .MuiSvgIcon-root {
+    color: var(--color-primary) !important;
+}
+
+.add-group-input {
+    width: 100%;
+    height: 44px;
+    padding: 12px 42px 12px 44px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text);
+    font-size: 14px;
+    font-family: var(--font-family-base);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.add-group-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+}
+
+.add-group-input:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(0, 175, 116, 0.15);
+}
+
+.add-group-input.valid {
+    border-color: var(--color-success);
+}
+
+.add-group-input.error {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 4px rgba(192, 21, 47, 0.15);
+}
+
+/* Light mode */
+[data-color-scheme="light"] .add-group-input {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-color-scheme="light"] .add-group-input:focus {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.add-group-input-indicator {
+    position: absolute;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =============================================== */
+/* CHARACTER COUNTER                               */
+/* =============================================== */
+.add-group-char-counter {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    text-align: right;
+}
+
+.add-group-char-counter .warning {
+    color: var(--color-warning);
+}
+
+/* =============================================== */
+/* HINT & ERROR MESSAGES                           */
+/* =============================================== */
+.add-group-hint,
+.add-group-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.add-group-hint {
+    background: rgba(0, 175, 116, 0.08);
+    border: 1px solid rgba(0, 175, 116, 0.2);
+    color: var(--color-text-secondary);
+}
+
+.add-group-error {
+    background: rgba(192, 21, 47, 0.1);
+    border: 1px solid rgba(192, 21, 47, 0.2);
+    color: var(--color-error);
+}
+
+.hint-text,
+.error-text {
+    flex: 1;
+}
+
+/* =============================================== */
+/* ACTION BUTTONS                                  */
+/* =============================================== */
+.add-group-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-color-scheme="light"] .add-group-actions {
+    border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Base button styles */
+.add-group-cancel-btn,
+.add-group-submit-btn {
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: var(--font-family-base);
+}
+
+/* Cancel button */
+.add-group-cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+}
+
+.add-group-cancel-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--color-text);
+}
+
+[data-color-scheme="light"] .add-group-cancel-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-color-scheme="light"] .add-group-cancel-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Submit button */
+.add-group-submit-btn {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-teal-600) 100%);
+    color: var(--color-btn-primary-text);
+    box-shadow: 0 4px 12px rgba(0, 175, 116, 0.3);
+}
+
+.add-group-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 175, 116, 0.4);
+}
+
+.add-group-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 175, 116, 0.3);
+}
+
+.add-group-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.add-group-cancel-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Button text */
+.btn-text {
+    white-space: nowrap;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Loading state */
+.add-group-submit-btn.loading {
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rotating {
+    animation: rotate 1s linear infinite;
+}
+
+/* =============================================== */
+/* PROGRESS BAR                                    */
+/* =============================================== */
+.add-group-progress {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.add-group-progress .progress-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-teal-300));
+    animation: progress-animation 1s ease-in-out infinite;
+}
+
+@keyframes progress-animation {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
 }

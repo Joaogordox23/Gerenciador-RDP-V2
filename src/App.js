@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import './App.css';
+// import './App.css'; // LEGACY: Arquivo monolítico (4046 linhas) - mantido como fallback
+import './styles/index.css'; // NOVO: Sistema CSS modular
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
@@ -54,7 +55,7 @@ const RdpSshView = lazy(() => import('./views/RdpSshView'));
 const VncView = lazy(() => import('./views/VncView'));
 const VncWallView = lazy(() => import('./views/VncWallView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
-const GuacamoleTestView = lazy(() => import('./views/GuacamoleTestView'));
+// GuacamoleTestView removido
 
 function App() {
     return (
@@ -479,9 +480,7 @@ function AppContent() {
                                     searchTerm={searchTerm}
                                 />
                             )}
-                            {activeView === 'guacamole-test' && (
-                                <GuacamoleTestView />
-                            )}
+
                         </Suspense>
                     </DragDropContext>
                 </main>

@@ -1,0 +1,73 @@
+/* ======================================= */
+/* 🎯 MAIN CSS INDEX                       */
+/* Gerenciador Enterprise v4.0             */
+/* ======================================= */
+/* Este arquivo importa todos os módulos CSS na ordem correta */
+
+/* ========================================
+   BASE - Carrega primeiro (fundamentos)
+   ======================================== */
+@import './base/variables.css';
+@import './base/reset.css';
+
+/* ========================================
+   THEMES - Variáveis de tema
+   ======================================== */
+@import './themes/light.css';
+@import './themes/dark.css';
+
+/* ========================================
+   LAYOUT - Estrutura da aplicação
+   ======================================== */
+@import './layout/app-layout.css';
+
+/* ========================================
+   COMPONENTS - Componentes modulares
+   ======================================== */
+@import './components/buttons.css';
+@import './components/toolbar.css';
+@import './components/groups.css';
+@import './components/toast.css';
+
+/* Componentes existentes (CSS dos componentes React) */
+@import '../components/Modal.css';
+@import '../components/AddGroupForm.css';
+@import '../components/Server.css';
+@import '../components/ServerCard.css';
+@import '../components/ServerListItem.css';
+@import '../components/ServerForms.css';
+@import '../components/VncConnection.css';
+@import '../components/VncListItem.css';
+@import '../components/VncForms.css';
+@import '../components/VncViewerModal.css';
+@import '../components/VncToolbar.css';
+@import '../components/VncFullscreen.css';
+@import '../components/LoadingSpinner.css';
+@import '../components/LoadingOverlay.css';
+@import '../components/RemoteDesktopViewer.css';
+@import '../components/ConnectionViewerModal.css';
+@import '../components/GuacamoleToolbar.css';
+@import '../components/GuacamoleSettingsModal.css';
+@import '../components/ADImportModal.css';
+@import '../components/BulkPasswordModal.css';
+
+/* Layout components */
+@import '../components/layout/Header.css';
+@import '../components/layout/Sidebar.css';
+
+/* Dashboard components */
+@import '../components/dashboard/Dashboard.css';
+
+/* ========================================
+   UTILITIES - Classes utilitárias
+   ======================================== */
+@import './utilities/animations.css';
+
+/* ========================================
+   LEGACY - Arquivos existentes (já modularizados)
+   ======================================== */
+@import './cards.css';
+@import './forms.css';
+@import './theme-transitions.css';
+@import './accessibility.css';
+@import './global-fixes.css';

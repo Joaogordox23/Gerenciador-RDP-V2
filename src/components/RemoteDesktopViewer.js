@@ -10,12 +10,16 @@ import './RemoteDesktopViewer.css';
 function RemoteDesktopViewer({
     connectionInfo,
     onDisconnect,
+    onClientReady,
+    onStatusChange,
+    autoScale = true,
     fullscreen = false
 }) {
     const displayRef = useRef(null);
     const clientRef = useRef(null);
     const mouseRef = useRef(null);
     const keyboardRef = useRef(null);
+    const resizeCleanupRef = useRef(null); // Ref para cleanup do resize listener
     const [status, setStatus] = useState('disconnected');
     const [error, setError] = useState(null);
 
@@ -51,6 +55,7 @@ function RemoteDesktopViewer({
             console.log('🚀 Iniciando conexão Guacamole...');
             setStatus('connecting');
             setError(null);
+            if (onStatusChange) onStatusChange('connecting');
 
             try {
                 console.log('🔑 Gerando token...');
@@ -65,11 +70,22 @@ function RemoteDesktopViewer({
                 const client = new Guacamole.Client(tunnel);
                 clientRef.current = client;
 
+                // Notifica componente pai que o cliente está pronto
+                if (onClientReady) {
+                    onClientReady(clientRef);
+                }
+
                 client.onstatechange = (state) => {
                     if (isCancelled) return;
                     const states = ['idle', 'connecting', 'waiting', 'connected', 'disconnecting', 'disconnected'];
-                    console.log('📡 Estado:', states[state]);
-                    setStatus(states[state] || 'unknown');
+                    const newStatus = states[state] || 'unknown';
+                    console.log('📡 Estado:', newStatus);
+                    setStatus(newStatus);
+
+                    // Notifica componente pai sobre mudança de status
+                    if (onStatusChange) {
+                        onStatusChange(newStatus);
+                    }
                 };
 
                 client.onerror = (statusObj) => {
@@ -116,6 +132,19 @@ function RemoteDesktopViewer({
                             }
                         };
 
+                        // Função para enviar novo tamanho ao servidor (resize dinâmico)
+                        const sendSizeToServer = () => {
+                            const containerWidth = container.clientWidth;
+                            const containerHeight = container.clientHeight;
+
+                            if (containerWidth > 0 && containerHeight > 0 && clientRef.current) {
+                                // Envia o tamanho do container ao servidor
+                                // Isso permite que o RDP 8.1+ ajuste a resolução dinamicamente
+                                client.sendSize(containerWidth, containerHeight);
+                                console.log(`📐 sendSize: ${containerWidth}x${containerHeight}`);
+                            }
+                        };
+
                         // Verifica tamanho inicial
                         const checkSize = () => {
                             if (display.getWidth() > 0 && display.getHeight() > 0) {
@@ -129,9 +158,21 @@ function RemoteDesktopViewer({
                         // Atualiza escala quando display mudar de tamanho
                         display.onresize = updateScale;
 
-                        // Atualiza escala quando janela mudar de tamanho
-                        const handleResize = () => updateScale();
+                        // Atualiza escala e envia tamanho ao servidor quando janela mudar
+                        let resizeTimeout = null;
+                        const handleResize = () => {
+                            updateScale();
+
+                            // Debounce para não enviar muitos resize requests
+                            clearTimeout(resizeTimeout);
+                            resizeTimeout = setTimeout(() => {
+                                sendSizeToServer();
+                            }, 300);
+                        };
                         window.addEventListener('resize', handleResize);
+
+                        // Envia tamanho inicial ao servidor após conexão estável
+                        setTimeout(() => sendSizeToServer(), 500);
 
                         // Mouse - armazena referência para cleanup
                         // CORREÇÃO: Ajusta coordenadas do mouse pela escala inversa
@@ -172,11 +213,9 @@ function RemoteDesktopViewer({
                             }
                         };
 
-                        // Cleanup do resize listener
-                        const originalCleanup = cleanupInputHandlers;
-                        cleanupInputHandlers = () => {
+                        // Armazena cleanup do resize listener
+                        resizeCleanupRef.current = () => {
                             window.removeEventListener('resize', handleResize);
-                            originalCleanup();
                         };
 
                         console.log('✅ Mouse (com correção de escala) e teclado configurados');
@@ -199,13 +238,20 @@ function RemoteDesktopViewer({
         return () => {
             isCancelled = true;
             console.log('🧹 Cleanup do RemoteDesktopViewer...');
+            // Limpa resize listener
+            if (resizeCleanupRef.current) {
+                resizeCleanupRef.current();
+                resizeCleanupRef.current = null;
+            }
             cleanupInputHandlers();
             if (clientRef.current) {
                 clientRef.current.disconnect();
                 clientRef.current = null;
             }
         };
-    }, [connectionInfo]);
+    }, [connectionInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+    // ✅ Dependência apenas em connectionInfo para evitar reconexões desnecessárias
+    // onClientReady, onStatusChange são acessados via closure
 
     const handleDisconnect = () => {
         console.log('🔌 Desconectando...');
@@ -221,19 +267,22 @@ function RemoteDesktopViewer({
 
     return (
         <div className={`remote-desktop-viewer ${fullscreen ? 'fullscreen' : ''}`}>
-            <div className="viewer-header">
-                <div className="viewer-info">
-                    <span className="viewer-name">{connectionInfo?.name || 'Conexão'}</span>
-                    <span className={`viewer-status status-${status}`}>
-                        {status === 'connected' && '🟢 Conectado'}
-                        {status === 'connecting' && '🟡 Conectando...'}
-                        {status === 'waiting' && '🟡 Aguardando...'}
-                        {status === 'disconnected' && '⚫ Desconectado'}
-                        {status === 'error' && '🔴 Erro'}
-                    </span>
+            {/* Header só aparece quando NÃO está em fullscreen (toolbar vem do ConnectionViewerModal) */}
+            {!fullscreen && (
+                <div className="viewer-header">
+                    <div className="viewer-info">
+                        <span className="viewer-name">{connectionInfo?.name || 'Conexão'}</span>
+                        <span className={`viewer-status status-${status}`}>
+                            {status === 'connected' && '🟢 Conectado'}
+                            {status === 'connecting' && '🟡 Conectando...'}
+                            {status === 'waiting' && '🟡 Aguardando...'}
+                            {status === 'disconnected' && '⚫ Desconectado'}
+                            {status === 'error' && '🔴 Erro'}
+                        </span>
+                    </div>
+                    <button className="btn-disconnect" onClick={handleDisconnect}>✕</button>
                 </div>
-                <button className="btn-disconnect" onClick={handleDisconnect}>✕</button>
-            </div>
+            )}
 
             <div ref={displayRef} className="viewer-display" tabIndex={0} />
 

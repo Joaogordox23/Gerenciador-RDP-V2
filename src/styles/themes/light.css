@@ -1,0 +1,23 @@
+/* ======================================= */
+/* 🌗 LIGHT THEME                          */
+/* Gerenciador Enterprise v4.0             */
+/* ======================================= */
+
+:root,
+[data-color-scheme="light"] {
+    --color-background: var(--color-cream-50);
+    --color-surface: var(--color-cream-100);
+    --color-text: var(--color-slate-900);
+    --color-text-secondary: var(--color-slate-500);
+    --color-border: rgba(94, 82, 64, 0.2);
+    --color-primary: var(--color-teal-500);
+    --color-primary-hover: var(--color-teal-600);
+    --color-btn-primary-text: var(--color-cream-50);
+    --color-secondary: rgba(94, 82, 64, 0.12);
+    --color-secondary-hover: rgba(94, 82, 64, 0.2);
+    --color-success: var(--color-teal-500);
+    --color-error: var(--color-red-500);
+    --color-warning: var(--color-orange-500);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

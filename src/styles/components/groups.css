@@ -1,0 +1,141 @@
+/* ======================================= */
+/* 📂 GROUPS - Estilos de Grupos           */
+/* Gerenciador Enterprise v4.0             */
+/* ======================================= */
+
+.groups-container {
+    padding: var(--space-32);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+}
+
+/* ======================================= */
+/* GROUP CONTAINER - Glassmorphism         */
+/* ======================================= */
+.group-container {
+    background: rgba(var(--color-surface), 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(var(--color-border), 0.5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: 16px;
+}
+
+.group-container:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12),
+        0 6px 16px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(var(--color-teal-500-rgb), 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ======================================= */
+/* GROUP HEADER                            */
+/* ======================================= */
+.group-header {
+    padding: var(--space-16) var(--space-24);
+    background: linear-gradient(135deg, rgba(var(--color-secondary), 0.6) 0%, rgba(var(--color-secondary-hover), 0.4) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ======================================= */
+/* SERVERS GRID                            */
+/* ======================================= */
+.servers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: var(--space-24);
+    padding: var(--space-24);
+}
+
+/* ======================================= */
+/* SERVER ITEMS - Premium Cards            */
+/* ======================================= */
+.server-item {
+    background: linear-gradient(135deg, var(--color-surface) 0%, rgba(var(--color-secondary), 0.3) 100%);
+    border: 1px solid rgba(var(--color-border), 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
+        0 1px 4px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-base);
+    position: relative;
+}
+
+.server-item:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(var(--color-teal-500-rgb), 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(var(--color-teal-500-rgb), 0.2);
+}
+
+/* Status Indicators Premium */
+.server-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    border-radius: var(--radius-base) 0 0 var(--radius-base);
+    box-shadow: 0 0 8px currentColor;
+    transition: all 0.3s;
+}
+
+.server-item.online::before {
+    background: linear-gradient(180deg, var(--color-success) 0%, var(--color-teal-600) 100%);
+    box-shadow: 0 0 12px var(--color-success), inset 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.server-item.offline::before {
+    background: linear-gradient(180deg, var(--color-error) 0%, var(--color-red-500) 100%);
+    box-shadow: 0 0 12px var(--color-error);
+}
+
+.server-item.testing::before {
+    background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-teal-700) 100%);
+    box-shadow: 0 0 16px var(--color-primary);
+    animation: pulse-glow 2s infinite;
+}
+
+/* ======================================= */
+/* GRID vs LISTA - View Modes             */
+/* ======================================= */
+
+/* GRID: Cards lado a lado (horizontal) - viewMode = 'grid' */
+.servers-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    padding: 12px 16px !important;
+    align-items: flex-start !important;
+}
+
+/* LISTA: Cards um abaixo do outro (vertical) - viewMode = 'list' */
+.servers-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 12px 16px !important;
+}
+
+.servers-list .server-item {
+    width: 100%;
+}
+
+.servers-list .server-item:last-child {
+    margin-bottom: 0;
+}

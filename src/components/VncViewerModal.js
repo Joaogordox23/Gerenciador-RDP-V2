@@ -4,7 +4,7 @@
  * Inclui VncToolbar com clipboard, escala, qualidade, viewOnly, Ctrl+Alt+Del
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VncDisplay from './VncDisplay';
 import VncToolbar from './VncToolbar';
 import './VncViewerModal.css';
@@ -23,6 +23,9 @@ function VncViewerModal({ connectionInfo, onClose }) {
     // Ref para o RFB do noVNC
     const rfbRef = useRef(null);
     const containerRef = useRef(null);
+
+    // ✅ OTIMIZAÇÃO: Estabiliza o ID da conexão para evitar re-renders
+    const stableConnectionId = useMemo(() => connectionInfo?.id, [connectionInfo?.id]);
 
     useEffect(() => {
         if (!connectionInfo) return;
@@ -66,7 +69,9 @@ function VncViewerModal({ connectionInfo, onClose }) {
                 window.api.vnc.stopProxy(connectionInfo.id);
             }
         };
-    }, [connectionInfo]);
+        // ✅ OTIMIZAÇÃO: Depende apenas do ID estabilizado, não do objeto inteiro
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stableConnectionId]);
 
     // Atalho ESC para fechar
     useEffect(() => {
@@ -160,6 +165,7 @@ function VncViewerModal({ connectionInfo, onClose }) {
                         <VncDisplay
                             connectionInfo={proxyInfo}
                             onDisconnect={onClose}
+                            onError={(errMsg) => setError(errMsg)}
                             viewOnly={viewOnly}
                             scaleViewport={scaleViewport}
                             quality={qualityLevel}

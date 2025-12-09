@@ -1,5 +1,5 @@
 // src/components/layout/Sidebar.js
-import React, { useState } from 'react';
+import React from 'react';
 import './Sidebar.css';
 import {
     DashboardIcon,
@@ -17,8 +17,7 @@ function Sidebar({ activeView, onViewChange, theme, onThemeToggle, isCollapsed, 
         { id: 'Dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
         { id: 'RDP/SSH', label: 'RDP/SSH', icon: <ComputerIcon /> },
         { id: 'VNC', label: 'VNC', icon: <VideoLabelIcon /> },
-        { id: 'VNC Wall', label: 'VNC Wall', icon: <GridViewIcon /> },
-        { id: 'guacamole-test', label: '🥑 Guacamole', icon: <VideoLabelIcon /> }
+        { id: 'VNC Wall', label: 'VNC Wall', icon: <GridViewIcon /> }
     ];
 
     return (

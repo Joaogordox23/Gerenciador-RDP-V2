@@ -1,0 +1,112 @@
+/* ======================================= */
+/* 📐 APP LAYOUT - Grid System             */
+/* Gerenciador Enterprise v4.0             */
+/* ======================================= */
+
+/* Main App Container - Grid Layout */
+.App {
+    display: grid;
+    grid-template-areas:
+        "sidebar header"
+        "sidebar main"
+        "sidebar footer";
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 70px 1fr auto;
+    height: 100vh;
+    overflow: hidden;
+    transition: grid-template-columns 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Footer Area */
+.app-footer {
+    grid-area: footer;
+}
+
+/* When sidebar is collapsed */
+.App.sidebar-collapsed {
+    grid-template-columns: 72px 1fr;
+}
+
+/* Sidebar Area */
+.app-sidebar {
+    grid-area: sidebar;
+}
+
+/* Header Area */
+.app-header-new {
+    grid-area: header;
+}
+
+/* Main Content Area */
+.app-main-content {
+    grid-area: main;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--color-background);
+    padding: 32px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.app-main-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-main-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.app-main-content::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+}
+
+.app-main-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
+/* Old app container (compatibility) */
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Mobile Layout */
+@media (max-width: 768px) {
+    .App {
+        grid-template-areas:
+            "header"
+            "main"
+            "footer";
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr auto;
+    }
+
+    .app-main-content {
+        padding: 16px;
+    }
+
+    /* Sidebar becomes overlay on mobile */
+    .app-sidebar {
+        position: fixed;
+        z-index: 1000;
+    }
+
+    /* Mobile sidebar backdrop */
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        display: none;
+    }
+
+    .sidebar-backdrop.active {
+        display: block;
+    }
+}

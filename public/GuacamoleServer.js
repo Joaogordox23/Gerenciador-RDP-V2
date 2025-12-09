@@ -83,6 +83,16 @@ class GuacamoleServer {
      * Formato: Base64({ iv: base64, value: base64(AES(JSON)) })
      */
     generateConnectionToken(connectionSettings) {
+        // 🔍 DIAGNÓSTICO: Verificar tamanho de cada campo
+        console.log('🔍 Diagnóstico de tamanho dos campos:');
+        Object.keys(connectionSettings).forEach(key => {
+            const value = connectionSettings[key];
+            const size = typeof value === 'string' ? value.length : JSON.stringify(value).length;
+            if (size > 100) {
+                console.warn(`⚠️ Campo "${key}" tem tamanho anormal: ${size} caracteres`);
+            }
+        });
+
         const connectionData = {
             connection: {
                 type: connectionSettings.protocol || 'rdp',
@@ -124,6 +134,7 @@ class GuacamoleServer {
 
     /**
      * Constrói configurações específicas por protocolo
+     * Documentação: https://guacamole.apache.org/doc/gug/configuring-guacamole.html
      */
     buildConnectionSettings(settings) {
         const base = {
@@ -153,12 +164,10 @@ class GuacamoleServer {
                 }
 
                 // Se não temos domínio e o hostname é FQDN, extrai o domínio AD dele
-                // Ex: SrvAppl.santacasa.ptc -> santacasa
-                // Se o usuário definiu domínio explicitamente (mesmo que seja nome do servidor), mantém!
                 if (!domain && hostnameRaw.includes('.')) {
                     const parts = hostnameRaw.split('.');
                     if (parts.length >= 2) {
-                        domain = parts[1]; // Segunda parte é o domínio AD
+                        domain = parts[1];
                         console.log(`📝 Domínio extraído do hostname: ${domain}`);
                     }
                 }
@@ -171,28 +180,75 @@ class GuacamoleServer {
                     username: username,
                     password: settings.password || '',
                     domain: domain,
+
+                    // === SEGURANÇA ===
                     security: 'any',
                     'ignore-cert': 'true',
+
+                    // === REDIMENSIONAMENTO AUTOMÁTICO ===
+                    // display-update: usa RDP 8.1+ para redimensionar dinamicamente
+                    'resize-method': 'display-update',
+
+                    // Dimensões iniciais (serão atualizadas pelo cliente)
+                    width: String(settings.width || 1920),
+                    height: String(settings.height || 1080),
+                    dpi: String(settings.dpi || 96),
+
+                    // === QUALIDADE E PERFORMANCE ===
+                    'color-depth': String(settings.colorDepth || 16),
+
+                    // Desabilita efeitos visuais para melhor performance
                     'enable-wallpaper': 'false',
                     'enable-theming': 'false',
                     'enable-font-smoothing': 'true',
                     'enable-full-window-drag': 'false',
                     'enable-desktop-composition': 'false',
-                    'enable-menu-animations': 'false'
+                    'enable-menu-animations': 'false',
+
+                    // === CLIPBOARD ===
+                    'disable-copy': 'false',
+                    'disable-paste': 'false'
                 };
-            case 'vnc':
-                return {
-                    ...base,
-                    port: String(settings.port || 5900),
-                    password: settings.password || ''
-                };
+
             case 'ssh':
+                console.log('🐚 SSH Settings:', {
+                    hostname: settings.hostname || settings.ipAddress,
+                    username: settings.username,
+                    port: settings.port || 22
+                });
+
                 return {
                     ...base,
                     port: String(settings.port || 22),
                     username: settings.username || '',
-                    password: settings.password || ''
+                    password: settings.password || '',
+
+                    // === TERMINAL ===
+                    'font-size': String(settings.fontSize || 14),
+                    'font-name': settings.fontName || 'monospace',
+                    'color-scheme': settings.colorScheme || 'gray-black',
+
+                    // === HISTÓRICO ===
+                    scrollback: String(settings.scrollback || 1000),
+
+                    // === TERMINAL SIZE ===
+                    // Dimensões em caracteres (não pixels)
+                    // Serão calculados baseado no tamanho do container
+
+                    // === LOCALE ===
+                    locale: settings.locale || 'pt_BR.UTF-8',
+                    timezone: settings.timezone || 'America/Sao_Paulo'
                 };
+
+            case 'vnc':
+                // VNC via Guacamole (fallback, preferimos noVNC direto)
+                return {
+                    ...base,
+                    port: String(settings.port || 5900),
+                    password: settings.password || '',
+                    'color-depth': String(settings.colorDepth || 16)
+                };
+
             default:
                 return base;
         }

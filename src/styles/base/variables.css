@@ -1,0 +1,67 @@
+/* ======================================= */
+/* 🎨 VARIABLES - Design Tokens            */
+/* Gerenciador Enterprise v4.0             */
+/* ======================================= */
+
+:root {
+    /* --- CORES PRIMITIVAS --- */
+    --color-black: rgba(0, 0, 0, 1);
+    --color-white: rgba(255, 255, 255, 1);
+    --color-cream-100: rgba(255, 255, 253, 1);
+    --color-cream-50: rgba(252, 252, 249, 1);
+    --color-gray-200: rgba(245, 245, 245, 1);
+    --color-gray-300: rgba(167, 169, 169, 1);
+    --color-gray-400: rgba(119, 124, 124, 1);
+
+    /* Cores de Destaque */
+    --color-teal-300: rgba(0, 252, 168, 1);
+    --color-teal-500: rgba(0, 175, 116, 1);
+    --color-teal-600: rgba(0, 140, 93, 1);
+    --color-teal-700: rgba(0, 105, 70, 1);
+
+    /* Cores de Estado */
+    --color-red-500: rgba(192, 21, 47, 1);
+    --color-orange-500: rgba(168, 75, 47, 1);
+    --color-slate-900: rgba(19, 52, 59, 1);
+    --color-slate-500: rgba(98, 108, 113, 1);
+    --color-charcoal-700: rgba(31, 33, 33, 1);
+    --color-charcoal-800: rgba(38, 40, 40, 1);
+
+    /* RGB Versions (para opacidade) */
+    --color-teal-300-rgb: 0, 252, 168;
+    --color-teal-500-rgb: 0, 175, 116;
+    --color-red-500-rgb: 192, 21, 47;
+    --color-orange-500-rgb: 168, 75, 47;
+    --color-gray-400-rgb: 119, 124, 124;
+    --color-gray-200-rgb: 245, 245, 245;
+
+    /* --- TYPOGRAPHY & SPACING --- */
+    --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, monospace;
+
+    /* Border Radius */
+    --radius-base: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+
+    /* Spacing Scale */
+    --space-4: 4px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-16: 16px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-32: 32px;
+
+    /* Animation */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Card-specific variables */
+    --card-radius: 12px;
+    --card-padding: 16px;
+    --card-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --card-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+}

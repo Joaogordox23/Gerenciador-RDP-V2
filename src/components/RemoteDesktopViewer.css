@@ -7,14 +7,11 @@
     overflow: hidden;
 }
 
+/* Fullscreen: apenas preenche o container (toolbar é do ConnectionViewerModal) */
 .remote-desktop-viewer.fullscreen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10000;
+    flex: 1;
     border-radius: 0;
+    background: #000;
 }
 
 .viewer-header {
@@ -67,18 +64,25 @@
     background: #000;
     position: relative;
     min-height: 400px;
+    /* Centraliza o display do Guacamole */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Garante que o canvas do Guacamole preencha o container */
+/* Garante que o canvas do Guacamole seja centralizado */
 .viewer-display>div {
-    width: 100%;
-    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .viewer-display canvas {
     max-width: 100%;
     max-height: 100%;
     display: block;
+    /* Centraliza o canvas */
+    margin: auto;
 }
 
 .viewer-overlay {
