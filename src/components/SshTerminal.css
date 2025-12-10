@@ -1,0 +1,120 @@
+/* ============================================
+   SSH TERMINAL - xterm.js Styles
+   ============================================ */
+
+.ssh-terminal-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: #0a0a0f;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Header do Terminal */
+.ssh-terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom: 1px solid rgba(29, 233, 182, 0.3);
+}
+
+.ssh-terminal-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ssh-status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ssh-status-indicator.connecting {
+    background: #ffa726;
+    animation: pulse 1.5s infinite;
+}
+
+.ssh-status-indicator.connected {
+    background: #1de9b6;
+    box-shadow: 0 0 8px rgba(29, 233, 182, 0.5);
+}
+
+.ssh-status-indicator.error {
+    background: #ef5350;
+}
+
+.ssh-status-indicator.disconnected {
+    background: #757575;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.ssh-terminal-title {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1de9b6;
+}
+
+.ssh-terminal-error {
+    font-size: 11px;
+    color: #ef5350;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Container do xterm.js */
+.ssh-terminal-xterm {
+    flex: 1;
+    padding: 8px;
+    overflow: hidden;
+}
+
+.ssh-terminal-xterm .xterm {
+    height: 100%;
+}
+
+.ssh-terminal-xterm .xterm-viewport {
+    overflow-y: auto !important;
+}
+
+/* Scrollbar customizada */
+.ssh-terminal-xterm .xterm-viewport::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ssh-terminal-xterm .xterm-viewport::-webkit-scrollbar-track {
+    background: #0a0a0f;
+}
+
+.ssh-terminal-xterm .xterm-viewport::-webkit-scrollbar-thumb {
+    background: #2a2a4e;
+    border-radius: 4px;
+}
+
+.ssh-terminal-xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+    background: #1de9b6;
+}
+
+/* Seleção de texto */
+.ssh-terminal-xterm .xterm-selection div {
+    background: rgba(29, 233, 182, 0.3) !important;
+}

@@ -151,6 +151,15 @@
     border-radius: 0;
 }
 
+/* SSH Terminal dentro do container de abas */
+.connection-tabs-content .ssh-terminal-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
 /* Botão Voltar/Minimizar */
 .tabs-back-btn {
     display: flex;

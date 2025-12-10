@@ -10,6 +10,7 @@ const { registerAdHandlers } = require('./ad.handlers');
 const { registerBulkHandlers } = require('./bulk.handlers');
 const { registerConnectionHandlers } = require('./connection.handlers');
 const { registerConfigHandlers } = require('./config.handlers');
+const { registerSshHandlers } = require('./ssh.handlers');
 
 /**
  * Registra todos os IPC handlers do Electron
@@ -84,7 +85,10 @@ function registerAllHandlers(deps) {
         store: deps.store
     });
 
-    console.log('✅ Todos os IPC handlers registrados (29 handlers em 9 módulos)');
+    // SSH handlers (ssh-connect, ssh-write, ssh-resize, ssh-disconnect)
+    registerSshHandlers();
+
+    console.log('✅ Todos os IPC handlers registrados (34 handlers em 10 módulos)');
 }
 
 module.exports = { registerAllHandlers };

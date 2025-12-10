@@ -219,6 +219,19 @@ try {
             getLastSyncTime: () => ipcRenderer.invoke('get-last-sync-time'),
         },
 
+        // ==========================
+        // API SSH Nativo (xterm.js + ssh2)
+        // ==========================
+        ssh: {
+            connect: (connectionInfo) => ipcRenderer.invoke('ssh-connect', connectionInfo),
+            write: (sessionId, data) => ipcRenderer.send('ssh-write', sessionId, data),
+            resize: (sessionId, cols, rows) => ipcRenderer.send('ssh-resize', sessionId, cols, rows),
+            disconnect: (sessionId) => ipcRenderer.send('ssh-disconnect', sessionId),
+            listSessions: () => ipcRenderer.invoke('ssh-list-sessions'),
+            onData: (callback) => ipcRenderer.on('ssh-data', (event, sessionId, data) => callback(sessionId, data)),
+            onClosed: (callback) => ipcRenderer.on('ssh-closed', (event, sessionId) => callback(sessionId)),
+        },
+
         // Novas APIs de conectividade
         connectivity,
 

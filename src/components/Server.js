@@ -58,10 +58,16 @@ function Server({
     if (isEditModeEnabled) return;
 
     setIsConnecting(true);
+    const protocol = serverInfo.protocol || 'rdp';
 
     try {
-      // Usa Guacamole se disponível, senão fallback para API antiga
-      if (onRemoteConnect) {
+      // SSH: Usa terminal nativo (xterm.js) via sistema de abas
+      if (protocol === 'ssh' && onOpenInTab) {
+        console.log('🔐 Conectando SSH nativo:', serverInfo.name);
+        onOpenInTab(serverInfo, 'ssh');
+      }
+      // RDP: Usa Guacamole se disponível, senão mstsc.exe
+      else if (onRemoteConnect) {
         console.log('🥑 Conectando via Guacamole:', serverInfo.name);
         onRemoteConnect(serverInfo);
       } else if (window.api?.connection?.connect) {
@@ -77,7 +83,8 @@ function Server({
       // Remove estado de conectando após 1 segundo
       setTimeout(() => setIsConnecting(false), 1000);
     }
-  }, [isEditModeEnabled, serverInfo, onRemoteConnect]);
+  }, [isEditModeEnabled, serverInfo, onRemoteConnect, onOpenInTab]);
+
 
   const handleTestConnectivity = useCallback((e) => {
     e.stopPropagation();

@@ -8,6 +8,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useModals } from '../contexts/ModalContext';
 import VncViewerModal from './VncViewerModal';
 import ConnectionViewerModal from './ConnectionViewerModal';
+import SshTerminal from './SshTerminal';
 import { CloseIcon, MonitorIcon, TerminalIcon, ChevronLeftIcon } from './MuiIcons';
 import './ConnectionTabsContainer.css';
 
@@ -132,8 +133,14 @@ function ConnectionTabsContainer() {
                         onClose={handleCloseActiveTab}
                     />
                 )}
-                {activeTab && (activeTab.type === 'rdp' || activeTab.type === 'ssh') && (
+                {activeTab && activeTab.type === 'rdp' && (
                     <ConnectionViewerModal
+                        connectionInfo={activeTab.info}
+                        onClose={handleCloseActiveTab}
+                    />
+                )}
+                {activeTab && activeTab.type === 'ssh' && (
+                    <SshTerminal
                         connectionInfo={activeTab.info}
                         onClose={handleCloseActiveTab}
                     />
