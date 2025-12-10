@@ -38,10 +38,12 @@ import GuacamoleServerConfigModal from './components/GuacamoleServerConfigModal'
 import LoadingSpinner from './components/LoadingSpinner';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme/AppTheme';
 import VncViewerModal from './components/VncViewerModal';
 import ConnectionViewerModal from './components/ConnectionViewerModal';
+import ConnectionTabsContainer from './components/ConnectionTabsContainer';
 
 // Lazy loading de views
 const RdpSshView = lazy(() => import('./views/RdpSshView'));
@@ -76,13 +78,15 @@ function AppContent() {
         vncViewMode,
         isEditModeEnabled,
         searchTerm,
+        allGroupsCollapsed,
         setActiveView,
         setRdpViewMode,
         setVncViewMode,
         setSearchTerm,
         toggleTheme,
         toggleSidebar,
-        toggleEditMode
+        toggleEditMode,
+        toggleAllCollapsed
     } = useUI();
 
     // Estados de Modais do ModalContext
@@ -95,6 +99,7 @@ function AppContent() {
         editingVncConnection,
         activeVncConnection,
         activeRemoteConnection,
+        tabConnections,
         dialogConfig,
         openAddGroupForm,
         closeAddGroupForm,
@@ -113,13 +118,15 @@ function AppContent() {
         openRemoteConnection,
         closeRemoteConnection,
         showConfirmDialog,
-        closeDialog
+        closeDialog,
+        addTabConnection
     } = useModals();
 
     const {
         groups,
         setGroups,
         vncGroups,
+        setVncGroups,
         handleAddGroup,
         handleUpdateGroup,
         handleDeleteGroup,
@@ -132,8 +139,21 @@ function AppContent() {
         handleAddVncConnection,
         handleUpdateVncConnection,
         handleDeleteVncConnection,
-        isLoading
+        isLoading,
+        // DnD functions
+        reorderGroups,
+        reorderServersInGroup,
+        moveServerToGroup
     } = useGroups(toast);
+
+    // Handler para atualizar dados após sincronização manual
+    const handleSyncComplete = useCallback((newGroups, newVncGroups) => {
+        console.log('🔄 Atualizando dados após sincronização...');
+        console.log(`   Recebido: ${newGroups.length} grupos RDP, ${newVncGroups.length} grupos VNC`);
+        setGroups(newGroups);
+        setVncGroups(newVncGroups);
+        toast.success(`Sincronização concluída! ${newGroups.length} RDP, ${newVncGroups.length} VNC`);
+    }, [setGroups, setVncGroups, toast]);
 
     const [activeConnections, setActiveConnections] = useState([]);
 
@@ -199,29 +219,41 @@ function AppContent() {
                 if (result.failed > 0) {
                     toast.warning(`⚠️ ${result.failed} servidor(es) falharam na atualização`);
                 }
-                window.location.reload();
+
+                // Atualiza os dados na UI com os dados retornados do backend
+                if (result.groups && result.vncGroups) {
+                    setGroups(result.groups);
+                    setVncGroups(result.vncGroups);
+                    console.log('🔄 UI atualizada após alteração de senhas em massa');
+                }
             }
         } catch (error) {
             console.error('Erro ao atualizar senhas em massa:', error);
             toast.error(`Erro ao atualizar senhas: ${error.message}`);
         }
-    }, [toast]);
+    }, [toast, setGroups, setVncGroups]);
 
     // Handler para Salvar Edição de Servidor RDP/SSH
-    const handleSaveEditedServer = useCallback((updatedServer) => {
-        if (editingServer && editingServer.groupId) {
-            handleUpdateServer(editingServer.groupId, updatedServer.id, updatedServer);
-            closeEditServer();
+    const handleSaveEditedServer = useCallback((currentGroupId, updatedServer, newGroupId = null) => {
+        handleUpdateServer(currentGroupId, updatedServer.id, updatedServer, newGroupId);
+        closeEditServer();
+        if (newGroupId && newGroupId !== currentGroupId) {
+            toast.success(`Servidor "${updatedServer.name}" movido para outro grupo!`);
+        } else {
             toast.success(`Servidor "${updatedServer.name}" atualizado com sucesso!`);
         }
-    }, [editingServer, handleUpdateServer, toast, closeEditServer]);
+    }, [handleUpdateServer, toast, closeEditServer]);
 
     // Handler para Salvar Edição de Conexão VNC
-    const handleSaveEditedVnc = useCallback((groupId, updatedConnection) => {
-        // Passa (groupId, connectionId, updatedData) conforme esperado pelo useGroups
-        handleUpdateVncConnection(groupId, updatedConnection.id, updatedConnection);
+    const handleSaveEditedVnc = useCallback((currentGroupId, updatedConnection, newGroupId = null) => {
+        // Passa (groupId, connectionId, updatedData, newGroupId) conforme esperado pelo useGroups
+        handleUpdateVncConnection(currentGroupId, updatedConnection.id, updatedConnection, newGroupId);
         closeEditVncConnection();
-        toast.success(`Conexão VNC "${updatedConnection.name}" atualizada com sucesso!`);
+        if (newGroupId && newGroupId !== currentGroupId) {
+            toast.success(`Conexão VNC "${updatedConnection.name}" movida para outro grupo!`);
+        } else {
+            toast.success(`Conexão VNC "${updatedConnection.name}" atualizada com sucesso!`);
+        }
     }, [handleUpdateVncConnection, toast, closeEditVncConnection]);
 
 
@@ -299,17 +331,18 @@ function AppContent() {
     }, [vncGroups, searchTerm]);
 
     const handleOnDragEnd = useCallback((result) => {
-        const { destination, source, type } = result;
+        const { destination, source, type, draggableId } = result;
 
         if (!destination) return;
         if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
         try {
+            // Reordenação de grupos
             if (type === 'group') {
                 const newGroups = Array.from(groups);
                 const [reorderedItem] = newGroups.splice(source.index, 1);
                 newGroups.splice(destination.index, 0, reorderedItem);
-                setGroups(newGroups);
+                reorderGroups(newGroups); // Usa função que pula sync
                 toast.success(`Grupo "${reorderedItem.groupName}" reordenado`);
                 return;
             }
@@ -320,42 +353,30 @@ function AppContent() {
             const finishGroup = groups.find(g => g.id.toString() === finishGroupId.toString());
 
             if (!startGroup || !finishGroup) {
-                toast.error('Erro ao mover item: Grupo de destino não encontrado.');
+                toast.error('Erro ao mover item: Grupo não encontrado.');
                 return;
             }
 
+            // Reordenação dentro do mesmo grupo
             if (startGroup === finishGroup) {
                 const newServers = Array.from(startGroup.servers);
                 const [reorderedItem] = newServers.splice(source.index, 1);
                 newServers.splice(destination.index, 0, reorderedItem);
-
-                const newGroup = { ...startGroup, servers: newServers };
-                const newGroups = groups.map(g => g.id === newGroup.id ? newGroup : g);
-                setGroups(newGroups);
+                reorderServersInGroup(startGroup.id, newServers); // Usa função que pula sync
                 toast.success(`Servidor "${reorderedItem.name}" reordenado`);
             } else {
-                const startServers = Array.from(startGroup.servers);
-                const [movedItem] = startServers.splice(source.index, 1);
-
-                const finishServers = Array.from(finishGroup.servers);
-                finishServers.splice(destination.index, 0, movedItem);
-
-                const newStartGroup = { ...startGroup, servers: startServers };
-                const newFinishGroup = { ...finishGroup, servers: finishServers };
-
-                const newGroups = groups.map(g => {
-                    if (g.id === newStartGroup.id) return newStartGroup;
-                    if (g.id === newFinishGroup.id) return newFinishGroup;
-                    return g;
-                });
-                setGroups(newGroups);
-                toast.success(`Servidor "${movedItem.name}" movido para "${finishGroup.groupName}"`);
+                // Mover servidor para outro grupo
+                const serverToMove = startGroup.servers[source.index];
+                if (serverToMove) {
+                    moveServerToGroup(serverToMove.id, startGroupId, finishGroupId, destination.index);
+                    toast.success(`Servidor "${serverToMove.name}" movido para "${finishGroup.groupName}"`);
+                }
             }
         } catch (error) {
             console.error('Erro no drag and drop:', error);
             toast.error('Erro ao reorganizar items. Tente novamente.');
         }
-    }, [groups, toast, setGroups]);
+    }, [groups, toast, reorderGroups, reorderServersInGroup, moveServerToGroup]);
 
 
     useEffect(() => {
@@ -408,6 +429,8 @@ function AppContent() {
                         }
                     }}
                     onShowGuacamoleConfig={() => setShowGuacamoleConfig(true)}
+                    allGroupsCollapsed={allGroupsCollapsed}
+                    onToggleAllCollapsed={toggleAllCollapsed}
                 />
                 {/* Main Content Area */}
                 <main className="app-main-content">
@@ -481,6 +504,7 @@ function AppContent() {
                                     onShowAddGroupForm={openAddGroupForm}
                                     onShowAddServerModal={openAddServerToGroup}
                                     onRemoteConnect={openRemoteConnection}
+                                    onOpenInTab={addTabConnection}
                                     viewMode={rdpViewMode}
                                 />
                             )}
@@ -534,6 +558,8 @@ function AppContent() {
                 {editingServer && (
                     <EditServerModal
                         server={editingServer.server}
+                        groupId={editingServer.groupId}
+                        groups={groups}
                         onSave={handleSaveEditedServer}
                         onCancel={closeEditServer}
                     />
@@ -543,6 +569,7 @@ function AppContent() {
                     <EditVncModal
                         connection={editingVncConnection.connection}
                         groupId={editingVncConnection.groupId}
+                        groups={vncGroups}
                         onSave={handleSaveEditedVnc}
                         onCancel={closeEditVncConnection}
                     />
@@ -564,6 +591,11 @@ function AppContent() {
                     />
                 )}
 
+                {/* Gerenciador de Múltiplas Conexões em Abas */}
+                {tabConnections.length > 0 && (
+                    <ConnectionTabsContainer />
+                )}
+
                 {/* Modal de Configuração do Servidor Guacamole */}
                 <GuacamoleServerConfigModal
                     isOpen={showGuacamoleConfig}
@@ -571,6 +603,9 @@ function AppContent() {
                     onSave={handleSaveGuacamoleConfig}
                     initialConfig={guacamoleConfig}
                 />
+
+                {/* Footer com botão de sincronização */}
+                <Footer onSyncComplete={handleSyncComplete} />
             </div>
         </ThemeProvider >
     );

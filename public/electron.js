@@ -52,7 +52,7 @@ async function initializeStore() {
 
     fileSystemManager.ensureDirectories();
 
-    // Migração se necessário
+    // Migração inicial se necessário (banco vazio)
     if (!databaseManager.isMigrated()) {
         console.log('🔄 Primeira execução com SQLite - iniciando migração...');
         try {
@@ -89,6 +89,22 @@ async function initializeStore() {
         } catch (error) {
             console.error('❌ Erro na migração:', error);
         }
+    }
+
+    // ✨ NOVO: Sempre sincronizar arquivos do disco (importa backups copiados)
+    try {
+        console.log('📂 Sincronizando arquivos do disco com SQLite...');
+        const diskServers = fileSystemManager.scanServers();
+        if (diskServers.length > 0) {
+            const syncResult = databaseManager.syncFromDisk(diskServers);
+            if (syncResult.imported > 0) {
+                console.log(`✅ Importados ${syncResult.imported} novos arquivos do disco!`);
+            }
+        }
+        // Registrar timestamp da sincronização
+        databaseManager.setLastSyncTime();
+    } catch (error) {
+        console.error('❌ Erro na sincronização do disco:', error);
     }
 
     const startTime = Date.now();

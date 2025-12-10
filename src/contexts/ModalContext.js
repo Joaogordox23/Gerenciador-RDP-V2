@@ -16,9 +16,14 @@ export function ModalProvider({ children }) {
     const [editingServer, setEditingServer] = useState(null);
     const [editingVncConnection, setEditingVncConnection] = useState(null);
 
-    // ========== Estados de Conexões Ativas ==========
+    // ========== Estados de Conexões Ativas (Sistema Antigo - Compatibilidade) ==========
     const [activeVncConnection, setActiveVncConnection] = useState(null);
     const [activeRemoteConnection, setActiveRemoteConnection] = useState(null);
+
+    // ========== Estados de Múltiplas Conexões em Abas (Novo Sistema) ==========
+    // Cada conexão: { id, type: 'vnc'|'rdp'|'ssh', info: {connectionInfo}, status: 'connecting'|'connected'|'error' }
+    const [tabConnections, setTabConnections] = useState([]);
+    const [activeTabId, setActiveTabId] = useState(null);
 
     // ========== Estados de Diálogo de Confirmação ==========
     const [dialogConfig, setDialogConfig] = useState({
@@ -82,7 +87,7 @@ export function ModalProvider({ children }) {
         setEditingVncConnection(null);
     }, []);
 
-    // ========== Ações para Conexões Ativas ==========
+    // ========== Ações para Conexões Ativas (Compatibilidade) ==========
     const openVncConnection = useCallback((connection) => {
         setActiveVncConnection(connection);
     }, []);
@@ -98,6 +103,51 @@ export function ModalProvider({ children }) {
     const closeRemoteConnection = useCallback(() => {
         setActiveRemoteConnection(null);
     }, []);
+
+    // ========== Ações para Sistema de Abas (Novo) ==========
+    const addTabConnection = useCallback((connectionInfo, type) => {
+        const newTab = {
+            id: Date.now() + Math.random(),
+            type: type, // 'vnc', 'rdp', 'ssh'
+            info: connectionInfo,
+            status: 'connecting',
+            createdAt: Date.now()
+        };
+
+        setTabConnections(prev => [...prev, newTab]);
+        setActiveTabId(newTab.id);
+
+        return newTab.id;
+    }, []);
+
+    const removeTabConnection = useCallback((tabId) => {
+        setTabConnections(prev => {
+            const remaining = prev.filter(tab => tab.id !== tabId);
+
+            // Se removeu a aba ativa, seleciona outra
+            if (remaining.length > 0 && tabId === activeTabId) {
+                setActiveTabId(remaining[remaining.length - 1].id);
+            } else if (remaining.length === 0) {
+                setActiveTabId(null);
+            }
+
+            return remaining;
+        });
+    }, [activeTabId]);
+
+    const updateTabStatus = useCallback((tabId, status) => {
+        setTabConnections(prev => prev.map(tab =>
+            tab.id === tabId ? { ...tab, status } : tab
+        ));
+    }, []);
+
+    const switchToTab = useCallback((tabId) => {
+        setActiveTabId(tabId);
+    }, []);
+
+    const getActiveTabConnection = useCallback(() => {
+        return tabConnections.find(tab => tab.id === activeTabId) || null;
+    }, [tabConnections, activeTabId]);
 
     // ========== Ações para Diálogo de Confirmação ==========
     const showConfirmDialog = useCallback((config) => {
@@ -128,9 +178,13 @@ export function ModalProvider({ children }) {
         editingServer,
         editingVncConnection,
 
-        // Estados de Conexões
+        // Estados de Conexões (Compatibilidade)
         activeVncConnection,
         activeRemoteConnection,
+
+        // Estados de Abas de Conexões (Novo)
+        tabConnections,
+        activeTabId,
 
         // Estado de Diálogo
         dialogConfig,
@@ -164,7 +218,14 @@ export function ModalProvider({ children }) {
         openRemoteConnection,
         closeRemoteConnection,
         showConfirmDialog,
-        closeDialog
+        closeDialog,
+
+        // Ações de Abas (Novo)
+        addTabConnection,
+        removeTabConnection,
+        updateTabStatus,
+        switchToTab,
+        getActiveTabConnection
     };
 
     return (

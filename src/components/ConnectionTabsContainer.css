@@ -1,0 +1,158 @@
+/**
+ * ConnectionTabsContainer.css
+ * Estilos para o gerenciador de abas de conexões
+ */
+
+/* Container Principal - Fullscreen */
+.connection-tabs-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background, #0a0a0a);
+}
+
+/* Barra de Abas */
+.connection-tabs-bar {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    background: var(--color-surface, #1a1a2e);
+    border-bottom: 1px solid var(--color-border, #2a2a3e);
+    padding: 0 8px;
+    gap: 2px;
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+/* Esconde scrollbar mas mantém funcionalidade */
+.connection-tabs-bar::-webkit-scrollbar {
+    height: 3px;
+}
+
+.connection-tabs-bar::-webkit-scrollbar-thumb {
+    background: var(--color-border, #2a2a3e);
+    border-radius: 3px;
+}
+
+/* Aba Individual */
+.connection-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    color: var(--color-text-secondary, #8888aa);
+    font-size: 13px;
+    max-width: 200px;
+    min-width: 120px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.connection-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text, #fff);
+}
+
+.connection-tab.active {
+    background: var(--color-background, #0a0a0a);
+    color: var(--color-text, #fff);
+    border-bottom: 2px solid var(--color-primary, #1de9b6);
+}
+
+/* Status Indicator */
+.tab-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tab-status.status-connecting {
+    background: #ffa726;
+    animation: pulse 1.5s infinite;
+}
+
+.tab-status.status-connected {
+    background: #1de9b6;
+}
+
+.tab-status.status-error {
+    background: #ef5350;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* Nome da Aba */
+.tab-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+/* Botão Fechar */
+.tab-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--color-text-secondary, #8888aa);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.tab-close-btn:hover {
+    opacity: 1;
+    background: rgba(239, 83, 80, 0.2);
+    color: #ef5350;
+}
+
+/* Área de Conteúdo */
+.connection-tabs-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Override para VncViewerModal quando dentro do Tabs */
+.connection-tabs-content .vnc-viewer-modal-overlay,
+.connection-tabs-content .connection-viewer-modal-overlay {
+    position: absolute;
+    background: transparent;
+}
+
+.connection-tabs-content .vnc-viewer-modal,
+.connection-tabs-content .connection-viewer-modal {
+    border-radius: 0;
+}
+
+/* Esconde o toolbar duplicado quando em abas */
+.connection-tabs-content .vnc-toolbar,
+.connection-tabs-content .guacamole-toolbar {
+    display: none;
+}

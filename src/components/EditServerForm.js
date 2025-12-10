@@ -1,4 +1,4 @@
-// src/components/EditServerForm.js
+// src/components/EditServerForm.js (v4.2: Com seleção de grupo)
 import React, { useState } from 'react';
 import {
     ComputerIcon,
@@ -9,13 +9,14 @@ import {
     DomainIcon,
     SaveIcon,
     CancelIcon,
-    InfoIcon
+    InfoIcon,
+    FolderIcon
 } from './MuiIcons';
 import './ServerForms.css';
 
 import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
-function EditServerForm({ serverInfo, onSave, onCancel }) {
+function EditServerForm({ serverInfo, onSave, onCancel, groups, currentGroupId }) {
     const [serverData, setServerData] = useState({
         protocol: serverInfo.protocol || 'rdp',
         name: serverInfo.name || '',
@@ -26,6 +27,7 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
         port: serverInfo.port || ''
     });
 
+    const [selectedGroupId, setSelectedGroupId] = useState(currentGroupId);
     const [errors, setErrors] = useState({});
 
     const validateForm = () => {
@@ -61,6 +63,10 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
         }));
     };
 
+    const handleGroupChange = (event) => {
+        setSelectedGroupId(event.target.value);
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -72,6 +78,11 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
             delete finalData.password;
         }
 
+        // Adiciona o novo groupId se foi alterado
+        if (selectedGroupId !== currentGroupId) {
+            finalData.newGroupId = selectedGroupId;
+        }
+
         onSave(finalData);
     };
 
@@ -81,6 +92,42 @@ function EditServerForm({ serverInfo, onSave, onCancel }) {
                 <div className="form-header">
                     <h3>Editar Servidor</h3>
                 </div>
+
+                {/* Seleção de Grupo */}
+                {groups && groups.length > 1 && (
+                    <div className="form-group">
+                        <label>Grupo</label>
+                        <div className="input-with-icon">
+                            <FolderIcon className="input-icon" />
+                            <select
+                                name="groupId"
+                                value={selectedGroupId}
+                                onChange={handleGroupChange}
+                                className="form-control"
+                            >
+                                {groups.map(g => (
+                                    <option key={g.id} value={g.id}>{g.groupName}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {selectedGroupId !== currentGroupId && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                borderRadius: '6px',
+                                marginTop: '8px',
+                                fontSize: '12px',
+                                color: '#F59E0B'
+                            }}>
+                                <InfoIcon sx={{ fontSize: 16 }} />
+                                <span>⚠️ Servidor será movido para outro grupo</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="form-group">
                     <label>Protocolo</label>

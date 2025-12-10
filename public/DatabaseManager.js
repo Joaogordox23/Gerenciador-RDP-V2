@@ -76,6 +76,12 @@ class DatabaseManager {
                 FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_connections_group ON connections(group_id);
             CREATE INDEX IF NOT EXISTS idx_connections_protocol ON connections(protocol);
             CREATE INDEX IF NOT EXISTS idx_connections_name ON connections(name);
@@ -323,6 +329,55 @@ class DatabaseManager {
     }
 
     /**
+     * Sincroniza conexões do disco para o SQLite (importa novos arquivos)
+     * @param {Array} diskServers - Lista de servidores encontrados no disco pelo FileSystemManager
+     * @returns {Object} - { imported: number, skipped: number }
+     */
+    syncFromDisk(diskServers) {
+        console.log(`🔄 Iniciando sincronização do disco: ${diskServers.length} arquivos encontrados`);
+        const startTime = Date.now();
+
+        let imported = 0;
+        let skipped = 0;
+
+        const sync = this.db.transaction(() => {
+            diskServers.forEach(server => {
+                const type = server.protocol === 'vnc' ? 'vnc' : 'rdp';
+                const groupName = server.groupName || 'Sem Grupo';
+
+                // Obtém ou cria o grupo
+                const groupId = this.addGroup(groupName, type);
+
+                // Log para debug
+                console.log(`  📂 Processando: ${server.name} -> Grupo "${groupName}" (ID: ${groupId}, Tipo: ${type})`);
+
+                // Verifica se a conexão já existe
+                const exists = this.connectionExists(server.name, groupId);
+                console.log(`     Existe no banco? ${exists ? 'SIM' : 'NÃO'}`);
+
+                if (!exists) {
+                    this.addConnection(groupId, {
+                        ...server,
+                        protocol: server.protocol || 'rdp',
+                        groupName: groupName
+                    });
+                    imported++;
+                    console.log(`     ✅ Importado: ${server.name} (${server.protocol}) -> ${groupName}`);
+                } else {
+                    skipped++;
+                }
+            });
+        });
+
+        sync();
+
+        const duration = Date.now() - startTime;
+        console.log(`✅ Sincronização concluída em ${duration}ms: ${imported} importados, ${skipped} já existentes`);
+
+        return { imported, skipped };
+    }
+
+    /**
      * Verifica se o banco já foi migrado
      */
     isMigrated() {
@@ -358,6 +413,38 @@ class DatabaseManager {
                 return acc;
             }, {})
         };
+    }
+
+    /**
+     * Obtém o timestamp da última sincronização
+     * @returns {string|null} - ISO timestamp ou null
+     */
+    getLastSyncTime() {
+        try {
+            const result = this.db.prepare(`
+                SELECT value FROM metadata WHERE key = 'last_sync_time'
+            `).get();
+            return result ? result.value : null;
+        } catch (error) {
+            console.error('Erro ao obter última sincronização:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Define o timestamp da última sincronização
+     * @param {string} timestamp - ISO timestamp
+     */
+    setLastSyncTime(timestamp = new Date().toISOString()) {
+        try {
+            this.db.prepare(`
+                INSERT OR REPLACE INTO metadata (key, value, updated_at) 
+                VALUES ('last_sync_time', ?, CURRENT_TIMESTAMP)
+            `).run(timestamp);
+            console.log(`✅ Última sincronização registrada: ${timestamp}`);
+        } catch (error) {
+            console.error('Erro ao salvar última sincronização:', error);
+        }
     }
 }
 

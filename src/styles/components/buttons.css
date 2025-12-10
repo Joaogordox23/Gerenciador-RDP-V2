@@ -195,3 +195,202 @@ button {
     background: linear-gradient(135deg, #ffffff 0%, var(--color-teal-300) 50%);
     box-shadow: 0 3px 8px rgba(var(--color-teal-500-rgb), 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
+
+/* ======================================= */
+/* FORM BUTTONS - Estilos Premium          */
+/* ======================================= */
+
+/* Base .btn - Estilo comum para todos os botões de formulário */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s ease, height 0.5s ease;
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Primary Button - Ação Principal (Salvar, Confirmar, etc) */
+.btn-primary,
+.btn--primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    color: #000;
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:hover,
+.btn--primary:hover {
+    background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-teal-600) 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(var(--color-teal-500-rgb), 0.5),
+        0 4px 12px rgba(var(--color-teal-500-rgb), 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:active,
+.btn--primary:active {
+    transform: translateY(-1px) scale(1);
+    box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.3);
+}
+
+.btn-primary:disabled,
+.btn--primary:disabled {
+    background: linear-gradient(135deg, rgba(var(--color-teal-500-rgb), 0.5) 0%, rgba(var(--color-teal-600-rgb), 0.5) 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Secondary Button - Ação Secundária (Cancelar, Voltar, etc) */
+.btn-secondary,
+.btn--secondary {
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-secondary) 100%);
+    color: var(--color-text);
+    border-color: var(--color-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover,
+.btn--secondary:hover {
+    background: linear-gradient(135deg, var(--color-secondary) 0%, rgba(var(--color-gray-600-rgb), 0.5) 100%);
+    border-color: var(--color-text-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:active,
+.btn--secondary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Danger Button - Ações Destrutivas (Deletar, Remover) */
+.btn-danger,
+.btn--danger {
+    background: linear-gradient(135deg, var(--color-error) 0%, var(--color-red-600) 100%);
+    color: #fff;
+    border-color: var(--color-error);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger:hover,
+.btn--danger:hover {
+    background: linear-gradient(135deg, var(--color-red-600) 0%, var(--color-red-700) 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5),
+        0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Success Button - Ações de Sucesso */
+.btn-success,
+.btn--success {
+    background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
+    color: #000;
+    border-color: var(--color-success);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-success:hover,
+.btn--success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5),
+        0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
+.btn-lg {
+    padding: 14px 32px;
+    font-size: 16px;
+    border-radius: 12px;
+}
+
+/* Button Icons */
+.btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+/* Loading State */
+.btn.loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.btn.loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Test Connection Button */
+.btn-test,
+.btn--test {
+    background: linear-gradient(135deg, var(--color-warning) 0%, #d97706 100%);
+    color: #000;
+    border-color: var(--color-warning);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-test:hover,
+.btn--test:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5),
+        0 4px 12px rgba(245, 158, 11, 0.3);
+}

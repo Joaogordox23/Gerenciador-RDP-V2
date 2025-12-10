@@ -11,7 +11,9 @@ import {
     LockIcon,
     GridViewIcon,
     ViewListIcon,
-    SettingsIcon
+    SettingsIcon,
+    UnfoldLessIcon,
+    UnfoldMoreIcon
 } from '../MuiIcons';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -27,7 +29,9 @@ function Header({
     onShowBulkPassword,
     viewMode,
     onToggleViewMode,
-    onShowGuacamoleConfig
+    onShowGuacamoleConfig,
+    allGroupsCollapsed,
+    onToggleAllCollapsed
 }) {
     // Mapeamento de views para breadcrumbs
     const viewTitles = {
@@ -131,6 +135,20 @@ function Header({
                         {viewMode === 'grid' ?
                             <ViewListIcon sx={{ fontSize: 20 }} /> :
                             <GridViewIcon sx={{ fontSize: 20 }} />
+                        }
+                    </button>
+                )}
+
+                {/* Collapse/Expand All Groups */}
+                {activeView !== 'VNC Wall' && activeView !== 'Dashboard' && (
+                    <button
+                        className="header-action-btn"
+                        onClick={onToggleAllCollapsed}
+                        title={allGroupsCollapsed ? 'Expandir Todos os Grupos' : 'Colapsar Todos os Grupos'}
+                    >
+                        {allGroupsCollapsed ?
+                            <UnfoldMoreIcon sx={{ fontSize: 20 }} /> :
+                            <UnfoldLessIcon sx={{ fontSize: 20 }} />
                         }
                     </button>
                 )}

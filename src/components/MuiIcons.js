@@ -79,5 +79,12 @@ export {
     Fullscreen as FullscreenIcon,
     PhotoCamera as PhotoCameraIcon,
     SignalWifi4Bar as SignalWifiIcon,
-    Mouse as MouseIcon
+    Mouse as MouseIcon,
+
+    // Collapse/Expand (v4.3)
+    UnfoldLess as UnfoldLessIcon,
+    UnfoldMore as UnfoldMoreIcon,
+
+    // Tabs (v4.3)
+    OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';

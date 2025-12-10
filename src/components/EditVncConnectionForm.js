@@ -1,3 +1,4 @@
+// src/components/EditVncConnectionForm.js (v4.2: Com seleção de grupo)
 import React, { useState } from 'react';
 import {
     ComputerIcon,
@@ -5,12 +6,15 @@ import {
     LockIcon,
     VisibilityIcon,
     SaveIcon,
-    CancelIcon
+    CancelIcon,
+    FolderIcon,
+    InfoIcon
 } from './MuiIcons';
 import './VncForms.css';
 
-function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
+function EditVncConnectionForm({ connectionInfo, onSave, onCancel, groups, currentGroupId }) {
     const [formData, setFormData] = useState({ ...connectionInfo });
+    const [selectedGroupId, setSelectedGroupId] = useState(currentGroupId);
     const [errors, setErrors] = useState({});
 
     const validateForm = () => {
@@ -27,6 +31,10 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
         setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
+    const handleGroupChange = (event) => {
+        setSelectedGroupId(event.target.value);
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         if (validateForm()) {
@@ -35,6 +43,12 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
             if (!dataToSave.password) {
                 delete dataToSave.password;
             }
+
+            // Adiciona o novo groupId se foi alterado
+            if (selectedGroupId !== currentGroupId) {
+                dataToSave.newGroupId = selectedGroupId;
+            }
+
             onSave(dataToSave);
         }
     };
@@ -45,6 +59,42 @@ function EditVncConnectionForm({ connectionInfo, onSave, onCancel }) {
                 <div className="form-header">
                     <h3>Editando Conexão VNC</h3>
                 </div>
+
+                {/* Seleção de Grupo */}
+                {groups && groups.length > 1 && (
+                    <div className="form-group">
+                        <label className="form-label">Grupo</label>
+                        <div className="input-with-icon">
+                            <FolderIcon className="input-icon" />
+                            <select
+                                name="groupId"
+                                value={selectedGroupId}
+                                onChange={handleGroupChange}
+                                className="form-control form-select"
+                            >
+                                {groups.map(g => (
+                                    <option key={g.id} value={g.id}>{g.groupName}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {selectedGroupId !== currentGroupId && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 12px',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                borderRadius: '6px',
+                                marginTop: '8px',
+                                fontSize: '12px',
+                                color: '#F59E0B'
+                            }}>
+                                <InfoIcon sx={{ fontSize: 16 }} />
+                                <span>⚠️ Conexão será movida para outro grupo</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="form-group">
                     <label className="form-label">Nome *</label>

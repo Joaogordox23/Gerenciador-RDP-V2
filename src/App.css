@@ -1046,41 +1046,56 @@ select.form-control {
 /* 🔧 GROUP ACTION BUTTONS                 */
 /* ======================================= */
 .group-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .action-button-icon {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: var(--radius-base);
-    color: var(--color-text-secondary);
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    border-radius: var(--radius-base) !important;
+    color: #ffffff !important;
+    transition: all 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .action-button-icon:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--color-text);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
 }
 
 .action-button-icon svg {
-    width: 18px;
-    height: 18px;
+    width: 18px !important;
+    height: 18px !important;
+    stroke: currentColor !important;
+    visibility: visible !important;
 }
 
 /* Cores específicas por ação */
+.action-button-icon.add {
+    color: var(--color-success);
+    background: rgba(var(--color-teal-500-rgb), 0.15);
+    border: 1px solid rgba(var(--color-teal-500-rgb), 0.3);
+}
+
 .action-button-icon.add:hover {
     color: var(--color-success);
-    background: rgba(var(--color-teal-500-rgb), 0.1);
+    background: rgba(var(--color-teal-500-rgb), 0.25);
+    border-color: var(--color-success);
 }
 
 .action-button-icon.edit:hover {

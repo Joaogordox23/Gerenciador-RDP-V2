@@ -50,6 +50,7 @@
 @import '../components/GuacamoleSettingsModal.css';
 @import '../components/ADImportModal.css';
 @import '../components/BulkPasswordModal.css';
+@import '../components/ConnectionTabsContainer.css';
 
 /* Layout components */
 @import '../components/layout/Header.css';

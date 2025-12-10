@@ -28,10 +28,11 @@ const { registerConfigHandlers } = require('./config.handlers');
 function registerAllHandlers(deps) {
     console.log('📡 Registrando IPC handlers...');
 
-    // Store handlers (get-data, set-data, clear-data)
+    // Store handlers (get-data, set-data, clear-data, sync)
     registerStoreHandlers({
         store: deps.store,
-        fileSystemManager: deps.fileSystemManager
+        fileSystemManager: deps.fileSystemManager,
+        databaseManager: deps.databaseManager
     });
 
     // Database handlers (db-*)
@@ -65,7 +66,8 @@ function registerAllHandlers(deps) {
     // Bulk handlers (bulk-update-password)
     registerBulkHandlers({
         store: deps.store,
-        fileSystemManager: deps.fileSystemManager
+        fileSystemManager: deps.fileSystemManager,
+        databaseManager: deps.databaseManager
     });
 
     // Connection handlers (start-connection)

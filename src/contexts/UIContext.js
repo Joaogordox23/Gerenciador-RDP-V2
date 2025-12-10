@@ -21,6 +21,9 @@ export function UIProvider({ children }) {
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // ========== Estado de Colapso de Grupos ==========
+    const [allGroupsCollapsed, setAllGroupsCollapsed] = useState(false);
+
     // ========== Ações ==========
     const toggleTheme = useCallback(() => {
         setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
@@ -32,6 +35,10 @@ export function UIProvider({ children }) {
 
     const toggleEditMode = useCallback(() => {
         setIsEditModeEnabled(prev => !prev);
+    }, []);
+
+    const toggleAllCollapsed = useCallback(() => {
+        setAllGroupsCollapsed(prev => !prev);
     }, []);
 
     // ========== Inicialização do Tema ==========
@@ -67,6 +74,7 @@ export function UIProvider({ children }) {
         vncViewMode,
         isEditModeEnabled,
         searchTerm,
+        allGroupsCollapsed,
 
         // Setters
         setTheme,
@@ -76,11 +84,13 @@ export function UIProvider({ children }) {
         setVncViewMode,
         setIsEditModeEnabled,
         setSearchTerm,
+        setAllGroupsCollapsed,
 
         // Ações
         toggleTheme,
         toggleSidebar,
-        toggleEditMode
+        toggleEditMode,
+        toggleAllCollapsed
     };
 
     return (

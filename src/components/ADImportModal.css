@@ -10,7 +10,7 @@
 
 /* Form styling - PADDING REDUCED */
 .ad-form {
-    padding: 0;
+    padding: 16px;
     overflow-y: auto;
 }
 
@@ -104,7 +104,7 @@
 .results-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0;
+    padding: 0 16px;
     max-height: 350px;
 }
 

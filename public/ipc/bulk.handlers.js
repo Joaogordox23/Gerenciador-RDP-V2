@@ -8,8 +8,9 @@ const { ipcMain, safeStorage } = require('electron');
  * @param {Object} deps - Dependências injetadas
  * @param {Object} deps.store - Instância do electron-store
  * @param {Object} deps.fileSystemManager - Gerenciador de arquivos
+ * @param {Object} deps.databaseManager - Gerenciador do banco SQLite
  */
-function registerBulkHandlers({ store, fileSystemManager }) {
+function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
 
     // ==========================
     // ALTERAÇÃO DE SENHA EM MASSA
@@ -18,76 +19,64 @@ function registerBulkHandlers({ store, fileSystemManager }) {
         console.log(`🔑 Pedido de alteração de senha em massa: ${servers.length} servidor(es) ${type}`);
 
         const results = [];
-        const storeKey = type === 'vnc' ? 'vncGroups' : 'groups';
-        const itemsKey = type === 'vnc' ? 'connections' : 'servers';
 
         try {
-            const allGroups = store.get(storeKey) || [];
             let totalUpdated = 0;
 
-            // Atualiza cada servidor selecionado
-            const updatedGroups = allGroups.map(group => {
-                const items = group[itemsKey] || [];
+            // Atualiza cada servidor selecionado diretamente no SQLite
+            for (const serverId of servers) {
+                try {
+                    // Prepara os dados de atualização
+                    const updateData = {
+                        password: credentials.password
+                    };
 
-                const updatedItems = items.map(item => {
-                    if (servers.includes(item.id)) {
-                        totalUpdated++;
-
-                        if (type === 'vnc') {
-                            return { ...item, password: credentials.password };
-                        } else {
-                            return {
-                                ...item,
-                                username: credentials.username || item.username,
-                                password: credentials.password,
-                                domain: credentials.domain !== undefined ? credentials.domain : item.domain
-                            };
+                    // Para RDP/SSH, também atualiza username e domain
+                    if (type !== 'vnc') {
+                        if (credentials.username) {
+                            updateData.username = credentials.username;
+                        }
+                        if (credentials.domain !== undefined) {
+                            updateData.domain = credentials.domain;
                         }
                     }
-                    return item;
-                });
 
-                return { ...group, [itemsKey]: updatedItems };
-            });
+                    // Atualiza no SQLite
+                    const result = databaseManager.updateConnection(serverId, updateData);
 
-            // Salva no store
-            store.set(storeKey, updatedGroups);
+                    if (result.changes > 0) {
+                        totalUpdated++;
+                        results.push({ id: serverId, success: true });
+                        console.log(`  ✅ Servidor ${serverId} atualizado`);
 
-            // Atualiza arquivos físicos
-            updatedGroups.forEach(group => {
-                const groupName = group.name || group.groupName;
-
-                if (group[itemsKey]) {
-                    group[itemsKey].forEach(item => {
-                        if (servers.includes(item.id)) {
-                            if (!item.groupName) item.groupName = groupName;
-                            if (type === 'vnc' && !item.protocol) item.protocol = 'vnc';
-
-                            // Criptografa senha antes de salvar arquivo
-                            const itemToSave = { ...item };
-                            if (itemToSave.password && typeof itemToSave.password === 'string') {
-                                try {
-                                    const encryptedPassword = safeStorage.encryptString(itemToSave.password);
-                                    itemToSave.password = encryptedPassword.toString('base64');
-                                } catch (e) {
-                                    console.error('Falha ao criptografar senha ao salvar arquivo:', e);
-                                }
-                            }
-
-                            fileSystemManager.saveConnectionFile(itemToSave);
-                            results.push({ id: item.id, success: true });
+                        // Atualiza arquivo físico
+                        const connection = databaseManager.getConnection(serverId);
+                        if (connection && fileSystemManager) {
+                            fileSystemManager.saveConnectionFile(connection);
                         }
-                    });
+                    } else {
+                        results.push({ id: serverId, success: false, error: 'Não encontrado' });
+                    }
+                } catch (err) {
+                    console.error(`  ❌ Erro ao atualizar servidor ${serverId}:`, err);
+                    results.push({ id: serverId, success: false, error: err.message });
                 }
-            });
+            }
 
             console.log(`✅ ${totalUpdated} servidor(es) atualizado(s) com sucesso`);
+
+            // Recarrega dados atualizados do SQLite para retornar ao frontend
+            const groups = databaseManager.getAllGroups('rdp');
+            const vncGroups = databaseManager.getAllGroups('vnc');
 
             return {
                 success: true,
                 updated: totalUpdated,
-                failed: 0,
-                details: results
+                failed: servers.length - totalUpdated,
+                details: results,
+                // Retorna dados atualizados para o frontend atualizar a UI
+                groups,
+                vncGroups
             };
 
         } catch (error) {

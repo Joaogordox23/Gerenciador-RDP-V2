@@ -1,8 +1,9 @@
-// src/views/RdpSshView.js (v4.2: Com suporte a viewMode)
+// src/views/RdpSshView.js (v4.3: Com suporte a collapse global e abas)
 
 import React, { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import Group from '../components/Group';
+import { useUI } from '../contexts/UIContext';
 
 function RdpSshView({
     filteredGroups,
@@ -16,8 +17,10 @@ function RdpSshView({
     onShowAddServerModal,
     viewMode = 'grid',
     onEditServer,
-    onRemoteConnect // Nova prop para conexão Guacamole
+    onRemoteConnect,
+    onOpenInTab // Nova prop para abrir em nova aba
 }) {
+    const { allGroupsCollapsed } = useUI();
     const [editingGroupId, setEditingGroupId] = useState(null);
 
     const handleUpdateAndFinishEditing = (groupId, newName) => {
@@ -49,6 +52,8 @@ function RdpSshView({
                                 viewMode={viewMode}
                                 onEditServer={onEditServer}
                                 onRemoteConnect={onRemoteConnect}
+                                onOpenInTab={onOpenInTab}
+                                forceCollapsed={allGroupsCollapsed ? true : null}
                             />
                         ))
                     ) : (

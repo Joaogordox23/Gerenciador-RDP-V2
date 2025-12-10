@@ -4,6 +4,38 @@
 /* ============================================================================ */
 
 /* ======================================= */
+/* 🚫 BLOQUEIO DE SELEÇÃO DE TEXTO        */
+/* Comportamento de app desktop            */
+/* ======================================= */
+*,
+*::before,
+*::after {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Permite seleção em campos de input e textarea */
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Impede arrastar elementos */
+img,
+a,
+button {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
+
+/* ======================================= */
 /* 📐 FOOTER - Estilos e Z-Index          */
 /* ======================================= */
 .app-footer {
@@ -212,4 +244,127 @@ body.modal-open .app-footer {
     opacity: 0;
     pointer-events: none;
     visibility: hidden;
+}
+
+/* ======================================= */
+/* 🔧 CORREÇÃO FINAL - BOTÕES DE AÇÃO      */
+/* Garantir visibilidade dos botões de grupo */
+/* ======================================= */
+
+/* Forçar .group-actions a ser visível */
+.group-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Forçar botões de ação a serem visíveis */
+.action-button-icon {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.action-button-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    stroke: #ffffff !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Cores específicas por tipo de botão */
+.action-button-icon.add {
+    background: rgba(0, 175, 116, 0.2) !important;
+    border-color: rgba(0, 175, 116, 0.4) !important;
+    color: #00af74 !important;
+}
+
+.action-button-icon.add svg {
+    stroke: #00af74 !important;
+}
+
+.action-button-icon.edit {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    color: #3b82f6 !important;
+}
+
+.action-button-icon.edit svg {
+    stroke: #3b82f6 !important;
+}
+
+.action-button-icon.delete {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #ef4444 !important;
+}
+
+.action-button-icon.delete svg {
+    stroke: #ef4444 !important;
+}
+
+/* ======================================= */
+/* ✨ ANIMAÇÃO DE PULSO PARA STATUS ONLINE */
+/* ======================================= */
+@keyframes pulse-online {
+    0% {
+        box-shadow: 0 0 0 0 rgba(29, 233, 182, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(29, 233, 182, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(29, 233, 182, 0);
+    }
+}
+
+.status-indicator.online,
+.connectivity-status.online {
+    animation: pulse-online 2s infinite;
+}
+
+/* ======================================= */
+/* 🎨 MELHORIAS VISUAIS GERAIS            */
+/* ======================================= */
+
+/* Transições suaves em hover de cards */
+.server-card,
+.vnc-card,
+.vnc-list-item,
+.server-list-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.server-card:hover,
+.vnc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Cursor pointer em elementos clicáveis */
+.server-card,
+.vnc-card,
+.group-header,
+.sidebar-item {
+    cursor: pointer;
 }

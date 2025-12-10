@@ -213,6 +213,10 @@ try {
             // Busca e estatísticas
             searchConnections: (term, protocol) => ipcRenderer.invoke('db-search-connections', { term, protocol }),
             getStats: () => ipcRenderer.invoke('db-get-stats'),
+
+            // Sincronização
+            forceSync: () => ipcRenderer.invoke('force-sync-from-disk'),
+            getLastSyncTime: () => ipcRenderer.invoke('get-last-sync-time'),
         },
 
         // Novas APIs de conectividade

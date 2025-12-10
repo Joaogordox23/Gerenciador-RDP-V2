@@ -8,8 +8,9 @@ const { ipcMain, safeStorage, app } = require('electron');
  * @param {Object} deps - Dependências injetadas
  * @param {Object} deps.store - Instância do electron-store
  * @param {Object} deps.fileSystemManager - Gerenciador de arquivos
+ * @param {Object} deps.databaseManager - Gerenciador do SQLite
  */
-function registerStoreHandlers({ store, fileSystemManager }) {
+function registerStoreHandlers({ store, fileSystemManager, databaseManager }) {
     // ==========================
     // CLEAR DATA - Limpa todos os dados
     // ==========================
@@ -38,7 +39,77 @@ function registerStoreHandlers({ store, fileSystemManager }) {
         }
     });
 
-    console.log('✅ Store handlers registrados');
+    // ==========================
+    // SYNC FROM DISK - Sincronização manual
+    // ==========================
+    ipcMain.handle('force-sync-from-disk', async () => {
+        console.log('🔄 Sincronização manual solicitada...');
+        console.log('📂 Diretório de scan:', fileSystemManager.rootDir);
+
+        try {
+            const diskServers = fileSystemManager.scanServers();
+            console.log(`📊 Arquivos encontrados no disco: ${diskServers.length}`);
+
+            // Log detalhado dos arquivos encontrados
+            if (diskServers.length > 0) {
+                console.log('📋 Lista de servidores encontrados:');
+                diskServers.forEach((s, i) => {
+                    console.log(`   ${i + 1}. ${s.name} (${s.protocol}) - Grupo: ${s.groupName}`);
+                });
+            } else {
+                console.log('⚠️ Nenhum arquivo encontrado no disco!');
+                console.log('   Verifique se os arquivos estão em:');
+                console.log(`   - ${fileSystemManager.protocolDirs.vnc}`);
+                console.log(`   - ${fileSystemManager.protocolDirs.rdp}`);
+            }
+
+            let syncResult = { imported: 0, skipped: 0 };
+
+            if (diskServers.length > 0) {
+                syncResult = databaseManager.syncFromDisk(diskServers);
+            }
+
+            // Registrar timestamp da sincronização
+            databaseManager.setLastSyncTime();
+
+            // Recarregar dados atualizados
+            const groups = databaseManager.getAllGroups('rdp');
+            const vncGroups = databaseManager.getAllGroups('vnc');
+            const lastSyncTime = databaseManager.getLastSyncTime();
+
+            console.log(`✅ Sincronização manual concluída: ${syncResult.imported} importados, ${syncResult.skipped} já existentes`);
+            console.log(`📊 Total no banco: ${groups.length} grupos RDP, ${vncGroups.length} grupos VNC`);
+
+            return {
+                success: true,
+                imported: syncResult.imported,
+                skipped: syncResult.skipped,
+                lastSyncTime,
+                groups,
+                vncGroups
+            };
+        } catch (error) {
+            console.error('❌ Erro na sincronização manual:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    });
+
+    // ==========================
+    // GET LAST SYNC TIME - Obtém timestamp da última sincronização
+    // ==========================
+    ipcMain.handle('get-last-sync-time', async () => {
+        try {
+            return databaseManager.getLastSyncTime();
+        } catch (error) {
+            console.error('Erro ao obter última sincronização:', error);
+            return null;
+        }
+    });
+
+    console.log('✅ Store handlers registrados (inclui sync)');
 }
 
 /**

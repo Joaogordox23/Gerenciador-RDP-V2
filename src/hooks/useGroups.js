@@ -12,6 +12,9 @@ export function useGroups(toast) {
     // Flag para pular o sync no storage quando a operação já foi feita pontualmente via SQLite
     const skipNextStorageSync = useRef(false);
 
+    // Flag para pular sync durante operações de Drag and Drop (reordenação local apenas)
+    const skipDndSync = useRef(false);
+
     // Helper para mostrar erros/sucessos se o toast estiver disponível
     const showError = useCallback((message) => {
         if (toast && typeof message === 'string' && message.trim()) toast.error(message.trim());
@@ -79,7 +82,7 @@ export function useGroups(toast) {
         showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
     }, [showSuccess]);
 
-    const handleUpdateServer = useCallback(async (groupId, serverId, updatedData) => {
+    const handleUpdateServer = useCallback(async (groupId, serverId, updatedData, newGroupId = null) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
         // Não define hasUserMadeChanges para evitar salvamento em massa
         let serverWithEncryptedPassword = updatedData;
@@ -99,14 +102,38 @@ export function useGroups(toast) {
             }
         }
 
-        // Atualiza o state local com dados do backend (senha criptografada)
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...serverWithEncryptedPassword } : s)) };
-            }
-            return group;
-        }));
-        showSuccess('Servidor atualizado com sucesso.');
+        // Verifica se precisa mover para outro grupo
+        if (newGroupId && newGroupId !== groupId) {
+            hasUserMadeChanges.current = true;
+            setGroups(prev => {
+                // 1. Remove do grupo antigo
+                const withoutServer = prev.map(group => {
+                    if (group.id === groupId) {
+                        return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
+                    }
+                    return group;
+                });
+
+                // 2. Adiciona ao novo grupo
+                return withoutServer.map(group => {
+                    if (group.id === newGroupId) {
+                        const serverToMove = { ...serverWithEncryptedPassword, id: serverId };
+                        return { ...group, servers: [...(group.servers || []), serverToMove] };
+                    }
+                    return group;
+                });
+            });
+            showSuccess('Servidor movido para outro grupo com sucesso.');
+        } else {
+            // Atualiza o state local normalmente
+            setGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...serverWithEncryptedPassword } : s)) };
+                }
+                return group;
+            }));
+            showSuccess('Servidor atualizado com sucesso.');
+        }
     }, [showSuccess]);
 
     const handleDeleteServer = useCallback((groupId, serverId) => {
@@ -179,7 +206,7 @@ export function useGroups(toast) {
         showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
     }, [showSuccess]);
 
-    const handleUpdateVncConnection = useCallback(async (groupId, connectionId, updatedData) => {
+    const handleUpdateVncConnection = useCallback(async (groupId, connectionId, updatedData, newGroupId = null) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
         // Não define hasUserMadeChanges para evitar salvamento em massa
         let connectionWithEncryptedPassword = updatedData;
@@ -199,14 +226,38 @@ export function useGroups(toast) {
             }
         }
 
-        // Atualiza o state local com dados do backend (senha criptografada)
-        setVncGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...connectionWithEncryptedPassword } : c)) };
-            }
-            return group;
-        }));
-        showSuccess('Conexão VNC atualizada com sucesso');
+        // Verifica se precisa mover para outro grupo
+        if (newGroupId && newGroupId !== groupId) {
+            hasUserMadeChanges.current = true;
+            setVncGroups(prev => {
+                // 1. Remove do grupo antigo
+                const withoutConnection = prev.map(group => {
+                    if (group.id === groupId) {
+                        return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
+                    }
+                    return group;
+                });
+
+                // 2. Adiciona ao novo grupo
+                return withoutConnection.map(group => {
+                    if (group.id === newGroupId) {
+                        const connectionToMove = { ...connectionWithEncryptedPassword, id: connectionId };
+                        return { ...group, connections: [...(group.connections || []), connectionToMove] };
+                    }
+                    return group;
+                });
+            });
+            showSuccess('Conexão VNC movida para outro grupo com sucesso.');
+        } else {
+            // Atualiza o state local normalmente
+            setVncGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...connectionWithEncryptedPassword } : c)) };
+                }
+                return group;
+            }));
+            showSuccess('Conexão VNC atualizada com sucesso.');
+        }
     }, [showSuccess]);
 
     const handleDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
@@ -220,6 +271,54 @@ export function useGroups(toast) {
         }));
         showSuccess(`Conexão "${connectionName}" deletada.`);
     }, [showSuccess]);
+
+    // --- DRAG AND DROP FUNCTIONS (sem sync em massa) ---
+
+    // Reordena grupos (DnD de grupo)
+    const reorderGroups = useCallback((newGroups) => {
+        skipDndSync.current = true;
+        setGroups(newGroups);
+    }, []);
+
+    // Reordena servidores dentro do mesmo grupo
+    const reorderServersInGroup = useCallback((groupId, newServers) => {
+        skipDndSync.current = true;
+        setGroups(prev => prev.map(g =>
+            g.id === groupId ? { ...g, servers: newServers } : g
+        ));
+    }, []);
+
+    // Move servidor para outro grupo
+    const moveServerToGroup = useCallback((serverId, sourceGroupId, destGroupId, destIndex) => {
+        skipDndSync.current = true;
+        setGroups(prev => {
+            const sourceGroup = prev.find(g => g.id.toString() === sourceGroupId.toString());
+            const destGroup = prev.find(g => g.id.toString() === destGroupId.toString());
+
+            if (!sourceGroup || !destGroup) return prev;
+
+            const serverToMove = sourceGroup.servers.find(s => s.id === serverId);
+            if (!serverToMove) return prev;
+
+            return prev.map(g => {
+                if (g.id.toString() === sourceGroupId.toString()) {
+                    return { ...g, servers: g.servers.filter(s => s.id !== serverId) };
+                }
+                if (g.id.toString() === destGroupId.toString()) {
+                    const newServers = [...g.servers];
+                    newServers.splice(destIndex, 0, serverToMove);
+                    return { ...g, servers: newServers };
+                }
+                return g;
+            });
+        });
+    }, []);
+
+    // Reordena grupos VNC (DnD de grupo)
+    const reorderVncGroups = useCallback((newVncGroups) => {
+        skipDndSync.current = true;
+        setVncGroups(newVncGroups);
+    }, []);
 
     // --- INITIAL DATA LOADING & PERSISTENCE ---
 
@@ -266,6 +365,13 @@ export function useGroups(toast) {
             return;
         }
 
+        // Se a flag skipDndSync estiver ativa, pula o sync (operação de DnD - reordenação local)
+        if (skipDndSync.current) {
+            console.log('⏭️ useGroups: Pulando sync em massa (operação DnD)');
+            skipDndSync.current = false;
+            return;
+        }
+
         if (!isLoading && hasUserMadeChanges.current && window.api && window.api.storage) {
             const timeoutId = setTimeout(() => {
                 console.log('💾 useGroups: Sync de grupos no storage...');
@@ -294,6 +400,11 @@ export function useGroups(toast) {
         handleDeleteVncGroup,
         handleAddVncConnection,
         handleUpdateVncConnection,
-        handleDeleteVncConnection
+        handleDeleteVncConnection,
+        // DnD functions (sem sync em massa)
+        reorderGroups,
+        reorderServersInGroup,
+        moveServerToGroup,
+        reorderVncGroups
     };
 }

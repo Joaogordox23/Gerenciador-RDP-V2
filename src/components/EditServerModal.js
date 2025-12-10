@@ -2,12 +2,16 @@ import React from 'react';
 import EditServerForm from './EditServerForm';
 import './Modal.css';
 
-function EditServerModal({ server, onSave, onCancel }) {
+function EditServerModal({ server, groupId, groups, onSave, onCancel }) {
     const handleSave = (updatedData) => {
-        onSave({
+        // Se newGroupId foi alterado, passa para o handler
+        const newGroupId = updatedData.newGroupId;
+        delete updatedData.newGroupId; // Remove do objeto de dados
+
+        onSave(groupId, {
             ...server,
             ...updatedData
-        });
+        }, newGroupId);
     };
 
     return (
@@ -17,6 +21,8 @@ function EditServerModal({ server, onSave, onCancel }) {
                     serverInfo={server}
                     onSave={handleSave}
                     onCancel={onCancel}
+                    groups={groups}
+                    currentGroupId={groupId}
                 />
             </div>
         </div>

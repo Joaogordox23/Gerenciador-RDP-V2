@@ -157,6 +157,44 @@
     font-size: 13px;
 }
 
+/* Sync Container */
+.sync-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sync-btn {
+    padding: 10px !important;
+}
+
+.sync-btn.syncing {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.sync-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
+/* Spin animation for sync icon */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
 /* User Avatar */
 .header-user {
     margin-left: 8px;

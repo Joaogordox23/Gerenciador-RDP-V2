@@ -1,7 +1,8 @@
-// src/views/VncView.js (v4.2: Com suporte a viewMode)
+// src/views/VncView.js (v4.3: Com suporte a collapse global)
 
 import React, { useState } from 'react';
 import VncGroup from '../components/VncGroup';
+import { useUI } from '../contexts/UIContext';
 
 function VncView({
     vncGroups,
@@ -13,6 +14,7 @@ function VncView({
     viewMode = 'grid', // v4.1: Prop viewMode (grid ou list)
     ...groupProps
 }) {
+    const { allGroupsCollapsed } = useUI();
     const [editingGroupId, setEditingGroupId] = useState(null);
 
     const handleUpdateAndFinishEditing = (groupId, newName) => {
@@ -34,7 +36,8 @@ function VncView({
                         onUpdateVncGroup={handleUpdateAndFinishEditing}
                         onVncConnect={onVncConnect}
                         onShowAddConnectionModal={onShowAddConnectionModal}
-                        viewMode={viewMode} // v4.1: Passando viewMode para VncGroup
+                        viewMode={viewMode}
+                        forceCollapsed={allGroupsCollapsed ? true : null}
                         {...groupProps}
                     />
                 ))

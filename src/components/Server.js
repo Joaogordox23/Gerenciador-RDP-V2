@@ -19,7 +19,7 @@ import {
   BarChartIcon,
   LinkIcon,
   AccessTimeIcon,
-  LoadingIcon
+  OpenInNewIcon
 } from './MuiIcons';
 import LoadingOverlay from './LoadingOverlay';
 
@@ -32,7 +32,8 @@ function Server({
   index,
   isConnectivityEnabled = true,
   onEdit,
-  onRemoteConnect // Nova prop para conexão Guacamole
+  onRemoteConnect, // Conexão Guacamole (modal único)
+  onOpenInTab // Conexão em nova aba (sistema de abas)
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -82,6 +83,16 @@ function Server({
     e.stopPropagation();
     testServer(serverInfo);
   }, [testServer, serverInfo]);
+
+  // Handler para abrir em nova aba
+  const handleOpenInTab = useCallback((e) => {
+    e.stopPropagation();
+    if (onOpenInTab) {
+      const protocol = serverInfo.protocol || 'rdp';
+      console.log('📑 Abrindo em nova aba:', serverInfo.name, protocol);
+      onOpenInTab(serverInfo, protocol);
+    }
+  }, [onOpenInTab, serverInfo]);
 
   const handleToggleMonitoring = useCallback((e) => {
     e.stopPropagation();
@@ -249,6 +260,18 @@ function Server({
                   <RefreshIcon sx={{ fontSize: 20 }} />
                 </button>
               </>
+            )}
+
+            {/* Botão de nova aba - sempre visível quando disponível */}
+            {onOpenInTab && (
+              <button
+                type="button"
+                onClick={handleOpenInTab}
+                className="server-card-action-btn tab-btn"
+                title="Abrir em nova aba"
+              >
+                <OpenInNewIcon sx={{ fontSize: 20 }} />
+              </button>
             )}
 
             {isEditModeEnabled && (
