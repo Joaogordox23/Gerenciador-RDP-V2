@@ -27,7 +27,8 @@ function VncGroup({
     onUpdateVncGroup,
     onEditVnc,
     viewMode = 'grid',
-    forceCollapsed = null // Estado global de colapso (null = usar local, true/false = override)
+    forceCollapsed = null,
+    openConnectionIds = new Set() // IDs das conexões abertas em abas
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
@@ -143,6 +144,7 @@ function VncGroup({
                                 onDelete={() => onDeleteConnection(groupInfo.id, conn.id, conn.name)}
                                 onEdit={() => onEditVnc(conn, groupInfo.id)}
                                 onConnect={onVncConnect}
+                                isOpen={openConnectionIds.has(conn.id)}
                             />
                         )
                     ))}

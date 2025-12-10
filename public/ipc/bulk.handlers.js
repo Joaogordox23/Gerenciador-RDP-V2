@@ -50,7 +50,7 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
                         console.log(`  ✅ Servidor ${serverId} atualizado`);
 
                         // Atualiza arquivo físico
-                        const connection = databaseManager.getConnection(serverId);
+                        const connection = databaseManager.getConnectionById(serverId);
                         if (connection && fileSystemManager) {
                             fileSystemManager.saveConnectionFile(connection);
                         }
@@ -65,18 +65,15 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
 
             console.log(`✅ ${totalUpdated} servidor(es) atualizado(s) com sucesso`);
 
-            // Recarrega dados atualizados do SQLite para retornar ao frontend
-            const groups = databaseManager.getAllGroups('rdp');
-            const vncGroups = databaseManager.getAllGroups('vnc');
-
+            // ✅ OTIMIZAÇÃO: Não recarrega todos os grupos
+            // Retorna apenas os IDs atualizados para o frontend atualizar localmente
             return {
                 success: true,
                 updated: totalUpdated,
                 failed: servers.length - totalUpdated,
                 details: results,
-                // Retorna dados atualizados para o frontend atualizar a UI
-                groups,
-                vncGroups
+                // Frontend atualiza localmente com base nos IDs
+                updatedIds: results.filter(r => r.success).map(r => r.id)
             };
 
         } catch (error) {

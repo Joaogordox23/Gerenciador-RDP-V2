@@ -10,7 +10,7 @@ import './VncFullscreen.css';
  */
 function VncFullscreen({ connection, onClose }) {
     const [scaleViewport, setScaleViewport] = useState(true);
-    const [viewOnly, setViewOnly] = useState(false);
+    const [viewOnly, setViewOnly] = useState(true); // ✅ Inicia em modo visualização por padrão
     const [qualityLevel, setQualityLevel] = useState(9); // Máxima qualidade
     const [compressionLevel, setCompressionLevel] = useState(2);
     const [isFullscreen, setIsFullscreen] = useState(false);

@@ -26,23 +26,43 @@ export function useGroups(toast) {
 
     // --- RDP/SSH GROUPS ---
 
-    const handleAddGroup = useCallback((name) => {
+    const handleAddGroup = useCallback(async (name) => {
         const trimmedName = name.trim();
         if (!trimmedName) {
             showError('Nome do grupo não pode estar vazio.');
             return;
         }
-        hasUserMadeChanges.current = true;
-        setGroups(prevGroups => {
-            if (prevGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-                showError('Já existe um grupo com este nome.');
-                return prevGroups;
+
+        // ✅ OTIMIZAÇÃO: Verifica duplicata localmente primeiro
+        if (groups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
+            showError('Já existe um grupo com este nome.');
+            return;
+        }
+
+        // ✅ OTIMIZAÇÃO: Adiciona direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.addGroup(trimmedName, 'rdp');
+                if (result.success) {
+                    const newGroup = { id: result.id, groupName: trimmedName, servers: [] };
+                    setGroups(prevGroups => [...prevGroups, newGroup]);
+                    showSuccess(`Grupo "${trimmedName}" criado com sucesso`);
+                    console.log(`⚡ Grupo ${trimmedName} adicionado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao criar grupo no banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao adicionar grupo no SQLite:', error);
+                showError('Erro ao criar grupo.');
             }
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
             const newGroup = { id: Date.now(), groupName: trimmedName, servers: [] };
+            setGroups(prevGroups => [...prevGroups, newGroup]);
             showSuccess(`Grupo "${trimmedName}" criado com sucesso`);
-            return [...prevGroups, newGroup];
-        });
-    }, [showError, showSuccess]);
+        }
+    }, [groups, showError, showSuccess]);
 
     const handleUpdateGroup = useCallback((groupId, newGroupName) => {
         const trimmedName = newGroupName.trim();
@@ -61,26 +81,72 @@ export function useGroups(toast) {
         });
     }, [showError, showSuccess]);
 
-    const handleDeleteGroup = useCallback((groupId) => {
-        hasUserMadeChanges.current = true;
-        setGroups(prev => prev.filter(g => g.id !== groupId));
-        showSuccess('Grupo removido com sucesso');
-    }, [showSuccess]);
+    const handleDeleteGroup = useCallback(async (groupId) => {
+        // ✅ OTIMIZAÇÃO: Deleta direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.deleteGroup(groupId);
+                if (result.success) {
+                    setGroups(prev => prev.filter(g => g.id !== groupId));
+                    showSuccess('Grupo removido com sucesso');
+                    console.log(`⚡ Grupo ${groupId} deletado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao remover grupo do banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao deletar grupo no SQLite:', error);
+                showError('Erro ao remover grupo.');
+            }
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setGroups(prev => prev.filter(g => g.id !== groupId));
+            showSuccess('Grupo removido com sucesso');
+        }
+    }, [showSuccess, showError]);
 
     // --- RDP/SSH SERVERS ---
 
-    const handleAddServer = useCallback((groupId, serverData) => {
-        hasUserMadeChanges.current = true;
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                const newServer = { ...serverData, id: Date.now() + Math.floor(Math.random() * 10000) };
-                const updatedServers = Array.isArray(group.servers) ? [...group.servers, newServer] : [newServer];
-                return { ...group, servers: updatedServers };
+    const handleAddServer = useCallback(async (groupId, serverData) => {
+        // ✅ OTIMIZAÇÃO: Adiciona direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.addConnection(groupId, {
+                    ...serverData,
+                    protocol: serverData.protocol || 'rdp'
+                });
+                if (result.success) {
+                    const newServer = { ...serverData, id: result.id };
+                    setGroups(prev => prev.map(group => {
+                        if (group.id === groupId) {
+                            const updatedServers = Array.isArray(group.servers) ? [...group.servers, newServer] : [newServer];
+                            return { ...group, servers: updatedServers };
+                        }
+                        return group;
+                    }));
+                    showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
+                    console.log(`⚡ Servidor ${serverData.name} adicionado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao adicionar servidor no banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao adicionar servidor no SQLite:', error);
+                showError('Erro ao adicionar servidor.');
             }
-            return group;
-        }));
-        showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
-    }, [showSuccess]);
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    const newServer = { ...serverData, id: Date.now() + Math.floor(Math.random() * 10000) };
+                    const updatedServers = Array.isArray(group.servers) ? [...group.servers, newServer] : [newServer];
+                    return { ...group, servers: updatedServers };
+                }
+                return group;
+            }));
+            showSuccess(`Servidor "${serverData.name}" adicionado com sucesso.`);
+        }
+    }, [showSuccess, showError]);
 
     const handleUpdateServer = useCallback(async (groupId, serverId, updatedData, newGroupId = null) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
@@ -136,36 +202,79 @@ export function useGroups(toast) {
         }
     }, [showSuccess]);
 
-    const handleDeleteServer = useCallback((groupId, serverId) => {
-        hasUserMadeChanges.current = true;
-        setGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
+    const handleDeleteServer = useCallback(async (groupId, serverId) => {
+        // ✅ OTIMIZAÇÃO: Deleta direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.deleteConnection(serverId);
+                if (result.success) {
+                    setGroups(prev => prev.map(group => {
+                        if (group.id === groupId) {
+                            return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
+                        }
+                        return group;
+                    }));
+                    showSuccess('Servidor removido com sucesso.');
+                    console.log(`⚡ Servidor ${serverId} deletado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao remover servidor do banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao deletar servidor no SQLite:', error);
+                showError('Erro ao remover servidor.');
             }
-            return group;
-        }));
-        showSuccess('Servidor removido com sucesso.');
-    }, [showSuccess]);
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    return { ...group, servers: group.servers.filter(s => s.id !== serverId) };
+                }
+                return group;
+            }));
+            showSuccess('Servidor removido com sucesso.');
+        }
+    }, [showSuccess, showError]);
 
     // --- VNC GROUPS ---
 
-    const handleAddVncGroup = useCallback((name) => {
+    const handleAddVncGroup = useCallback(async (name) => {
         const trimmedName = name.trim();
         if (!trimmedName) {
             showError('Nome do grupo não pode estar vazio.');
             return;
         }
-        hasUserMadeChanges.current = true;
-        setVncGroups(prevVncGroups => {
-            if (prevVncGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
-                showError('Já existe um grupo VNC com este nome.');
-                return prevVncGroups;
+
+        // ✅ OTIMIZAÇÃO: Verifica duplicata localmente primeiro
+        if (vncGroups.some(g => g.groupName.toLowerCase() === trimmedName.toLowerCase())) {
+            showError('Já existe um grupo VNC com este nome.');
+            return;
+        }
+
+        // ✅ OTIMIZAÇÃO: Adiciona direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.addGroup(trimmedName, 'vnc');
+                if (result.success) {
+                    const newGroup = { id: result.id, groupName: trimmedName, connections: [] };
+                    setVncGroups(prevVncGroups => [...prevVncGroups, newGroup]);
+                    showSuccess(`Grupo VNC "${trimmedName}" criado com sucesso`);
+                    console.log(`⚡ Grupo VNC ${trimmedName} adicionado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao criar grupo VNC no banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao adicionar grupo VNC no SQLite:', error);
+                showError('Erro ao criar grupo VNC.');
             }
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
             const newGroup = { id: Date.now(), groupName: trimmedName, connections: [] };
+            setVncGroups(prevVncGroups => [...prevVncGroups, newGroup]);
             showSuccess(`Grupo VNC "${trimmedName}" criado com sucesso`);
-            return [...prevVncGroups, newGroup];
-        });
-    }, [showError, showSuccess]);
+        }
+    }, [vncGroups, showError, showSuccess]);
 
     const handleUpdateVncGroup = useCallback((groupId, newGroupName) => {
         const trimmedName = newGroupName.trim();
@@ -184,27 +293,72 @@ export function useGroups(toast) {
         });
     }, [showError, showSuccess]);
 
-    const handleDeleteVncGroup = useCallback((groupId, groupName) => {
-        // A confirmação deve ser feita no componente UI antes de chamar esta função
-        hasUserMadeChanges.current = true;
-        setVncGroups(prev => prev.filter(g => g.id !== groupId));
-        showSuccess(`Grupo VNC "${groupName}" deletado.`);
-    }, [showSuccess]);
+    const handleDeleteVncGroup = useCallback(async (groupId, groupName) => {
+        // ✅ OTIMIZAÇÃO: Deleta direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.deleteGroup(groupId);
+                if (result.success) {
+                    setVncGroups(prev => prev.filter(g => g.id !== groupId));
+                    showSuccess(`Grupo VNC "${groupName}" deletado.`);
+                    console.log(`⚡ Grupo VNC ${groupId} deletado via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao remover grupo VNC do banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao deletar grupo VNC no SQLite:', error);
+                showError('Erro ao remover grupo VNC.');
+            }
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setVncGroups(prev => prev.filter(g => g.id !== groupId));
+            showSuccess(`Grupo VNC "${groupName}" deletado.`);
+        }
+    }, [showSuccess, showError]);
 
     // --- VNC CONNECTIONS ---
 
-    const handleAddVncConnection = useCallback((groupId, connectionData) => {
-        hasUserMadeChanges.current = true;
-        setVncGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                const newConnection = { ...connectionData, id: Date.now() + Math.floor(Math.random() * 10000) };
-                const updatedConnections = Array.isArray(group.connections) ? [...group.connections, newConnection] : [newConnection];
-                return { ...group, connections: updatedConnections };
+    const handleAddVncConnection = useCallback(async (groupId, connectionData) => {
+        // ✅ OTIMIZAÇÃO: Adiciona direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.addConnection(groupId, {
+                    ...connectionData,
+                    protocol: 'vnc'
+                });
+                if (result.success) {
+                    const newConnection = { ...connectionData, id: result.id };
+                    setVncGroups(prev => prev.map(group => {
+                        if (group.id === groupId) {
+                            const updatedConnections = Array.isArray(group.connections) ? [...group.connections, newConnection] : [newConnection];
+                            return { ...group, connections: updatedConnections };
+                        }
+                        return group;
+                    }));
+                    showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
+                    console.log(`⚡ Conexão VNC ${connectionData.name} adicionada via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao adicionar conexão VNC no banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao adicionar conexão VNC no SQLite:', error);
+                showError('Erro ao adicionar conexão VNC.');
             }
-            return group;
-        }));
-        showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
-    }, [showSuccess]);
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setVncGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    const newConnection = { ...connectionData, id: Date.now() + Math.floor(Math.random() * 10000) };
+                    const updatedConnections = Array.isArray(group.connections) ? [...group.connections, newConnection] : [newConnection];
+                    return { ...group, connections: updatedConnections };
+                }
+                return group;
+            }));
+            showSuccess(`Conexão "${connectionData.name}" adicionada com sucesso`);
+        }
+    }, [showSuccess, showError]);
 
     const handleUpdateVncConnection = useCallback(async (groupId, connectionId, updatedData, newGroupId = null) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
@@ -260,17 +414,39 @@ export function useGroups(toast) {
         }
     }, [showSuccess]);
 
-    const handleDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
-        // A confirmação deve ser feita no componente UI
-        hasUserMadeChanges.current = true;
-        setVncGroups(prev => prev.map(group => {
-            if (group.id === groupId) {
-                return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
+    const handleDeleteVncConnection = useCallback(async (groupId, connectionId, connectionName) => {
+        // ✅ OTIMIZAÇÃO: Deleta direto no SQLite (PONTUAL!)
+        if (window.api && window.api.db) {
+            try {
+                const result = await window.api.db.deleteConnection(connectionId);
+                if (result.success) {
+                    setVncGroups(prev => prev.map(group => {
+                        if (group.id === groupId) {
+                            return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
+                        }
+                        return group;
+                    }));
+                    showSuccess(`Conexão "${connectionName}" deletada.`);
+                    console.log(`⚡ Conexão VNC ${connectionId} deletada via SQLite (pontual)`);
+                } else {
+                    showError('Erro ao remover conexão VNC do banco de dados.');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao deletar conexão VNC no SQLite:', error);
+                showError('Erro ao remover conexão VNC.');
             }
-            return group;
-        }));
-        showSuccess(`Conexão "${connectionName}" deletada.`);
-    }, [showSuccess]);
+        } else {
+            // Fallback para modo antigo
+            hasUserMadeChanges.current = true;
+            setVncGroups(prev => prev.map(group => {
+                if (group.id === groupId) {
+                    return { ...group, connections: group.connections.filter(c => c.id !== connectionId) };
+                }
+                return group;
+            }));
+            showSuccess(`Conexão "${connectionName}" deletada.`);
+        }
+    }, [showSuccess, showError]);
 
     // --- DRAG AND DROP FUNCTIONS (sem sync em massa) ---
 
@@ -353,35 +529,18 @@ export function useGroups(toast) {
         }
     }, []);
 
-    useEffect(() => {
-        // ✅ NOTA: Salvamento pontual agora é feito diretamente nos handlers via SQLite.
-        // Este useEffect é APENAS para operações de add/delete (que precisam do sync em massa).
-        // Updates (handleUpdateServer, handleUpdateVncConnection) são pontuais e pulam este sync.
-
-        // Se a flag skipNextStorageSync estiver ativa, apenas reseta e não faz o sync
-        if (skipNextStorageSync.current) {
-            console.log('⏭️ useGroups: Pulando sync em massa (operação já foi pontual)');
-            skipNextStorageSync.current = false;
-            return;
-        }
-
-        // Se a flag skipDndSync estiver ativa, pula o sync (operação de DnD - reordenação local)
-        if (skipDndSync.current) {
-            console.log('⏭️ useGroups: Pulando sync em massa (operação DnD)');
-            skipDndSync.current = false;
-            return;
-        }
-
-        if (!isLoading && hasUserMadeChanges.current && window.api && window.api.storage) {
-            const timeoutId = setTimeout(() => {
-                console.log('💾 useGroups: Sync de grupos no storage...');
-                window.api.storage.set('groups', groups);
-                window.api.storage.set('vncGroups', vncGroups);
-            }, 2000); // Aumentado para 2s para reduzir frequência
-
-            return () => clearTimeout(timeoutId);
-        }
-    }, [groups, vncGroups, isLoading]);
+    // ✅ OTIMIZAÇÃO: useEffect de sync em massa REMOVIDO
+    // Todas as operações (add/update/delete) agora são pontuais via SQLite.
+    // O código antigo fazia sync de TODOS os grupos a cada alteração.
+    // Mantido apenas para referência - pode ser removido completamente no futuro.
+    //
+    // CÓDIGO REMOVIDO:
+    // useEffect(() => {
+    //     if (!isLoading && hasUserMadeChanges.current) {
+    //         window.api.storage.set('groups', groups);
+    //         window.api.storage.set('vncGroups', vncGroups);
+    //     }
+    // }, [groups, vncGroups, isLoading]);
 
     return {
         groups,

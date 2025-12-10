@@ -184,6 +184,7 @@ class DatabaseManager {
 
     /**
      * Atualiza uma conexão existente (OPERAÇÃO PONTUAL!)
+     * ✅ OTIMIZAÇÃO: Retorna a conexão atualizada diretamente
      */
     updateConnection(connectionId, updatedData) {
         const startTime = Date.now();
@@ -211,6 +212,11 @@ class DatabaseManager {
         );
 
         console.log(`⚡ updateConnection(${connectionId}): ${Date.now() - startTime}ms`);
+
+        // ✅ OTIMIZAÇÃO: Retorna a conexão atualizada diretamente (evita leitura extra no handler)
+        if (result.changes > 0) {
+            return { ...result, connection: this.getConnectionById(connectionId) };
+        }
         return result;
     }
 

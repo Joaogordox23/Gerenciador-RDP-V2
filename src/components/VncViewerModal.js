@@ -15,7 +15,7 @@ function VncViewerModal({ connectionInfo, onClose }) {
     const [error, setError] = useState(null);
 
     // Estados controlados pela toolbar
-    const [viewOnly, setViewOnly] = useState(false);
+    const [viewOnly, setViewOnly] = useState(true); // ✅ Inicia em modo visualização por padrão
     const [scaleViewport, setScaleViewport] = useState(true);
     const [qualityLevel, setQualityLevel] = useState(6);
     const [compressionLevel, setCompressionLevel] = useState(2);

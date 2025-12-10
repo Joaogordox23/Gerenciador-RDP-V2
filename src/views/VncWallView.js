@@ -10,6 +10,7 @@ import {
     NavigateNextIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    CloseIcon,
 } from '../components/MuiIcons';
 import './VncWallView.css';
 
@@ -148,6 +149,30 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
     };
 
     const allSelected = allConnections.length > 0 && connections.length === allConnections.length;
+
+    // ✨ v4.5: Atalhos de teclado
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // ESC fecha fullscreen
+            if (e.key === 'Escape' && fullscreenConnection) {
+                setFullscreenConnection(null);
+            }
+            // Setas navegam carrossel
+            if (carouselMode && connections.length > 0) {
+                if (e.key === 'ArrowRight') {
+                    handleNext();
+                } else if (e.key === 'ArrowLeft') {
+                    handlePrevious();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    handlePlayPause();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [fullscreenConnection, carouselMode, connections.length]);
 
     return (
         <div className="vnc-wall-container">
@@ -289,6 +314,18 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
 
             {/* Grid de Visualização */}
             <div className="vnc-wall-main">
+                {/* ✨ v4.5: Header com contador */}
+                {connections.length > 0 && (
+                    <div className="vnc-wall-main-header">
+                        <span className="wall-active-count">
+                            <span className="count-number">{connections.length}</span>
+                            <span className="count-label">de {allConnections.length} ativos</span>
+                        </span>
+                        <span className="wall-mode-indicator">
+                            {carouselMode ? '🎠 Carrossel' : '📺 Grid'} • {gridColumns} col
+                        </span>
+                    </div>
+                )}
                 {/* ✨ v4.0: Renderização condicional - Carrossel vs Grid */}
                 {carouselMode ? (
                     connections.length === 0 ? (
@@ -307,8 +344,22 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                                         (currentIndex + 1) * itemsPerPage
                                     )
                                     .map(conn => (
-                                        <div key={conn.id} className="vnc-wall-item" onDoubleClick={() => handleDoubleClick(conn)}>
+                                        <div
+                                            key={conn.id}
+                                            className="vnc-wall-item"
+                                            onDoubleClick={() => handleDoubleClick(conn)}
+                                            title={`${conn.name}\n${conn.ipAddress}:${conn.port}\nGrupo: ${conn.groupName}\nDuplo clique para fullscreen`}
+                                        >
+                                            {/* Botão Fechar Individual */}
+                                            <button
+                                                className="vnc-wall-item-close"
+                                                onClick={(e) => { e.stopPropagation(); handleStopMonitoring(conn.id); }}
+                                                title="Fechar conexão"
+                                            >
+                                                <CloseIcon sx={{ fontSize: 16 }} />
+                                            </button>
                                             <div className="vnc-wall-item-label">
+                                                <span className="vnc-wall-item-status"></span>
                                                 <span className="vnc-wall-item-name">{conn.name}</span>
                                             </div>
                                             <VncDisplay
@@ -342,9 +393,23 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                             gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
                         }}>
                             {connections.map(conn => (
-                                <div key={conn.id} className="vnc-wall-item" onDoubleClick={() => handleDoubleClick(conn)}>
-                                    {/* Label com nome do computador */}
+                                <div
+                                    key={conn.id}
+                                    className="vnc-wall-item"
+                                    onDoubleClick={() => handleDoubleClick(conn)}
+                                    title={`${conn.name}\n${conn.ipAddress}:${conn.port}\nGrupo: ${conn.groupName}\nDuplo clique para fullscreen`}
+                                >
+                                    {/* Botão Fechar Individual */}
+                                    <button
+                                        className="vnc-wall-item-close"
+                                        onClick={(e) => { e.stopPropagation(); handleStopMonitoring(conn.id); }}
+                                        title="Fechar conexão"
+                                    >
+                                        <CloseIcon sx={{ fontSize: 16 }} />
+                                    </button>
+                                    {/* Label com nome e status */}
                                     <div className="vnc-wall-item-label">
+                                        <span className="vnc-wall-item-status"></span>
                                         <span className="vnc-wall-item-name">{conn.name}</span>
                                     </div>
                                     <VncDisplay

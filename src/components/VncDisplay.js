@@ -113,11 +113,16 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
 
                 // ✅ MODO STEALTH: Não altera nada na área de trabalho remota
                 rfb.resizeSession = false; // CRÍTICO: Não redimensiona sessão remota
-                rfb.showDotCursor = false; // Esconde cursor local (usa cursor remoto)
+                rfb.showDotCursor = true; // ✅ Mostra cursor ponto quando servidor não tem mouse físico
 
                 // ✅ Configurações de qualidade e compressão
                 rfb.qualityLevel = quality; // 0-9 (maior = melhor qualidade JPEG)
                 rfb.compressionLevel = compression; // 0-9 (maior = mais compressão)
+
+                // ✅ CAPTURA DE TECLAS ESPECIAIS (Ctrl+C/V, Windows, etc)
+                // noVNC captura teclas automaticamente quando o canvas tem foco
+                // focusOnClick garante que clicar no VNC dá foco para capturar teclas
+                rfb.focusOnClick = true;
 
                 rfb.addEventListener('connect', () => {
                     console.log(`✅ [${connectionInfo.name}] Conectado via proxy!`);

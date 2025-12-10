@@ -521,7 +521,7 @@ function AppContent() {
                                     isEditModeEnabled={isEditModeEnabled}
                                     onShowAddConnectionModal={openAddServerToGroup}
                                     viewMode={vncViewMode}
-                                    onVncConnect={openVncConnection}
+                                    onVncConnect={(conn) => addTabConnection(conn, 'vnc')}
                                 />
                             )}
                             {activeView === 'VNC Wall' && (

@@ -1,22 +1,22 @@
-// src/components/VncConnection.js (Versão noVNC integrado)
+// src/components/VncConnection.js (v2.0: Com indicador de conexão aberta)
 import React from 'react';
 import {
     EditIcon,
     DeleteIcon,
     ComputerIcon,
-    PersonOutlineIcon
+    PersonOutlineIcon,
+    CheckCircleIcon
 } from './MuiIcons';
 import './VncConnection.css';
 
-function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect }) {
+function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect, isOpen = false }) {
 
     const handleConnect = () => {
         if (isEditModeEnabled) return;
 
-        // Chama callback para abrir o modal Guacamole
+        // Chama callback para abrir o modal/aba
         if (onConnect) {
-            console.log("🥑 Abrindo conexão VNC (Guacamole):", connectionInfo.name);
-            // Adiciona protocolo para o Guacamole
+            console.log("🖥️ Abrindo conexão VNC:", connectionInfo.name, isOpen ? "(já aberta)" : "(nova)");
             onConnect({
                 ...connectionInfo,
                 protocol: 'vnc'
@@ -27,7 +27,18 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, on
     };
 
     return (
-        <div className="vnc-connection server-card-base" onClick={handleConnect}>
+        <div
+            className={`vnc-connection server-card-base ${isOpen ? 'is-open' : ''}`}
+            onClick={handleConnect}
+        >
+            {/* Badge de conexão aberta */}
+            {isOpen && (
+                <div className="vnc-open-badge" title="Conexão aberta em aba">
+                    <CheckCircleIcon sx={{ fontSize: 14 }} />
+                    <span>Aberta</span>
+                </div>
+            )}
+
             <div className="server-card-header">
                 <div className="server-card-info">
                     <div className="server-card-title">

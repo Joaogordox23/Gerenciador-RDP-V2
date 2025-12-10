@@ -59,6 +59,21 @@ class FileSystemManager {
     }
 
     /**
+     * ✅ OTIMIZAÇÃO: Verifica se o conteúdo do arquivo mudou antes de escrever
+     * Evita escritas desnecessárias quando o conteúdo é idêntico
+     */
+    _hasContentChanged(filePath, newContent) {
+        try {
+            if (!fs.existsSync(filePath)) return true;
+            const existingContent = fs.readFileSync(filePath, 'utf8');
+            return existingContent !== newContent;
+        } catch (error) {
+            // Em caso de erro, assume que mudou para garantir escrita
+            return true;
+        }
+    }
+
+    /**
      * Salva um arquivo de conexão baseado no servidor.
      * @param {Object} server Objeto do servidor
      */
@@ -190,7 +205,13 @@ class FileSystemManager {
             'autoreconnection enabled:i:1'
         ].join('\r\n');
 
-        fs.writeFileSync(filePath, content, 'utf8');
+        // ✅ OTIMIZAÇÃO: Só escreve se o conteúdo mudou
+        if (this._hasContentChanged(filePath, content)) {
+            fs.writeFileSync(filePath, content, 'utf8');
+            console.log(`⚡ Arquivo RDP atualizado: ${name}.rdp`);
+        } else {
+            console.log(`⏭️ Arquivo RDP inalterado: ${name}.rdp`);
+        }
     }
 
     /**
@@ -198,12 +219,15 @@ class FileSystemManager {
      */
     _createVncFile(dir, name, server) {
         const filePath = path.join(dir, `${name}.vnc`);
-        const content = `[Connection]
-Host=${server.ipAddress}
-Port=${server.port || 5900}
-Password=
-`;
-        fs.writeFileSync(filePath, content, 'utf8');
+        const content = `[Connection]\r\nHost=${server.ipAddress}\r\nPort=${server.port || 5900}\r\nPassword=\r\n`;
+
+        // ✅ OTIMIZAÇÃO: Só escreve se o conteúdo mudou
+        if (this._hasContentChanged(filePath, content)) {
+            fs.writeFileSync(filePath, content, 'utf8');
+            console.log(`⚡ Arquivo VNC atualizado: ${name}.vnc`);
+        } else {
+            console.log(`⏭️ Arquivo VNC inalterado: ${name}.vnc`);
+        }
     }
 
     /**

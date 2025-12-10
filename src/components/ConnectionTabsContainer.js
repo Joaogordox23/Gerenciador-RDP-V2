@@ -8,7 +8,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useModals } from '../contexts/ModalContext';
 import VncViewerModal from './VncViewerModal';
 import ConnectionViewerModal from './ConnectionViewerModal';
-import { CloseIcon, MonitorIcon, TerminalIcon } from './MuiIcons';
+import { CloseIcon, MonitorIcon, TerminalIcon, ChevronLeftIcon } from './MuiIcons';
 import './ConnectionTabsContainer.css';
 
 function ConnectionTabsContainer() {
@@ -18,6 +18,9 @@ function ConnectionTabsContainer() {
         removeTabConnection,
         switchToTab
     } = useModals();
+
+    // Estado para minimizar o container (voltar para lista)
+    const [isMinimized, setIsMinimized] = React.useState(false);
 
     // Encontra a aba ativa (useMemo para performance)
     const activeTab = useMemo(() =>
@@ -69,10 +72,36 @@ function ConnectionTabsContainer() {
         return null;
     }
 
+    // Se minimizado, mostra apenas barra flutuante
+    if (isMinimized) {
+        return (
+            <div className="connection-tabs-minimized">
+                <button
+                    className="tabs-restore-btn"
+                    onClick={() => setIsMinimized(false)}
+                    title="Restaurar conexões"
+                >
+                    <MonitorIcon sx={{ fontSize: 16 }} />
+                    <span>{tabConnections.length} conexão(ões) ativa(s)</span>
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="connection-tabs-container">
             {/* Barra de Abas */}
             <div className="connection-tabs-bar">
+                {/* Botão Voltar */}
+                <button
+                    className="tabs-back-btn"
+                    onClick={() => setIsMinimized(true)}
+                    title="Voltar para lista de conexões"
+                >
+                    <ChevronLeftIcon sx={{ fontSize: 16 }} />
+                    Voltar
+                </button>
+
                 {tabConnections.map(tab => (
                     <div
                         key={tab.id}
