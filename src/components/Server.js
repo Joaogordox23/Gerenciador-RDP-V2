@@ -66,13 +66,15 @@ function Server({
         console.log('🔐 Conectando SSH nativo:', serverInfo.name);
         onOpenInTab(serverInfo, 'ssh');
       }
-      // RDP: Usa Guacamole se disponível, senão mstsc.exe
+      // RDP: Usa mstsc.exe nativo (cmdkey + arquivo .rdp)
+      else if (protocol === 'rdp' && window.api?.connection?.connect) {
+        console.log('🖥️ Conectando RDP nativo (mstsc.exe):', serverInfo.name);
+        await window.api.connection.connect(serverInfo);
+      }
+      // Fallback: Guacamole se configurado
       else if (onRemoteConnect) {
         console.log('🥑 Conectando via Guacamole:', serverInfo.name);
         onRemoteConnect(serverInfo);
-      } else if (window.api?.connection?.connect) {
-        console.log('🖥️ Conectando via mstsc.exe:', serverInfo.name);
-        await window.api.connection.connect(serverInfo);
       } else {
         console.error('❌ API de conexão não disponível');
         throw new Error('API de conexão não disponível');

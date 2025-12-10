@@ -174,66 +174,93 @@ function handleRdpConnection(serverInfo, isDev, mainWindow, fileSystemManager) {
     }
 
     // Conexão RDP com credenciais
-    const fullUsername = serverInfo.domain ? `${serverInfo.domain}\\${serverInfo.username}` : serverInfo.username;
+    // O username para cmdkey deve incluir o domínio se houver
+    const fullUsername = serverInfo.domain
+        ? `${serverInfo.domain}\\${serverInfo.username}`
+        : serverInfo.username;
+
+    // Target para cmdkey - formato TERMSRV/hostname é obrigatório para RDP
     const target = `TERMSRV/${serverInfo.ipAddress}`;
 
     console.log(`🔐 Preparando conexão RDP:`);
     console.log(`   - Target: ${target}`);
     console.log(`   - Usuário: ${fullUsername}`);
     console.log(`   - IP: ${serverInfo.ipAddress}`);
+    console.log(`   - Senha: ${'*'.repeat(plainTextPassword.length)}`);
 
-    // Salvando credencial
-    const cmdkeyArgs = serverInfo.domain
-        ? ['/add:' + target, '/user:' + fullUsername, '/pass:' + plainTextPassword]
-        : ['/generic:' + target, '/user:' + fullUsername, '/pass:' + plainTextPassword];
+    // Primeiro, remove qualquer credencial existente para evitar conflitos
+    const deleteExisting = spawn('cmdkey', ['/delete:' + target]);
 
-    console.log(`🔧 Tipo de cmdkey: ${serverInfo.domain ? 'Domain (/add)' : 'Generic (/generic)'}`);
-
-    const addKey = spawn('cmdkey', cmdkeyArgs);
-
-    let cmdkeyError = '';
-    addKey.stderr.on('data', (data) => {
-        cmdkeyError += data.toString();
-    });
-
-    addKey.on('close', (code) => {
-        if (code !== 0) {
-            console.error(`❌ cmdkey falhou com código ${code}`);
-            dialog.showErrorBox('Erro de Credencial', 'Não foi possível salvar a credencial temporária.');
-            return;
+    deleteExisting.on('close', (deleteCode) => {
+        if (deleteCode === 0) {
+            console.log('🧹 Credencial anterior removida.');
         }
 
-        console.log(`✅ Credencial RDP adicionada com sucesso (cmdkey).`);
+        // Agora adiciona a nova credencial
+        // IMPORTANTE: Sempre usar /add: para credenciais de RDP (TERMSRV)
+        const cmdkeyArgs = ['/add:' + target, '/user:' + fullUsername, '/pass:' + plainTextPassword];
 
-        if (mainWindow) {
-            mainWindow.webContents.send('connection-status-update', serverInfo.id, 'active');
-        }
+        console.log(`🔧 Executando: cmdkey /add:${target} /user:${fullUsername} /pass:***`);
 
-        // Obtém o caminho do arquivo RDP
-        const rdpFilePath = fileSystemManager.getFilePath(serverInfo);
+        const addKey = spawn('cmdkey', cmdkeyArgs);
 
-        if (!fs.existsSync(rdpFilePath)) {
-            console.log(`⚠️ Arquivo RDP não encontrado. Recriando...`);
-            fileSystemManager.saveConnectionFile(serverInfo);
-        }
+        let cmdkeyOutput = '';
+        let cmdkeyError = '';
 
-        console.log(`📄 Usando arquivo RDP: ${rdpFilePath}`);
+        addKey.stdout.on('data', (data) => {
+            cmdkeyOutput += data.toString();
+        });
 
-        // Inicia MSTSC
-        const mstsc = spawn('mstsc.exe', [rdpFilePath, '/admin']);
+        addKey.stderr.on('data', (data) => {
+            cmdkeyError += data.toString();
+        });
 
-        mstsc.on('close', (mstscCode) => {
-            console.log(`🏁 Sessão RDP finalizada (código ${mstscCode}).`);
+        addKey.on('close', (code) => {
+            console.log(`📋 cmdkey stdout: ${cmdkeyOutput.trim()}`);
 
-            if (mainWindow) {
-                mainWindow.webContents.send('connection-status-update', serverInfo.id, 'inactive');
+            if (code !== 0 || cmdkeyError) {
+                console.error(`❌ cmdkey falhou com código ${code}`);
+                console.error(`❌ cmdkey stderr: ${cmdkeyError}`);
+                dialog.showErrorBox('Erro de Credencial',
+                    `Não foi possível salvar a credencial temporária.\n\nErro: ${cmdkeyError || 'Código ' + code}`);
+                return;
             }
 
-            // Limpa credenciais
-            const deleteKey = spawn('cmdkey', ['/delete:' + target]);
-            deleteKey.on('close', () => {
-                console.log('🧹 Credencial RDP limpa com sucesso.');
-            });
+            console.log(`✅ Credencial RDP adicionada com sucesso (cmdkey).`);
+
+            if (mainWindow) {
+                mainWindow.webContents.send('connection-status-update', serverInfo.id, 'active');
+            }
+
+            // Pequeno delay para garantir que o Windows Credential Manager processou a credencial
+            setTimeout(() => {
+                // Obtém ou cria o arquivo RDP
+                const rdpFilePath = fileSystemManager.getFilePath(serverInfo);
+
+                if (!fs.existsSync(rdpFilePath)) {
+                    console.log(`⚠️ Arquivo RDP não encontrado. Recriando...`);
+                    fileSystemManager.saveConnectionFile(serverInfo);
+                }
+
+                console.log(`📄 Usando arquivo RDP: ${rdpFilePath}`);
+
+                // Inicia MSTSC com o arquivo RDP
+                const mstsc = spawn('mstsc.exe', [rdpFilePath]);
+
+                mstsc.on('close', (mstscCode) => {
+                    console.log(`🏁 Sessão RDP finalizada (código ${mstscCode}).`);
+
+                    if (mainWindow) {
+                        mainWindow.webContents.send('connection-status-update', serverInfo.id, 'inactive');
+                    }
+
+                    // Limpa credenciais após a sessão
+                    const deleteKey = spawn('cmdkey', ['/delete:' + target]);
+                    deleteKey.on('close', () => {
+                        console.log('🧹 Credencial RDP limpa com sucesso.');
+                    });
+                });
+            }, 500); // Delay de 500ms para garantir que a credencial foi salva
         });
     });
 }

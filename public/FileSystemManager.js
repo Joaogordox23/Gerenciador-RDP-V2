@@ -231,6 +231,31 @@ class FileSystemManager {
     }
 
     /**
+     * Cria arquivo .ssh (configuração de referência para conexões SSH)
+     * Nota: O SSH nativo usa xterm.js + ssh2, não precisa de arquivo para executar,
+     * mas criamos um arquivo de referência para backup/documentação.
+     */
+    _createSshFile(dir, name, server) {
+        const filePath = path.join(dir, `${name}.ssh`);
+        const content = [
+            `# SSH Connection: ${name}`,
+            `Host=${server.ipAddress}`,
+            `Port=${server.port || 22}`,
+            `Username=${server.username || ''}`,
+            `# Password is stored encrypted in database`,
+            `# Created by Gerenciador RDP v4`
+        ].join('\r\n');
+
+        // ✅ OTIMIZAÇÃO: Só escreve se o conteúdo mudou
+        if (this._hasContentChanged(filePath, content)) {
+            fs.writeFileSync(filePath, content, 'utf8');
+            console.log(`⚡ Arquivo SSH atualizado: ${name}.ssh`);
+        } else {
+            console.log(`⏭️ Arquivo SSH inalterado: ${name}.ssh`);
+        }
+    }
+
+    /**
      * Escaneia recursivamente o diretório raiz e retorna uma lista de todos os servidores encontrados.
      */
     scanServers() {
