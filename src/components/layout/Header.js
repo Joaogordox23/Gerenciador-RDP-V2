@@ -10,7 +10,8 @@ import {
     AddCircleOutlineIcon,
     LockIcon,
     GridViewIcon,
-    ViewListIcon
+    ViewListIcon,
+    SettingsIcon
 } from '../MuiIcons';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -25,7 +26,8 @@ function Header({
     onShowAddGroup,
     onShowBulkPassword,
     viewMode,
-    onToggleViewMode
+    onToggleViewMode,
+    onShowGuacamoleConfig
 }) {
     // Mapeamento de views para breadcrumbs
     const viewTitles = {
@@ -132,6 +134,15 @@ function Header({
                         }
                     </button>
                 )}
+
+                {/* Botão de Configuração do Servidor Guacamole */}
+                <button
+                    className="header-action-btn"
+                    onClick={onShowGuacamoleConfig}
+                    title="Configurar Servidor Guacamole"
+                >
+                    <SettingsIcon sx={{ fontSize: 20 }} />
+                </button>
 
                 {/* User Avatar (Placeholder) */}
                 <div className="header-user">

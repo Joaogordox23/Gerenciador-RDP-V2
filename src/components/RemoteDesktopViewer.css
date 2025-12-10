@@ -64,25 +64,21 @@
     background: #000;
     position: relative;
     min-height: 400px;
-    /* Centraliza o display do Guacamole */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* CORREÇÃO: Removido flexbox para evitar offset nas coordenadas do mouse */
+    /* O Guacamole.Mouse pega coordenadas relativas ao displayElement */
+    /* A centralização vai ser feita pelo display.scale() */
 }
 
-/* Garante que o canvas do Guacamole seja centralizado */
+/* Container do Guacamole display */
 .viewer-display>div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    height: 100%;
+    /* Canvas fica posicionado no canto superior esquerdo */
 }
 
 .viewer-display canvas {
-    max-width: 100%;
-    max-height: 100%;
     display: block;
-    /* Centraliza o canvas */
-    margin: auto;
+    /* Não usa max-width/max-height - o scale() do Guacamole cuida disso */
 }
 
 .viewer-overlay {

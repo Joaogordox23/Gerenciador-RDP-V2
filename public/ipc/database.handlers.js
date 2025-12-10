@@ -4,6 +4,24 @@
 const { ipcMain, safeStorage } = require('electron');
 
 /**
+ * Verifica se uma string já está criptografada com safeStorage
+ * Senhas criptografadas são base64 com comprimento > 50 chars
+ * @param {string} str - String a verificar
+ * @returns {boolean}
+ */
+function isAlreadyEncrypted(str) {
+    if (!str || typeof str !== 'string') return false;
+
+    // Senhas normais geralmente têm < 30 caracteres
+    // Senhas criptografadas com safeStorage têm > 50 caracteres em base64
+    if (str.length < 40) return false;
+
+    // Verifica se é base64 válido
+    const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+    return base64Regex.test(str);
+}
+
+/**
  * Registra handlers IPC para operações de banco de dados SQLite
  * @param {Object} deps - Dependências injetadas
  * @param {Object} deps.databaseManager - Gerenciador do banco SQLite
@@ -65,13 +83,18 @@ function registerDatabaseHandlers({ databaseManager, fileSystemManager }) {
     // Adiciona uma conexão (PONTUAL!)
     ipcMain.handle('db-add-connection', async (event, { groupId, connectionData }) => {
         try {
-            // Criptografa senha antes de salvar
+            // Criptografa senha antes de salvar (evita dupla criptografia)
             if (connectionData.password && typeof connectionData.password === 'string') {
-                try {
-                    const encryptedPassword = safeStorage.encryptString(connectionData.password);
-                    connectionData.password = encryptedPassword.toString('base64');
-                } catch (e) {
-                    console.error('Falha ao criptografar senha:', e);
+                if (!isAlreadyEncrypted(connectionData.password)) {
+                    try {
+                        const encryptedPassword = safeStorage.encryptString(connectionData.password);
+                        connectionData.password = encryptedPassword.toString('base64');
+                        console.log('🔐 Senha criptografada para nova conexão');
+                    } catch (e) {
+                        console.error('Falha ao criptografar senha:', e);
+                    }
+                } else {
+                    console.log('🔓 Senha já criptografada, mantendo original');
                 }
             }
 
@@ -95,26 +118,32 @@ function registerDatabaseHandlers({ databaseManager, fileSystemManager }) {
         try {
             const startTime = Date.now();
 
-            // Criptografa senha se foi alterada
+            // Criptografa senha se foi alterada (evita dupla criptografia)
             if (updatedData.password && typeof updatedData.password === 'string') {
-                try {
-                    const encryptedPassword = safeStorage.encryptString(updatedData.password);
-                    updatedData.password = encryptedPassword.toString('base64');
-                } catch (e) {
-                    console.error('Falha ao criptografar senha:', e);
+                if (!isAlreadyEncrypted(updatedData.password)) {
+                    try {
+                        const encryptedPassword = safeStorage.encryptString(updatedData.password);
+                        updatedData.password = encryptedPassword.toString('base64');
+                        console.log('🔐 Senha criptografada para atualização');
+                    } catch (e) {
+                        console.error('Falha ao criptografar senha:', e);
+                    }
+                } else {
+                    console.log('🔓 Senha já criptografada, mantendo original');
                 }
             }
 
             databaseManager.updateConnection(connectionId, updatedData);
 
-            // Atualiza arquivo físico se necessário
+            // Obtém a conexão atualizada (com senha criptografada)
             const connection = databaseManager.getConnectionById(connectionId);
             if (connection) {
                 fileSystemManager.saveConnectionFile(connection);
             }
 
             console.log(`⚡ Conexão ${connectionId} atualizada em ${Date.now() - startTime}ms`);
-            return { success: true };
+            // Retorna a conexão atualizada para sincronizar com o frontend
+            return { success: true, connection: connection };
         } catch (error) {
             console.error('❌ Erro ao atualizar conexão:', error);
             return { success: false, error: error.message };

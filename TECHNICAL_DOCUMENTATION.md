@@ -1,5 +1,5 @@
 # 📘 Documentação Técnica Completa
-## Gerenciador de Conexões Enterprise v4.1.0
+## Gerenciador de Conexões Enterprise v4.2.0
 
 ---
 
@@ -1567,7 +1567,7 @@ Para suporte técnico ou dúvidas:
 
 **Versão da Documentação**: 1.0.0  
 **Última Atualização**: 2025-12-04  
-**Versão da Aplicação**: v4.1.0
+**Versão da Aplicação**: v4.2.0
 
 ---
 

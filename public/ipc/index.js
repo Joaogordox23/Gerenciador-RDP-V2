@@ -9,6 +9,7 @@ const { registerGuacamoleHandlers } = require('./guacamole.handlers');
 const { registerAdHandlers } = require('./ad.handlers');
 const { registerBulkHandlers } = require('./bulk.handlers');
 const { registerConnectionHandlers } = require('./connection.handlers');
+const { registerConfigHandlers } = require('./config.handlers');
 
 /**
  * Registra todos os IPC handlers do Electron
@@ -76,7 +77,12 @@ function registerAllHandlers(deps) {
         getMainWindow: deps.getMainWindow
     });
 
-    console.log('✅ Todos os IPC handlers registrados (26 handlers em 8 módulos)');
+    // Config handlers (get-guacamole-config, set-guacamole-config)
+    registerConfigHandlers({
+        store: deps.store
+    });
+
+    console.log('✅ Todos os IPC handlers registrados (29 handlers em 9 módulos)');
 }
 
 module.exports = { registerAllHandlers };

@@ -1,10 +1,24 @@
 /**
- * GuacamoleToolbar.js
- * Barra de ferramentas para RDP/SSH Viewer via Guacamole
- * Com controles de clipboard, escala e atalhos de teclado
+ * GuacamoleToolbar.js - v2.0
+ * Barra de ferramentas premium para RDP/SSH Viewer via Guacamole
+ * Com ícones MUI, controles de qualidade, clipboard e atalhos de teclado
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import {
+    ContentCopyIcon,
+    ContentPasteIcon,
+    AspectRatioIcon,
+    KeyboardIcon,
+    FullscreenIcon,
+    CloseIcon,
+    SettingsIcon,
+    PhotoCameraIcon,
+    SignalWifiIcon,
+    ComputerIcon,
+    TerminalIcon,
+    RefreshIcon
+} from './MuiIcons';
 import './GuacamoleToolbar.css';
 
 function GuacamoleToolbar({
@@ -16,23 +30,24 @@ function GuacamoleToolbar({
     autoScale,
     setAutoScale,
     onClose,
-    onFullscreen
+    onFullscreen,
+    onReconnect
 }) {
     const [clipboardText, setClipboardText] = useState('');
     const [showClipboardPopup, setShowClipboardPopup] = useState(false);
     const [remoteClipboard, setRemoteClipboard] = useState('');
+    const [showQualityMenu, setShowQualityMenu] = useState(false);
+    const [colorDepth, setColorDepth] = useState(16);
 
     // Escuta eventos de clipboard do servidor remoto
     useEffect(() => {
         const client = clientRef?.current;
         if (!client) return;
 
-        // Handler para receber clipboard do servidor
         client.onclipboard = (stream, mimetype) => {
             if (mimetype === 'text/plain') {
                 let data = '';
                 stream.onblob = (base64Data) => {
-                    // Decodifica Base64 para texto
                     try {
                         data += atob(base64Data);
                     } catch (e) {
@@ -40,14 +55,9 @@ function GuacamoleToolbar({
                     }
                 };
                 stream.onend = () => {
-                    console.log('📋 Clipboard recebido do servidor:', data.substring(0, 50) + '...');
+                    console.log('📋 Clipboard recebido do servidor');
                     setRemoteClipboard(data);
-                    // Tenta copiar automaticamente para o clipboard local
-                    navigator.clipboard.writeText(data).then(() => {
-                        console.log('✅ Copiado para clipboard local');
-                    }).catch(err => {
-                        console.warn('⚠️ Não foi possível copiar automaticamente:', err);
-                    });
+                    navigator.clipboard.writeText(data).catch(() => { });
                 };
             }
         };
@@ -65,20 +75,15 @@ function GuacamoleToolbar({
         if (!client) return;
 
         try {
-            // Tenta ler do clipboard local
             const text = await navigator.clipboard.readText();
             if (text) {
-                // Cria stream de clipboard
                 const stream = client.createClipboardStream('text/plain');
-                // Codifica para Base64 e envia
                 const base64 = btoa(unescape(encodeURIComponent(text)));
                 stream.sendBlob(base64);
                 stream.sendEnd();
-                console.log('📋 Colado no servidor:', text.substring(0, 50) + '...');
+                console.log('📋 Colado no servidor');
             }
         } catch (err) {
-            console.warn('⚠️ Não foi possível ler clipboard:', err);
-            // Fallback: mostra popup para colar manualmente
             setShowClipboardPopup(true);
         }
     }, [clientRef]);
@@ -92,17 +97,14 @@ function GuacamoleToolbar({
         const base64 = btoa(unescape(encodeURIComponent(clipboardText)));
         stream.sendBlob(base64);
         stream.sendEnd();
-        console.log('📋 Colado manualmente:', clipboardText.substring(0, 50) + '...');
         setClipboardText('');
         setShowClipboardPopup(false);
     };
 
-    // Copia do servidor (mostra o que foi recebido)
+    // Copia do servidor
     const handleCopy = useCallback(() => {
         if (remoteClipboard) {
-            navigator.clipboard.writeText(remoteClipboard).then(() => {
-                console.log('✅ Copiado para clipboard local');
-            });
+            navigator.clipboard.writeText(remoteClipboard);
         }
     }, [remoteClipboard]);
 
@@ -111,17 +113,13 @@ function GuacamoleToolbar({
         const client = clientRef?.current;
         if (!client) return;
 
-        // Keysyms para Ctrl, Alt, Del
         const CTRL = 0xFFE3;
         const ALT = 0xFFE9;
         const DEL = 0xFFFF;
 
-        // Pressiona as teclas
         client.sendKeyEvent(1, CTRL);
         client.sendKeyEvent(1, ALT);
         client.sendKeyEvent(1, DEL);
-
-        // Solta as teclas (em ordem inversa)
         client.sendKeyEvent(0, DEL);
         client.sendKeyEvent(0, ALT);
         client.sendKeyEvent(0, CTRL);
@@ -129,116 +127,226 @@ function GuacamoleToolbar({
         console.log('⌨️ Ctrl+Alt+Del enviado');
     }, [clientRef]);
 
+    // Screenshot
+    const takeScreenshot = useCallback(() => {
+        const client = clientRef?.current;
+        if (!client) return;
+
+        try {
+            const display = client.getDisplay();
+            const canvas = display.getDefaultLayer().getCanvas();
+
+            const link = document.createElement('a');
+            link.download = `${protocol}-screenshot-${connectionName}-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            console.log('📸 Screenshot capturado');
+        } catch (err) {
+            console.error('Erro ao capturar screenshot:', err);
+        }
+    }, [clientRef, connectionName, protocol]);
+
     // Toggle escala automática
     const toggleScale = () => {
         setAutoScale(!autoScale);
     };
 
-    const getStatusIcon = () => {
+    const getStatusConfig = () => {
         switch (status) {
-            case 'connected': return '🟢';
+            case 'connected':
+                return { color: 'connected', label: 'Conectado' };
             case 'connecting':
-            case 'waiting': return '🟡';
-            case 'error': return '🔴';
-            default: return '⚫';
+            case 'waiting':
+                return { color: 'connecting', label: 'Conectando...' };
+            case 'error':
+                return { color: 'error', label: 'Erro' };
+            default:
+                return { color: 'disconnected', label: 'Desconectado' };
         }
     };
 
-    const getProtocolIcon = () => {
-        switch (protocol) {
-            case 'rdp': return '🖥️';
-            case 'ssh': return '💻';
-            default: return '🔗';
-        }
-    };
+    const statusConfig = getStatusConfig();
+
+    const qualityOptions = [
+        { depth: 8, label: 'Baixa (8-bit)', icon: '🔴' },
+        { depth: 16, label: 'Média (16-bit)', icon: '🟡' },
+        { depth: 24, label: 'Alta (24-bit)', icon: '🟢' },
+        { depth: 32, label: 'Máxima (32-bit)', icon: '🔵' }
+    ];
+
+    const currentQuality = qualityOptions.find(q => q.depth === colorDepth) || qualityOptions[1];
 
     return (
         <div className="guacamole-toolbar">
-            {/* Info */}
+            {/* Status e Nome */}
             <div className="guacamole-toolbar-info">
-                <span className="guacamole-toolbar-icon">{getProtocolIcon()}</span>
-                <span className="guacamole-toolbar-name">{connectionName}</span>
-                <span className="guacamole-toolbar-address">{connectionAddress}</span>
-                <span className="guacamole-toolbar-status">{getStatusIcon()}</span>
+                <div className={`guacamole-status-indicator ${statusConfig.color}`}>
+                    {protocol === 'rdp' ? (
+                        <ComputerIcon sx={{ fontSize: 14 }} />
+                    ) : (
+                        <TerminalIcon sx={{ fontSize: 14 }} />
+                    )}
+                </div>
+                <span className="guacamole-toolbar-name" title={connectionName}>
+                    {connectionName}
+                </span>
+                <span className="guacamole-toolbar-address">
+                    {connectionAddress}
+                </span>
+                <div className={`guacamole-connection-badge ${statusConfig.color}`}>
+                    <SignalWifiIcon sx={{ fontSize: 12 }} />
+                    <span>{statusConfig.label}</span>
+                </div>
             </div>
 
-            {/* Controles */}
+            {/* Controles Principais */}
             <div className="guacamole-toolbar-controls">
-                {/* Clipboard */}
+                {/* Grupo: Clipboard */}
                 <div className="guacamole-toolbar-group">
                     <button
                         className="guacamole-toolbar-btn"
                         onClick={handlePaste}
-                        title="Colar do clipboard local"
+                        title="Colar texto (Ctrl+V)"
                         disabled={status !== 'connected'}
                     >
-                        📋 Colar
+                        <ContentPasteIcon sx={{ fontSize: 18 }} />
                     </button>
                     {remoteClipboard && (
                         <button
-                            className="guacamole-toolbar-btn"
+                            className="guacamole-toolbar-btn has-content"
                             onClick={handleCopy}
-                            title="Copiar do servidor remoto"
+                            title="Copiar do servidor"
                         >
-                            📄 Copiar
+                            <ContentCopyIcon sx={{ fontSize: 18 }} />
                         </button>
                     )}
                 </div>
 
-                {/* Escala */}
-                <button
-                    className={`guacamole-toolbar-btn ${autoScale ? 'active' : ''}`}
-                    onClick={toggleScale}
-                    title={autoScale ? 'Desativar escala automática' : 'Ativar escala automática'}
-                >
-                    🔍 {autoScale ? 'Fit: On' : 'Fit: Off'}
-                </button>
+                <div className="guacamole-toolbar-separator" />
 
-                {/* Ctrl+Alt+Del (apenas RDP) */}
-                {protocol === 'rdp' && (
+                {/* Grupo: Visualização */}
+                <div className="guacamole-toolbar-group">
+                    <button
+                        className={`guacamole-toolbar-btn ${autoScale ? 'active' : ''}`}
+                        onClick={toggleScale}
+                        title={autoScale ? 'Escala automática: ON' : 'Escala automática: OFF'}
+                    >
+                        <AspectRatioIcon sx={{ fontSize: 18 }} />
+                    </button>
+
+                    {/* Qualidade (apenas RDP) */}
+                    {protocol === 'rdp' && (
+                        <div className="guacamole-toolbar-dropdown">
+                            <button
+                                className="guacamole-toolbar-btn"
+                                onClick={() => setShowQualityMenu(!showQualityMenu)}
+                                title="Qualidade de cores"
+                            >
+                                <SettingsIcon sx={{ fontSize: 18 }} />
+                                <span className="guacamole-quality-badge">{currentQuality.icon}</span>
+                            </button>
+                            {showQualityMenu && (
+                                <div className="guacamole-toolbar-menu">
+                                    <div className="guacamole-menu-title">Profundidade de Cor</div>
+                                    {qualityOptions.map(({ depth, label, icon }) => (
+                                        <button
+                                            key={depth}
+                                            className={`guacamole-toolbar-menu-item ${depth === colorDepth ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setColorDepth(depth);
+                                                setShowQualityMenu(false);
+                                            }}
+                                        >
+                                            <span className="menu-icon">{icon}</span>
+                                            <span>{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="guacamole-toolbar-separator" />
+
+                {/* Grupo: Ações */}
+                <div className="guacamole-toolbar-group">
+                    {/* Ctrl+Alt+Del (apenas RDP) */}
+                    {protocol === 'rdp' && (
+                        <button
+                            className="guacamole-toolbar-btn"
+                            onClick={sendCtrlAltDel}
+                            title="Enviar Ctrl+Alt+Del"
+                            disabled={status !== 'connected'}
+                        >
+                            <KeyboardIcon sx={{ fontSize: 18 }} />
+                        </button>
+                    )}
+
                     <button
                         className="guacamole-toolbar-btn"
-                        onClick={sendCtrlAltDel}
-                        title="Enviar Ctrl+Alt+Del"
+                        onClick={takeScreenshot}
+                        title="Capturar tela (Screenshot)"
                         disabled={status !== 'connected'}
                     >
-                        ⌨️ Ctrl+Alt+Del
+                        <PhotoCameraIcon sx={{ fontSize: 18 }} />
                     </button>
-                )}
 
-                {/* Fullscreen */}
-                <button
-                    className="guacamole-toolbar-btn"
-                    onClick={onFullscreen}
-                    title="Tela cheia"
-                >
-                    ⛶
-                </button>
+                    {onReconnect && (
+                        <button
+                            className="guacamole-toolbar-btn"
+                            onClick={onReconnect}
+                            title="Reconectar"
+                        >
+                            <RefreshIcon sx={{ fontSize: 18 }} />
+                        </button>
+                    )}
+                </div>
 
-                {/* Fechar */}
-                <button
-                    className="guacamole-toolbar-btn close"
-                    onClick={onClose}
-                    title="Fechar (ESC)"
-                >
-                    ✕
-                </button>
+                <div className="guacamole-toolbar-separator" />
+
+                {/* Grupo: Janela */}
+                <div className="guacamole-toolbar-group">
+                    <button
+                        className="guacamole-toolbar-btn"
+                        onClick={onFullscreen}
+                        title="Tela cheia (F11)"
+                    >
+                        <FullscreenIcon sx={{ fontSize: 18 }} />
+                    </button>
+
+                    <button
+                        className="guacamole-toolbar-btn close"
+                        onClick={onClose}
+                        title="Fechar conexão (ESC)"
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </button>
+                </div>
             </div>
 
             {/* Popup de Clipboard Manual */}
             {showClipboardPopup && (
-                <div className="guacamole-clipboard-popup">
-                    <div className="guacamole-clipboard-popup-content">
-                        <h4>Colar Texto</h4>
+                <div className="guacamole-clipboard-popup" onClick={() => setShowClipboardPopup(false)}>
+                    <div className="guacamole-clipboard-popup-content" onClick={(e) => e.stopPropagation()}>
+                        <h4>📋 Colar Texto</h4>
+                        <p className="guacamole-clipboard-hint">
+                            Cole o texto abaixo para enviar ao computador remoto
+                        </p>
                         <textarea
                             value={clipboardText}
                             onChange={(e) => setClipboardText(e.target.value)}
                             placeholder="Cole ou digite o texto aqui..."
                             rows={4}
+                            autoFocus
                         />
                         <div className="guacamole-clipboard-popup-actions">
-                            <button onClick={handleManualPaste}>Enviar</button>
-                            <button onClick={() => setShowClipboardPopup(false)}>Cancelar</button>
+                            <button className="btn-primary" onClick={handleManualPaste}>
+                                Enviar
+                            </button>
+                            <button className="btn-secondary" onClick={() => setShowClipboardPopup(false)}>
+                                Cancelar
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -188,6 +188,13 @@ try {
             generateToken: (connectionInfo) => ipcRenderer.invoke('generate-guacamole-token', connectionInfo),
         },
 
+        // API Config (configuração do servidor Guacamole)
+        config: {
+            getGuacamole: () => ipcRenderer.invoke('get-guacamole-config'),
+            setGuacamole: (config) => ipcRenderer.invoke('set-guacamole-config', config),
+            isGuacamoleConfigured: () => ipcRenderer.invoke('is-guacamole-configured'),
+        },
+
         // ==========================
         // API SQLite (CRUD PONTUAL - PERFORMANCE!)
         // ==========================
@@ -268,7 +275,7 @@ setInterval(() => {
 // ==========================
 // VERSIONAMENTO E INFORMAÇÕES DO SISTEMA
 // ==========================
-const PRELOAD_VERSION = '2.0.0';
+const PRELOAD_VERSION = '4.2.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
     'batch-testing',

@@ -1,5 +1,5 @@
 /* ========================================
-   VNC WALL VIEW - PREMIUM DESIGN v4.3
+   VNC WALL VIEW - PREMIUM DESIGN v4.2
    Sidebar limpa e funcional
    ======================================== */
 
@@ -170,6 +170,51 @@
 .vnc-server-status {
     font-size: 10px;
     flex-shrink: 0;
+}
+
+/* === CONTROLES DE SELEÇÃO (v4.3) === */
+.wall-selection-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.btn-select-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--color-primary);
+    background: rgba(var(--color-teal-500-rgb), 0.1);
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.btn-select-all:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-select-all.active {
+    background: rgba(var(--color-red-500-rgb), 0.1);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.btn-select-all.active:hover {
+    background: var(--color-error);
+    color: white;
+}
+
+.btn-select-all:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* === CONTROLES === */
@@ -503,7 +548,57 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* === CARROSSEL REFINADO === */
+/* === CARROSSEL COM GRID (v4.3) === */
+.vnc-carousel-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, #0a0a0f 0%, #1a1a2e 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    gap: 12px;
+}
+
+.vnc-carousel-grid .vnc-wall-grid {
+    flex: 1;
+}
+
+/* Indicador de páginas */
+.carousel-page-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.page-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.page-dot:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(1.2);
+}
+
+.page-dot.active {
+    background: var(--color-primary);
+    width: 24px;
+    border-radius: 5px;
+    box-shadow: 0 0 12px rgba(var(--color-teal-500-rgb), 0.5);
+}
+
+/* === CARROSSEL ANTIGO (mantido para compatibilidade) === */
 .vnc-carousel-fullscreen {
     flex: 1;
     display: flex;

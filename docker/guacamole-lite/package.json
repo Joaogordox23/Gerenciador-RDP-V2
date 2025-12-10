@@ -1,0 +1,9 @@
+{
+    "name": "guacamole-lite-server",
+    "version": "1.0.0",
+    "description": "Servidor guacamole-lite para Docker",
+    "main": "server.js",
+    "dependencies": {
+        "guacamole-lite": "^1.2.0"
+    }
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import RFB from '@novnc/novnc/core/rfb';
 
-function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 2, onRfbReady }) {
+function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 6, compression = 2, onRfbReady }) {
     const wrapperRef = useRef(null);
     const vncContainerRef = useRef(null);
     const rfbRef = useRef(null);
@@ -69,6 +69,15 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
         }
     }, [scaleViewport]);
 
+    // ✅ Atualiza qualidade e compressão dinamicamente
+    useEffect(() => {
+        if (rfbRef.current) {
+            rfbRef.current.qualityLevel = quality;
+            rfbRef.current.compressionLevel = compression;
+            console.log(`🎨 [VncDisplay] Qualidade atualizada: quality=${quality}, compression=${compression}`);
+        }
+    }, [quality, compression]);
+
     // Conecta ao VNC quando container tem dimensões válidas
     useEffect(() => {
         if (!connectionInfo || !connectionInfo.proxyUrl || !vncContainerRef.current || !isMounted) {
@@ -97,12 +106,18 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     credentials: { password: password },
                 });
 
+                // ✅ Configurações de visualização
                 rfb.viewOnly = viewOnly;
                 rfb.scaleViewport = scaleViewport; // Ajusta ao tamanho do container
                 rfb.clipViewport = false; // Não corta - permite ver tudo
-                rfb.resizeSession = false; // Não redimensiona a sessão remota
-                rfb.showDotCursor = !viewOnly; // Esconde cursor no modo viewOnly
-                rfb.qualityLevel = quality; // 0-9
+
+                // ✅ MODO STEALTH: Não altera nada na área de trabalho remota
+                rfb.resizeSession = false; // CRÍTICO: Não redimensiona sessão remota
+                rfb.showDotCursor = false; // Esconde cursor local (usa cursor remoto)
+
+                // ✅ Configurações de qualidade e compressão
+                rfb.qualityLevel = quality; // 0-9 (maior = melhor qualidade JPEG)
+                rfb.compressionLevel = compression; // 0-9 (maior = mais compressão)
 
                 rfb.addEventListener('connect', () => {
                     console.log(`✅ [${connectionInfo.name}] Conectado via proxy!`);
@@ -142,16 +157,26 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
 
                     // ✅ Verifica se foi uma desconexão limpa ou erro
                     if (detail.clean === false) {
-                        const errMsg = detail.reason || 'Não foi possível conectar ao servidor VNC';
+                        let errMsg = detail.reason || 'Não foi possível conectar ao servidor VNC';
+
+                        // ✅ Melhora mensagem para erros de autenticação
+                        if (errMsg.toLowerCase().includes('authentication')) {
+                            errMsg = 'Falha na autenticação VNC. Verifique se a senha está correta.';
+                        } else if (errMsg.toLowerCase().includes('security')) {
+                            errMsg = 'Erro de segurança VNC. Verifique as configurações do servidor.';
+                        } else if (errMsg.toLowerCase().includes('connection refused')) {
+                            errMsg = 'Conexão recusada. Verifique se o servidor VNC está ativo.';
+                        } else if (errMsg.toLowerCase().includes('timeout')) {
+                            errMsg = 'Tempo limite excedido. Servidor VNC não respondeu.';
+                        }
+
                         setConnectionStatus('error');
                         setErrorMessage(errMsg);
                         if (onError) onError(errMsg);
-                        // ✅ Só chama onDisconnect em erro para remover da lista
-                        if (onDisconnect) onDisconnect();
+                        // ✅ Não fecha modal automaticamente em erro - deixa usuário ver o erro
                     } else {
                         setConnectionStatus('disconnected');
                         // ✅ NÃO chama onDisconnect em desconexão limpa intencional
-                        // O usuário controla isso via checkbox
                     }
                 });
 

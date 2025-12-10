@@ -106,8 +106,11 @@ function processGroupsData(key, value, store, fileSystemManager) {
 
                 // Criptografia de senhas
                 if (server.password && typeof server.password === 'string') {
-                    const isLikelyEncrypted = server.password.length > 100 &&
-                        /^[A-Za-z0-9+/=]+$/.test(server.password);
+                    // Critério consistente com database.handlers.js:
+                    // - Senhas normais têm < 40 caracteres
+                    // - Senhas criptografadas têm >= 40 caracteres e são base64 válido
+                    const isLikelyEncrypted = server.password.length >= 40 &&
+                        /^[A-Za-z0-9+/]+=*$/.test(server.password);
 
                     if (!isLikelyEncrypted) {
                         try {

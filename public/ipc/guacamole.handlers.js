@@ -25,13 +25,22 @@ function registerGuacamoleHandlers({ getGuacamoleServer }) {
             let decryptedConnectionInfo = { ...connectionInfo };
 
             if (connectionInfo.password && connectionInfo.password.length > 0) {
-                try {
-                    const encryptedBuffer = Buffer.from(connectionInfo.password, 'base64');
-                    decryptedConnectionInfo.password = safeStorage.decryptString(encryptedBuffer);
-                    console.log('✅ Senha descriptografada para Guacamole');
-                } catch (decryptError) {
-                    console.warn('⚠️ Senha não está criptografada ou erro ao descriptografar:', decryptError.message);
-                    // Fallback: usa a senha como está (pode ser texto plano)
+                // Verifica se a senha parece estar criptografada (mesmo critério do database.handlers.js)
+                const isLikelyEncrypted = connectionInfo.password.length >= 40 &&
+                    /^[A-Za-z0-9+/]+=*$/.test(connectionInfo.password);
+
+                if (isLikelyEncrypted) {
+                    try {
+                        const encryptedBuffer = Buffer.from(connectionInfo.password, 'base64');
+                        decryptedConnectionInfo.password = safeStorage.decryptString(encryptedBuffer);
+                        console.log('✅ Senha descriptografada para Guacamole');
+                    } catch (decryptError) {
+                        console.warn('⚠️ Erro ao descriptografar senha:', decryptError.message);
+                        // Fallback: usa a senha como está
+                    }
+                } else {
+                    console.log('🔓 Senha em texto plano (não criptografada)');
+                    // Mantém a senha como está (texto plano)
                 }
             }
 

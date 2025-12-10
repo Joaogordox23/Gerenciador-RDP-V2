@@ -1,4 +1,4 @@
-// src/components/Group.js (v4.2: Com DnD de grupos e viewMode)
+// src/components/Group.js (v4.2: Com DnD de grupos, viewMode e collapse)
 
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
@@ -10,6 +10,8 @@ const EditIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const DeleteIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>);
 const SaveIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>);
 const CancelIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
+const ChevronDownIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>);
+const ChevronRightIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>);
 
 function Group({
     groupInfo,
@@ -31,9 +33,22 @@ function Group({
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
 
+    // Estado de collapse com persistência em localStorage
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        const saved = localStorage.getItem(`group-collapsed-${groupInfo.id}`);
+        return saved === 'true';
+    });
+
     useEffect(() => {
         setNewGroupName(groupInfo.groupName);
     }, [groupInfo.groupName]);
+
+    // Persiste estado de collapse
+    const toggleCollapse = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem(`group-collapsed-${groupInfo.id}`, newState.toString());
+    };
 
     const handleSaveGroupName = (e) => {
         e.preventDefault();
@@ -44,11 +59,20 @@ function Group({
         <Draggable draggableId={`group-${groupInfo.id}`} index={index}>
             {(provided, snapshot) => (
                 <div
-                    className={`group-container ${snapshot.isDragging ? 'dragging' : ''}`}
+                    className={`group-container ${snapshot.isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                 >
                     <div className="group-header">
+                        {/* Botão de Collapse/Expand */}
+                        <button
+                            className="group-collapse-btn"
+                            onClick={toggleCollapse}
+                            title={isCollapsed ? 'Expandir grupo' : 'Recolher grupo'}
+                        >
+                            {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+                        </button>
+
                         {/* Handle de arrastar grupo */}
                         <div className="group-drag-handle" {...provided.dragHandleProps} title="Arrastar grupo">
                             <span>⋮⋮</span>
@@ -69,7 +93,14 @@ function Group({
                                     />
                                 </form>
                             ) : (
-                                <h2 className="group-title">{groupInfo.groupName}</h2>
+                                <h2 className="group-title">
+                                    {groupInfo.groupName}
+                                    {isCollapsed && (
+                                        <span className="group-count-badge">
+                                            {groupInfo.servers?.length || 0}
+                                        </span>
+                                    )}
+                                </h2>
                             )}
                         </div>
 
@@ -97,53 +128,57 @@ function Group({
                         </div>
                     </div>
 
-                    {/* Renderização condicional Grid vs Lista */}
-                    {viewMode === 'list' ? (
-                        <div className="servers-list">
-                            {groupInfo.servers && groupInfo.servers.map((server) => (
-                                <ServerListItem
-                                    key={server.id}
-                                    serverInfo={server}
-                                    onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
-                                    onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
-                                    isActive={activeConnections.includes(server.id)}
-                                    isEditModeEnabled={isEditModeEnabled}
-                                    isConnectivityEnabled={isConnectivityEnabled}
-                                    onEdit={() => onEditServer(server, groupInfo.id)}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <Droppable droppableId={groupInfo.id.toString()} type="server" direction="horizontal">
-                            {(provided, snapshot) => (
-                                <div
-                                    className="servers-row"
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    style={{
-                                        backgroundColor: snapshot.isDraggingOver ? 'rgba(0, 217, 181, 0.05)' : 'transparent',
-                                        minHeight: '100px',
-                                        transition: 'background-color 0.2s ease'
-                                    }}
-                                >
-                                    {groupInfo.servers && groupInfo.servers.map((server, idx) => (
-                                        <Server
+                    {/* Renderização condicional - só mostra se não estiver colapsado */}
+                    {!isCollapsed && (
+                        <>
+                            {viewMode === 'list' ? (
+                                <div className="servers-list">
+                                    {groupInfo.servers && groupInfo.servers.map((server) => (
+                                        <ServerListItem
                                             key={server.id}
                                             serverInfo={server}
-                                            index={idx}
                                             onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
                                             onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
                                             isActive={activeConnections.includes(server.id)}
                                             isEditModeEnabled={isEditModeEnabled}
                                             isConnectivityEnabled={isConnectivityEnabled}
                                             onEdit={() => onEditServer(server, groupInfo.id)}
-                                            onRemoteConnect={onRemoteConnect}
                                         />
                                     ))}
-                                    {provided.placeholder}
                                 </div>
+                            ) : (
+                                <Droppable droppableId={groupInfo.id.toString()} type="server" direction="horizontal">
+                                    {(droppableProvided, droppableSnapshot) => (
+                                        <div
+                                            className="servers-row"
+                                            ref={droppableProvided.innerRef}
+                                            {...droppableProvided.droppableProps}
+                                            style={{
+                                                backgroundColor: droppableSnapshot.isDraggingOver ? 'rgba(0, 217, 181, 0.05)' : 'transparent',
+                                                minHeight: '100px',
+                                                transition: 'background-color 0.2s ease'
+                                            }}
+                                        >
+                                            {groupInfo.servers && groupInfo.servers.map((server, idx) => (
+                                                <Server
+                                                    key={server.id}
+                                                    serverInfo={server}
+                                                    index={idx}
+                                                    onDelete={() => onDeleteServer(groupInfo.id, server.id, server.name)}
+                                                    onUpdate={(updatedData) => onUpdateServer(groupInfo.id, server.id, updatedData)}
+                                                    isActive={activeConnections.includes(server.id)}
+                                                    isEditModeEnabled={isEditModeEnabled}
+                                                    isConnectivityEnabled={isConnectivityEnabled}
+                                                    onEdit={() => onEditServer(server, groupInfo.id)}
+                                                    onRemoteConnect={onRemoteConnect}
+                                                />
+                                            ))}
+                                            {droppableProvided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
                             )}
-                        </Droppable>
+                        </>
                     )}
                 </div>
             )}

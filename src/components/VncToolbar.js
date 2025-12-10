@@ -1,9 +1,25 @@
 /**
  * VncToolbar.js
- * Barra de ferramentas para o VNC Viewer - Estilo consistente com UX/UI do app
+ * Barra de ferramentas premium para o VNC Viewer
+ * v2.0: Ícones, tooltips, separadores, indicador de status, auto-hide
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import {
+    ContentCopyIcon,
+    ContentPasteIcon,
+    AspectRatioIcon,
+    VisibilityIcon,
+    VisibilityOffIcon,
+    KeyboardIcon,
+    FullscreenIcon,
+    CloseIcon,
+    SettingsIcon,
+    RefreshIcon,
+    PhotoCameraIcon,
+    SignalWifiIcon,
+    MouseIcon
+} from './MuiIcons';
 import './VncToolbar.css';
 
 function VncToolbar({
@@ -16,12 +32,27 @@ function VncToolbar({
     qualityLevel,
     setQualityLevel,
     onClose,
-    onFullscreen
+    onFullscreen,
+    onReconnect
 }) {
     const [clipboardText, setClipboardText] = useState('');
     const [showClipboardPopup, setShowClipboardPopup] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
     const [remoteClipboard, setRemoteClipboard] = useState('');
+    const [isAutoHide, setIsAutoHide] = useState(false);
+    const [isHovered, setIsHovered] = useState(true);
+    const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected', 'connecting', 'error'
+
+    // Auto-hide timer
+    useEffect(() => {
+        if (!isAutoHide || isHovered) return;
+
+        const timer = setTimeout(() => {
+            setIsHovered(false);
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [isAutoHide, isHovered]);
 
     // Escuta eventos de clipboard do servidor remoto
     useEffect(() => {
@@ -30,7 +61,7 @@ function VncToolbar({
 
         const handleClipboard = (e) => {
             const text = e.detail.text;
-            console.log('Clipboard recebido do servidor');
+            console.log('📋 Clipboard recebido do servidor');
             setRemoteClipboard(text);
             navigator.clipboard.writeText(text).catch(() => { });
         };
@@ -105,128 +136,202 @@ function VncToolbar({
         }
     };
 
-    const qualityLabels = {
-        0: 'Mínima',
-        2: 'Baixa',
-        4: 'Média',
-        6: 'Alta',
-        9: 'Máxima'
+    // Screenshot
+    const takeScreenshot = () => {
+        const rfb = rfbRef?.current;
+        if (!rfb) return;
+
+        try {
+            const canvas = rfb._canvas;
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `vnc-screenshot-${connectionName}-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        } catch (err) {
+            console.error('Erro ao capturar screenshot:', err);
+        }
     };
 
+    const qualityOptions = [
+        { level: 0, label: 'Mínima', icon: '🔴' },
+        { level: 2, label: 'Baixa', icon: '🟠' },
+        { level: 4, label: 'Média', icon: '🟡' },
+        { level: 6, label: 'Alta', icon: '🟢' },
+        { level: 9, label: 'Máxima', icon: '🔵' }
+    ];
+
+    const currentQuality = qualityOptions.find(q => q.level === qualityLevel) || qualityOptions[3];
+
     return (
-        <div className="vnc-toolbar">
-            {/* Info */}
+        <div
+            className={`vnc-toolbar ${isAutoHide && !isHovered ? 'hidden' : ''}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => isAutoHide && setIsHovered(false)}
+        >
+            {/* Status e Nome */}
             <div className="vnc-toolbar-info">
-                <span className="vnc-toolbar-name">{connectionName}</span>
+                <div className={`vnc-status-indicator ${connectionStatus}`}>
+                    <SignalWifiIcon sx={{ fontSize: 14 }} />
+                </div>
+                <span className="vnc-toolbar-name" title={connectionName}>
+                    {connectionName}
+                </span>
             </div>
 
-            {/* Controles */}
+            {/* Controles Principais */}
             <div className="vnc-toolbar-controls">
-                {/* Clipboard */}
+                {/* Grupo: Clipboard */}
                 <div className="vnc-toolbar-group">
                     <button
                         className="vnc-toolbar-btn"
                         onClick={handlePaste}
-                        title="Colar do clipboard local"
+                        title="Colar texto (Ctrl+V)"
                     >
-                        Colar
+                        <ContentPasteIcon sx={{ fontSize: 18 }} />
                     </button>
                     {remoteClipboard && (
                         <button
-                            className="vnc-toolbar-btn"
+                            className="vnc-toolbar-btn has-content"
                             onClick={handleCopy}
-                            title="Copiar do servidor remoto"
+                            title="Copiar do servidor"
                         >
-                            Copiar
+                            <ContentCopyIcon sx={{ fontSize: 18 }} />
                         </button>
                     )}
                 </div>
 
-                {/* Escala */}
-                <button
-                    className={`vnc-toolbar-btn ${scaleViewport ? 'active' : ''}`}
-                    onClick={toggleScale}
-                    title={scaleViewport ? 'Desativar escala' : 'Ativar escala automática'}
-                >
-                    Escala: {scaleViewport ? 'On' : 'Off'}
-                </button>
+                <div className="vnc-toolbar-separator" />
 
-                {/* Qualidade */}
+                {/* Grupo: Visualização */}
+                <div className="vnc-toolbar-group">
+                    <button
+                        className={`vnc-toolbar-btn ${scaleViewport ? 'active' : ''}`}
+                        onClick={toggleScale}
+                        title={scaleViewport ? 'Escala automática: ON' : 'Escala automática: OFF'}
+                    >
+                        <AspectRatioIcon sx={{ fontSize: 18 }} />
+                    </button>
+
+                    <button
+                        className={`vnc-toolbar-btn ${viewOnly ? 'active' : ''}`}
+                        onClick={toggleViewOnly}
+                        title={viewOnly ? 'Modo visualização (clique para controlar)' : 'Modo controle (clique para apenas visualizar)'}
+                    >
+                        {viewOnly ? (
+                            <VisibilityIcon sx={{ fontSize: 18 }} />
+                        ) : (
+                            <MouseIcon sx={{ fontSize: 18 }} />
+                        )}
+                    </button>
+                </div>
+
+                <div className="vnc-toolbar-separator" />
+
+                {/* Grupo: Qualidade */}
                 <div className="vnc-toolbar-dropdown">
                     <button
                         className="vnc-toolbar-btn"
                         onClick={() => setShowQualityMenu(!showQualityMenu)}
-                        title="Ajustar qualidade"
+                        title="Ajustar qualidade de imagem"
                     >
-                        Qualidade: {qualityLabels[qualityLevel] || qualityLevel}
+                        <SettingsIcon sx={{ fontSize: 18 }} />
+                        <span className="vnc-quality-badge">{currentQuality.icon}</span>
                     </button>
                     {showQualityMenu && (
-                        <div className="vnc-toolbar-menu">
-                            {Object.entries(qualityLabels).map(([level, label]) => (
+                        <div className="vnc-toolbar-menu quality-menu">
+                            <div className="vnc-menu-title">Qualidade</div>
+                            {qualityOptions.map(({ level, label, icon }) => (
                                 <button
                                     key={level}
-                                    className={`vnc-toolbar-menu-item ${parseInt(level) === qualityLevel ? 'active' : ''}`}
-                                    onClick={() => changeQuality(parseInt(level))}
+                                    className={`vnc-toolbar-menu-item ${level === qualityLevel ? 'active' : ''}`}
+                                    onClick={() => changeQuality(level)}
                                 >
-                                    {label}
+                                    <span className="menu-icon">{icon}</span>
+                                    <span>{label}</span>
                                 </button>
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* View Only */}
-                <button
-                    className={`vnc-toolbar-btn ${viewOnly ? 'active' : ''}`}
-                    onClick={toggleViewOnly}
-                    title={viewOnly ? 'Ativar controle' : 'Modo somente visualização'}
-                >
-                    {viewOnly ? 'Somente Ver' : 'Controle'}
-                </button>
+                <div className="vnc-toolbar-separator" />
 
-                {/* Ctrl+Alt+Del */}
-                <button
-                    className="vnc-toolbar-btn"
-                    onClick={sendCtrlAltDel}
-                    title="Enviar Ctrl+Alt+Del"
-                    disabled={viewOnly}
-                >
-                    Ctrl+Alt+Del
-                </button>
+                {/* Grupo: Ações */}
+                <div className="vnc-toolbar-group">
+                    <button
+                        className="vnc-toolbar-btn"
+                        onClick={sendCtrlAltDel}
+                        title="Enviar Ctrl+Alt+Del"
+                        disabled={viewOnly}
+                    >
+                        <KeyboardIcon sx={{ fontSize: 18 }} />
+                    </button>
 
-                {/* Fullscreen */}
-                <button
-                    className="vnc-toolbar-btn"
-                    onClick={onFullscreen}
-                    title="Tela cheia"
-                >
-                    Fullscreen
-                </button>
+                    <button
+                        className="vnc-toolbar-btn"
+                        onClick={takeScreenshot}
+                        title="Capturar tela (Screenshot)"
+                    >
+                        <PhotoCameraIcon sx={{ fontSize: 18 }} />
+                    </button>
 
-                {/* Fechar */}
-                <button
-                    className="vnc-toolbar-btn close"
-                    onClick={onClose}
-                    title="Fechar (ESC)"
-                >
-                    Fechar
-                </button>
+                    {onReconnect && (
+                        <button
+                            className="vnc-toolbar-btn"
+                            onClick={onReconnect}
+                            title="Reconectar"
+                        >
+                            <RefreshIcon sx={{ fontSize: 18 }} />
+                        </button>
+                    )}
+                </div>
+
+                <div className="vnc-toolbar-separator" />
+
+                {/* Grupo: Janela */}
+                <div className="vnc-toolbar-group">
+                    <button
+                        className="vnc-toolbar-btn"
+                        onClick={onFullscreen}
+                        title="Tela cheia (F11)"
+                    >
+                        <FullscreenIcon sx={{ fontSize: 18 }} />
+                    </button>
+
+                    <button
+                        className="vnc-toolbar-btn close"
+                        onClick={onClose}
+                        title="Fechar conexão (ESC)"
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </button>
+                </div>
             </div>
 
             {/* Popup de Clipboard Manual */}
             {showClipboardPopup && (
-                <div className="vnc-clipboard-popup">
-                    <div className="vnc-clipboard-popup-content">
-                        <h4>Colar Texto</h4>
+                <div className="vnc-clipboard-popup" onClick={() => setShowClipboardPopup(false)}>
+                    <div className="vnc-clipboard-popup-content" onClick={(e) => e.stopPropagation()}>
+                        <h4>📋 Colar Texto</h4>
+                        <p className="vnc-clipboard-hint">
+                            Cole o texto abaixo para enviar ao computador remoto
+                        </p>
                         <textarea
                             value={clipboardText}
                             onChange={(e) => setClipboardText(e.target.value)}
                             placeholder="Cole ou digite o texto aqui..."
                             rows={4}
+                            autoFocus
                         />
                         <div className="vnc-clipboard-popup-actions">
-                            <button onClick={handleManualPaste}>Enviar</button>
-                            <button onClick={() => setShowClipboardPopup(false)}>Cancelar</button>
+                            <button className="btn-primary" onClick={handleManualPaste}>
+                                Enviar
+                            </button>
+                            <button className="btn-secondary" onClick={() => setShowClipboardPopup(false)}>
+                                Cancelar
+                            </button>
                         </div>
                     </div>
                 </div>

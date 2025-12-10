@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-// import './App.css'; // LEGACY: Arquivo monolítico (4046 linhas) - mantido como fallback
-import './styles/index.css'; // NOVO: Sistema CSS modular
+import './styles/index.css'; // Sistema CSS modular
 import ConfirmationDialog from './components/ConfirmationDialog';
 import { useConnectivity, ConnectivityProvider } from './hooks/useConnectivity';
 import AddGroupForm from './components/AddGroupForm';
@@ -9,20 +8,7 @@ import AddServerForm from './components/AddServerForm';
 import AddVncConnectionForm from './components/AddVncConnectionForm';
 import { DragDropContext } from 'react-beautiful-dnd';
 
-import {
-    ComputerIcon,
-    CloudDownloadIcon,
-    LightModeIcon,
-    DarkModeIcon,
-    AddCircleOutlineIcon,
-    CloseIcon,
-    SearchIcon,
-    RocketLaunchIcon,
-    LockIcon,
-    GridViewIcon,
-    ViewListIcon
-} from './components/MuiIcons';
-
+import { RocketLaunchIcon } from './components/MuiIcons';
 
 // Sistema de Toasts
 import { ToastProvider, useToast } from './hooks/useToast';
@@ -30,6 +16,10 @@ import ToastContainer from './components/toast/ToastContainer';
 
 // Hook de Grupos
 import { useGroups } from './hooks/useGroups';
+
+// Contexts
+import { UIProvider, useUI } from './contexts/UIContext';
+import { ModalProvider, useModals } from './contexts/ModalContext';
 
 // Modal de Importação do AD
 import ADImportModal from './components/ADImportModal';
@@ -40,6 +30,9 @@ import BulkPasswordModal from './components/BulkPasswordModal';
 // Modais de Edição
 import EditServerModal from './components/EditServerModal';
 import EditVncModal from './components/EditVncModal';
+
+// Modal de Configuração do Servidor Guacamole
+import GuacamoleServerConfigModal from './components/GuacamoleServerConfigModal';
 
 // Tela de Loading
 import LoadingSpinner from './components/LoadingSpinner';
@@ -55,13 +48,16 @@ const RdpSshView = lazy(() => import('./views/RdpSshView'));
 const VncView = lazy(() => import('./views/VncView'));
 const VncWallView = lazy(() => import('./views/VncWallView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
-// GuacamoleTestView removido
 
 function App() {
     return (
         <ToastProvider>
             <ConnectivityProvider>
-                <AppContent />
+                <UIProvider>
+                    <ModalProvider>
+                        <AppContent />
+                    </ModalProvider>
+                </UIProvider>
             </ConnectivityProvider>
         </ToastProvider>
     );
@@ -70,7 +66,55 @@ function App() {
 function AppContent() {
     const { toast } = useToast();
     const { testAllServers } = useConnectivity();
-    const [activeView, setActiveView] = useState('Dashboard');
+
+    // Estados de UI do UIContext
+    const {
+        theme,
+        activeView,
+        isSidebarCollapsed,
+        rdpViewMode,
+        vncViewMode,
+        isEditModeEnabled,
+        searchTerm,
+        setActiveView,
+        setRdpViewMode,
+        setVncViewMode,
+        setSearchTerm,
+        toggleTheme,
+        toggleSidebar,
+        toggleEditMode
+    } = useUI();
+
+    // Estados de Modais do ModalContext
+    const {
+        showAddGroupForm,
+        addingToGroupId,
+        showADModal,
+        showBulkPasswordModal,
+        editingServer,
+        editingVncConnection,
+        activeVncConnection,
+        activeRemoteConnection,
+        dialogConfig,
+        openAddGroupForm,
+        closeAddGroupForm,
+        openAddServerToGroup,
+        closeAddServerToGroup,
+        openADModal,
+        closeADModal,
+        openBulkPasswordModal,
+        closeBulkPasswordModal,
+        startEditServer,
+        closeEditServer,
+        startEditVncConnection,
+        closeEditVncConnection,
+        openVncConnection,
+        closeVncConnection,
+        openRemoteConnection,
+        closeRemoteConnection,
+        showConfirmDialog,
+        closeDialog
+    } = useModals();
 
     const {
         groups,
@@ -91,34 +135,40 @@ function AppContent() {
         isLoading
     } = useGroups(toast);
 
-    const [dialogConfig, setDialogConfig] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [activeConnections, setActiveConnections] = useState([]);
-    const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
-    const [showAddGroupForm, setShowAddGroupForm] = useState(false);
-    const [addingToGroupId, setAddingToGroupId] = useState(null);
-    const [theme, setTheme] = useState(null);
-    const [rdpViewMode, setRdpViewMode] = useState('grid');
-    const [vncViewMode, setVncViewMode] = useState('grid');
-    const [showADModal, setShowADModal] = useState(false);
-    const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    // Estados para modais de edição
 
+    // Estado para modal de configuração do Guacamole
+    const [showGuacamoleConfig, setShowGuacamoleConfig] = useState(false);
+    const [guacamoleConfig, setGuacamoleConfig] = useState(null);
 
-    // Estados para modais de edição
-    const [editingServer, setEditingServer] = useState(null); // {server, groupId}
-    const [editingVncConnection, setEditingVncConnection] = useState(null); // {connection, groupId}
+    // Carrega configuração do Guacamole ao iniciar
+    useEffect(() => {
+        const loadGuacamoleConfig = async () => {
+            try {
+                if (window.api && window.api.config) {
+                    const config = await window.api.config.getGuacamole();
+                    setGuacamoleConfig(config);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar config Guacamole:', error);
+            }
+        };
+        loadGuacamoleConfig();
+    }, []);
 
-    // Estado para conexão VNC ativa (modal noVNC)
-    const [activeVncConnection, setActiveVncConnection] = useState(null);
-
-    // Estado para conexão remota ativa (modal Guacamole)
-    const [activeRemoteConnection, setActiveRemoteConnection] = useState(null);
-
-    const toggleTheme = () => {
-        setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
-    };
+    // Handler para salvar configuração do Guacamole
+    const handleSaveGuacamoleConfig = useCallback(async (config) => {
+        try {
+            if (window.api && window.api.config) {
+                await window.api.config.setGuacamole(config);
+                setGuacamoleConfig(config);
+                toast.success('Configuração do servidor Guacamole salva!');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar config Guacamole:', error);
+            toast.error('Erro ao salvar configuração');
+        }
+    }, [toast]);
 
     const showSuccess = useCallback((message) => {
         if (typeof message === 'string' && message.trim()) toast.success(message.trim());
@@ -161,50 +211,48 @@ function AppContent() {
     const handleSaveEditedServer = useCallback((updatedServer) => {
         if (editingServer && editingServer.groupId) {
             handleUpdateServer(editingServer.groupId, updatedServer.id, updatedServer);
-            setEditingServer(null);
+            closeEditServer();
             toast.success(`Servidor "${updatedServer.name}" atualizado com sucesso!`);
         }
-    }, [editingServer, handleUpdateServer, toast]);
+    }, [editingServer, handleUpdateServer, toast, closeEditServer]);
 
     // Handler para Salvar Edição de Conexão VNC
     const handleSaveEditedVnc = useCallback((groupId, updatedConnection) => {
-        handleUpdateVncConnection(groupId, updatedConnection);
-        setEditingVncConnection(null);
+        // Passa (groupId, connectionId, updatedData) conforme esperado pelo useGroups
+        handleUpdateVncConnection(groupId, updatedConnection.id, updatedConnection);
+        closeEditVncConnection();
         toast.success(`Conexão VNC "${updatedConnection.name}" atualizada com sucesso!`);
-    }, [handleUpdateVncConnection, toast]);
+    }, [handleUpdateVncConnection, toast, closeEditVncConnection]);
 
 
     // Wrappers para deletar com confirmação
     const confirmDeleteGroup = useCallback((groupId, groupName) => {
-        setDialogConfig({
+        showConfirmDialog({
             message: `Tem certeza que deseja deletar o grupo "${groupName}"?`,
-            onConfirm: () => handleDeleteGroup(groupId),
-            isOpen: true
+            onConfirm: () => handleDeleteGroup(groupId)
         });
-    }, [handleDeleteGroup]);
+    }, [handleDeleteGroup, showConfirmDialog]);
 
     const confirmDeleteVncGroup = useCallback((groupId, groupName) => {
-        setDialogConfig({
+        showConfirmDialog({
             message: `Tem certeza que deseja deletar o grupo VNC "${groupName}" e todas as suas conexões?`,
-            onConfirm: () => handleDeleteVncGroup(groupId, groupName),
-            isOpen: true
+            onConfirm: () => handleDeleteVncGroup(groupId, groupName)
         });
-    }, [handleDeleteVncGroup]);
+    }, [handleDeleteVncGroup, showConfirmDialog]);
 
     const confirmDeleteVncConnection = useCallback((groupId, connectionId, connectionName) => {
-        setDialogConfig({
+        showConfirmDialog({
             message: `Tem certeza que deseja deletar a conexão VNC "${connectionName}"?`,
-            onConfirm: () => handleDeleteVncConnection(groupId, connectionId, connectionName),
-            isOpen: true
+            onConfirm: () => handleDeleteVncConnection(groupId, connectionId, connectionName)
         });
-    }, [handleDeleteVncConnection]);
+    }, [handleDeleteVncConnection, showConfirmDialog]);
 
     const handleConfirmDelete = useCallback(() => {
         if (dialogConfig && typeof dialogConfig.onConfirm === 'function') {
             dialogConfig.onConfirm();
         }
-        setDialogConfig(null);
-    }, [dialogConfig]);
+        closeDialog();
+    }, [dialogConfig, closeDialog]);
 
     const allServers = useMemo(() => {
         return groups.flatMap(group =>
@@ -309,27 +357,6 @@ function AppContent() {
         }
     }, [groups, toast, setGroups]);
 
-    useEffect(() => {
-        const loadTheme = async () => {
-            if (window.api && window.api.getOsTheme) {
-                try {
-                    const osTheme = await window.api.getOsTheme();
-                    setTheme(osTheme);
-                } catch (error) {
-                    setTheme('dark');
-                }
-            } else {
-                setTheme('dark');
-            }
-        };
-        loadTheme();
-    }, []);
-
-    useEffect(() => {
-        if (theme) {
-            document.documentElement.setAttribute('data-color-scheme', theme);
-        }
-    }, [theme]);
 
     useEffect(() => {
         if (window.api && window.api.onConnectionStatus) {
@@ -358,7 +385,7 @@ function AppContent() {
                     theme={theme}
                     onThemeToggle={toggleTheme}
                     isCollapsed={isSidebarCollapsed}
-                    onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onToggleCollapse={toggleSidebar}
                 />
 
                 {/* Phase 1 - Header */}
@@ -367,11 +394,11 @@ function AppContent() {
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     isEditModeEnabled={isEditModeEnabled}
-                    onToggleEditMode={() => setIsEditModeEnabled(!isEditModeEnabled)}
+                    onToggleEditMode={toggleEditMode}
                     onTestConnectivity={handleTestAllServers}
-                    onShowImportAD={() => setShowADModal(true)}
-                    onShowAddGroup={() => setShowAddGroupForm(true)}
-                    onShowBulkPassword={() => setShowBulkPasswordModal(true)}
+                    onShowImportAD={openADModal}
+                    onShowAddGroup={openAddGroupForm}
+                    onShowBulkPassword={openBulkPasswordModal}
                     viewMode={activeView === 'RDP/SSH' ? rdpViewMode : vncViewMode}
                     onToggleViewMode={() => {
                         if (activeView === 'RDP/SSH') {
@@ -380,55 +407,56 @@ function AppContent() {
                             setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid');
                         }
                     }}
+                    onShowGuacamoleConfig={() => setShowGuacamoleConfig(true)}
                 />
                 {/* Main Content Area */}
                 <main className="app-main-content">
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <ADImportModal
                             isOpen={showADModal}
-                            onClose={() => setShowADModal(false)}
+                            onClose={closeADModal}
                             onImport={handleImportFromAD}
                             groups={groups}
                             vncGroups={vncGroups}
                         />
                         <BulkPasswordModal
                             isOpen={showBulkPasswordModal}
-                            onClose={() => setShowBulkPasswordModal(false)}
+                            onClose={closeBulkPasswordModal}
                             onApply={handleBulkPasswordUpdate}
                             groups={groups}
                             vncGroups={vncGroups}
                         />
                         <Modal
                             isOpen={showAddGroupForm}
-                            onClose={() => setShowAddGroupForm(false)}
+                            onClose={closeAddGroupForm}
                             title={activeView === 'RDP/SSH' ? 'Criar Novo Grupo RDP/SSH' : 'Criar Novo Grupo VNC'}
                         >
                             <AddGroupForm
                                 onAddGroup={activeView === 'RDP/SSH' ? handleAddGroup : handleAddVncGroup}
-                                onCancel={() => setShowAddGroupForm(false)}
+                                onCancel={closeAddGroupForm}
                                 subtitle={activeView === 'RDP/SSH' ? 'Organize seus servidores.' : 'Organize suas conexões.'}
                             />
                         </Modal>
                         <Modal
                             isOpen={!!addingToGroupId}
-                            onClose={() => setAddingToGroupId(null)}
+                            onClose={closeAddServerToGroup}
                             title={activeView === 'RDP/SSH' ? 'Adicionar Novo Servidor' : 'Adicionar Nova Conexão VNC'}
                         >
                             {activeView === 'RDP/SSH' ? (
                                 <AddServerForm
                                     onAddServer={(serverData) => {
                                         handleAddServer(addingToGroupId, serverData);
-                                        setAddingToGroupId(null);
+                                        closeAddServerToGroup();
                                     }}
-                                    onCancel={() => setAddingToGroupId(null)}
+                                    onCancel={closeAddServerToGroup}
                                 />
                             ) : (
                                 <AddVncConnectionForm
                                     onAddConnection={(connectionData) => {
                                         handleAddVncConnection(addingToGroupId, connectionData);
-                                        setAddingToGroupId(null);
+                                        closeAddServerToGroup();
                                     }}
-                                    onCancel={() => setAddingToGroupId(null)}
+                                    onCancel={closeAddServerToGroup}
                                 />
                             )}
                         </Modal>
@@ -443,16 +471,16 @@ function AppContent() {
                                 <RdpSshView
                                     filteredGroups={filteredGroups}
                                     onAddServer={(groupId, serverData) => handleAddServer(groupId, serverData)}
-                                    onDeleteServer={(groupId, serverId, serverName) => setDialogConfig({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId), isOpen: true })}
+                                    onDeleteServer={(groupId, serverId, serverName) => showConfirmDialog({ message: `Deletar servidor "${serverName}"?`, onConfirm: () => handleDeleteServer(groupId, serverId) })}
                                     onUpdateServer={handleUpdateServer}
-                                    onEditServer={(server, groupId) => setEditingServer({ server, groupId })}
+                                    onEditServer={(server, groupId) => startEditServer({ server, groupId })}
                                     onDeleteGroup={confirmDeleteGroup}
                                     onUpdateGroup={handleUpdateGroup}
                                     activeConnections={activeConnections}
                                     isEditModeEnabled={isEditModeEnabled}
-                                    onShowAddGroupForm={() => setShowAddGroupForm(true)}
-                                    onShowAddServerModal={setAddingToGroupId}
-                                    onRemoteConnect={setActiveRemoteConnection}
+                                    onShowAddGroupForm={openAddGroupForm}
+                                    onShowAddServerModal={openAddServerToGroup}
+                                    onRemoteConnect={openRemoteConnection}
                                     viewMode={rdpViewMode}
                                 />
                             )}
@@ -464,12 +492,12 @@ function AppContent() {
                                     onDeleteConnection={confirmDeleteVncConnection}
                                     onDeleteGroup={confirmDeleteVncGroup}
                                     onUpdateConnection={handleUpdateVncConnection}
-                                    onEditVnc={(connection, groupId) => setEditingVncConnection({ connection, groupId })}
+                                    onEditVnc={(connection, groupId) => startEditVncConnection({ connection, groupId })}
                                     onUpdateVncGroup={handleUpdateVncGroup}
                                     isEditModeEnabled={isEditModeEnabled}
-                                    onShowAddConnectionModal={setAddingToGroupId}
+                                    onShowAddConnectionModal={openAddServerToGroup}
                                     viewMode={vncViewMode}
-                                    onVncConnect={setActiveVncConnection}
+                                    onVncConnect={openVncConnection}
                                 />
                             )}
                             {activeView === 'VNC Wall' && (
@@ -488,17 +516,17 @@ function AppContent() {
                     <div className="footer-content">
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
-                            Gerenciador Enterprise v4.0
+                            Gerenciador Enterprise v4.2.0
                         </div>
                         <div>{groups.length + vncGroups.length} grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>
                 </footer>
-                {dialogConfig && (
+                {dialogConfig && dialogConfig.isOpen && (
                     <ConfirmationDialog
                         isOpen={dialogConfig.isOpen}
                         message={dialogConfig.message}
                         onConfirm={handleConfirmDelete}
-                        onCancel={() => setDialogConfig(null)}
+                        onCancel={closeDialog}
                     />
                 )}
 
@@ -507,7 +535,7 @@ function AppContent() {
                     <EditServerModal
                         server={editingServer.server}
                         onSave={handleSaveEditedServer}
-                        onCancel={() => setEditingServer(null)}
+                        onCancel={closeEditServer}
                     />
                 )}
 
@@ -516,7 +544,7 @@ function AppContent() {
                         connection={editingVncConnection.connection}
                         groupId={editingVncConnection.groupId}
                         onSave={handleSaveEditedVnc}
-                        onCancel={() => setEditingVncConnection(null)}
+                        onCancel={closeEditVncConnection}
                     />
                 )}
 
@@ -524,7 +552,7 @@ function AppContent() {
                 {activeVncConnection && (
                     <VncViewerModal
                         connectionInfo={activeVncConnection}
-                        onClose={() => setActiveVncConnection(null)}
+                        onClose={closeVncConnection}
                     />
                 )}
 
@@ -532,9 +560,17 @@ function AppContent() {
                 {activeRemoteConnection && (
                     <ConnectionViewerModal
                         connectionInfo={activeRemoteConnection}
-                        onClose={() => setActiveRemoteConnection(null)}
+                        onClose={closeRemoteConnection}
                     />
                 )}
+
+                {/* Modal de Configuração do Servidor Guacamole */}
+                <GuacamoleServerConfigModal
+                    isOpen={showGuacamoleConfig}
+                    onClose={() => setShowGuacamoleConfig(false)}
+                    onSave={handleSaveGuacamoleConfig}
+                    initialConfig={guacamoleConfig}
+                />
             </div>
         </ThemeProvider >
     );

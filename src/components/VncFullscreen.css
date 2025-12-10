@@ -1,4 +1,4 @@
-/* v4.1: VNC Fullscreen Modal - Premium Design */
+/* v4.2: VNC Fullscreen Modal - Com VncToolbar integrada */
 
 .vnc-fullscreen-overlay {
     position: fixed;
@@ -6,12 +6,11 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(0, 0, 0, 0.98);
     z-index: 10000;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.3s ease-out;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
@@ -25,94 +24,24 @@
 }
 
 .vnc-fullscreen-container {
-    width: 95vw;
-    height: 95vh;
-    background: var(--color-background);
-    border-radius: 12px;
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.6),
-        0 12px 36px rgba(0, 0, 0, 0.4);
-    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes scaleIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.98);
     }
 
     to {
         opacity: 1;
         transform: scale(1);
     }
-}
-
-/* Header */
-.vnc-fullscreen-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    flex-shrink: 0;
-}
-
-.vnc-fullscreen-info h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--color-text);
-}
-
-.vnc-address {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    font-family: var(--font-family-mono);
-}
-
-.vnc-fullscreen-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.vnc-control-btn,
-.vnc-close-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-secondary);
-    color: var(--color-text);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.vnc-control-btn:hover {
-    background: var(--color-primary);
-    color: var(--color-btn-primary-text);
-    border-color: var(--color-primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.3);
-}
-
-.vnc-close-btn {
-    background: var(--color-error);
-    color: white;
-    border-color: var(--color-error);
-}
-
-.vnc-close-btn:hover {
-    background: var(--color-red-500);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--color-error-rgb), 0.3);
 }
 
 /* Display Area */
@@ -126,54 +55,28 @@
     position: relative;
 }
 
-/* Dark Mode */
-[data-color-scheme="dark"] .vnc-fullscreen-container {
-    background: var(--color-charcoal-800);
+/* Quando não está em fullscreen real, adiciona margem */
+.vnc-fullscreen-overlay:not(:fullscreen) .vnc-fullscreen-container {
+    width: 95vw;
+    height: 95vh;
+    margin: auto;
+    border-radius: 12px;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
 }
 
-[data-color-scheme="dark"] .vnc-fullscreen-header {
-    background: var(--color-charcoal-700);
+/* Em fullscreen real, ocupa tudo */
+.vnc-fullscreen-overlay:fullscreen .vnc-fullscreen-container {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-    .vnc-fullscreen-container {
+@media (max-width: 768px) {
+    .vnc-fullscreen-overlay:not(:fullscreen) .vnc-fullscreen-container {
         width: 100vw;
         height: 100vh;
         border-radius: 0;
-    }
-
-    .vnc-fullscreen-header {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .vnc-fullscreen-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .vnc-control-btn,
-    .vnc-close-btn {
-        flex: 1;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-
-    .vnc-control-btn,
-    .vnc-close-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-
-    .vnc-fullscreen-info h2 {
-        font-size: 16px;
-    }
-
-    .vnc-address {
-        font-size: 11px;
     }
 }

@@ -1,4 +1,4 @@
-// src/views/VncView.js (v4.1: Com suporte a viewMode)
+// src/views/VncView.js (v4.2: Com suporte a viewMode)
 
 import React, { useState } from 'react';
 import VncGroup from '../components/VncGroup';

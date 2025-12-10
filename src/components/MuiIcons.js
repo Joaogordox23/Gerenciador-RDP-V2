@@ -68,5 +68,16 @@ export {
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
     Person as PersonIcon,
-    Videocam as VideoLabelIcon
+    Videocam as VideoLabelIcon,
+
+    // VNC Toolbar (v2.0)
+    ContentCopy as ContentCopyIcon,
+    ContentPaste as ContentPasteIcon,
+    AspectRatio as AspectRatioIcon,
+    VisibilityOff as VisibilityOffIcon,
+    Keyboard as KeyboardIcon,
+    Fullscreen as FullscreenIcon,
+    PhotoCamera as PhotoCameraIcon,
+    SignalWifi4Bar as SignalWifiIcon,
+    Mouse as MouseIcon
 } from '@mui/icons-material';

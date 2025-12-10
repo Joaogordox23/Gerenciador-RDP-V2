@@ -23,8 +23,6 @@ function RemoteDesktopViewer({
     const [status, setStatus] = useState('disconnected');
     const [error, setError] = useState(null);
 
-    const GUACAMOLE_WS_URL = 'ws://localhost:8080';
-
     // Função para limpar mouse e keyboard
     const cleanupInputHandlers = () => {
         if (keyboardRef.current) {
@@ -58,6 +56,18 @@ function RemoteDesktopViewer({
             if (onStatusChange) onStatusChange('connecting');
 
             try {
+                // Busca URL configurada do servidor Guacamole
+                let wsBaseUrl = 'ws://localhost:8080'; // fallback padrão
+                try {
+                    const config = await window.api.config.getGuacamole();
+                    if (config && config.wsUrl) {
+                        wsBaseUrl = config.wsUrl;
+                        console.log('📡 Usando servidor Guacamole configurado:', wsBaseUrl);
+                    }
+                } catch (configError) {
+                    console.warn('⚠️ Erro ao obter config, usando localhost:', configError);
+                }
+
                 console.log('🔑 Gerando token...');
                 const token = await window.api.guacamole.generateToken(connectionInfo);
 
@@ -65,7 +75,7 @@ function RemoteDesktopViewer({
 
                 console.log('✅ Token OK, criando cliente...');
 
-                const wsUrl = `${GUACAMOLE_WS_URL}/?token=${encodeURIComponent(token)}`;
+                const wsUrl = `${wsBaseUrl}/?token=${encodeURIComponent(token)}`;
                 const tunnel = new Guacamole.WebSocketTunnel(wsUrl);
                 const client = new Guacamole.Client(tunnel);
                 clientRef.current = client;
@@ -175,16 +185,20 @@ function RemoteDesktopViewer({
                         setTimeout(() => sendSizeToServer(), 500);
 
                         // Mouse - armazena referência para cleanup
-                        // CORREÇÃO: Ajusta coordenadas do mouse pela escala inversa
+                        // CORREÇÃO v2: Ajusta coordenadas considerando escala E offset do displayElement
                         const mouse = new Guacamole.Mouse(displayElement);
                         mouseRef.current = mouse;
 
                         const sendMouseState = (mouseState) => {
                             if (clientRef.current && currentScale > 0) {
-                                // Cria novo estado com coordenadas ajustadas pela escala
+                                // O Guacamole.Mouse já retorna coordenadas relativas ao displayElement
+                                // Precisamos apenas dividir pela escala para obter coordenadas do servidor
+                                const adjustedX = mouseState.x / currentScale;
+                                const adjustedY = mouseState.y / currentScale;
+
                                 const adjustedState = new Guacamole.Mouse.State(
-                                    mouseState.x / currentScale,
-                                    mouseState.y / currentScale,
+                                    adjustedX,
+                                    adjustedY,
                                     mouseState.left,
                                     mouseState.middle,
                                     mouseState.right,

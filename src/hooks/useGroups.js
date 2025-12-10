@@ -82,20 +82,27 @@ export function useGroups(toast) {
     const handleUpdateServer = useCallback(async (groupId, serverId, updatedData) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
         // Não define hasUserMadeChanges para evitar salvamento em massa
+        let serverWithEncryptedPassword = updatedData;
+
         if (window.api && window.api.db) {
             try {
-                await window.api.db.updateConnection(serverId, updatedData);
+                const result = await window.api.db.updateConnection(serverId, updatedData);
                 console.log(`⚡ Servidor ${serverId} atualizado via SQLite (pontual)`);
                 skipNextStorageSync.current = true; // Pula o sync em massa
+
+                // Usa a conexão retornada pelo backend (com senha criptografada)
+                if (result.connection) {
+                    serverWithEncryptedPassword = result.connection;
+                }
             } catch (error) {
                 console.error('❌ Erro ao atualizar servidor no SQLite:', error);
             }
         }
 
-        // Atualiza o state local (apenas para refletir na UI)
+        // Atualiza o state local com dados do backend (senha criptografada)
         setGroups(prev => prev.map(group => {
             if (group.id === groupId) {
-                return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...updatedData } : s)) };
+                return { ...group, servers: group.servers.map(s => (s.id === serverId ? { ...s, ...serverWithEncryptedPassword } : s)) };
             }
             return group;
         }));
@@ -175,20 +182,27 @@ export function useGroups(toast) {
     const handleUpdateVncConnection = useCallback(async (groupId, connectionId, updatedData) => {
         // ✅ OTIMIZAÇÃO: Atualiza no SQLite diretamente (PONTUAL!)
         // Não define hasUserMadeChanges para evitar salvamento em massa
+        let connectionWithEncryptedPassword = updatedData;
+
         if (window.api && window.api.db) {
             try {
-                await window.api.db.updateConnection(connectionId, { ...updatedData, protocol: 'vnc' });
+                const result = await window.api.db.updateConnection(connectionId, { ...updatedData, protocol: 'vnc' });
                 console.log(`⚡ Conexão VNC ${connectionId} atualizada via SQLite (pontual)`);
                 skipNextStorageSync.current = true; // Pula o sync em massa
+
+                // Usa a conexão retornada pelo backend (com senha criptografada)
+                if (result.connection) {
+                    connectionWithEncryptedPassword = result.connection;
+                }
             } catch (error) {
                 console.error('❌ Erro ao atualizar conexão VNC no SQLite:', error);
             }
         }
 
-        // Atualiza o state local (apenas para refletir na UI)
+        // Atualiza o state local com dados do backend (senha criptografada)
         setVncGroups(prev => prev.map(group => {
             if (group.id === groupId) {
-                return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...updatedData } : c)) };
+                return { ...group, connections: group.connections.map(c => (c.id === connectionId ? { ...c, ...connectionWithEncryptedPassword } : c)) };
             }
             return group;
         }));

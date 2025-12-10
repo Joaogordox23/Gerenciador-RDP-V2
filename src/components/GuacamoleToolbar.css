@@ -1,21 +1,22 @@
 /**
- * GuacamoleToolbar.css
- * Estilos para a barra de ferramentas do RDP/SSH Viewer
+ * GuacamoleToolbar.css - v2.0
+ * Estilos premium para RDP/SSH Viewer - Consistente com VncToolbar
  */
 
 .guacamole-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-bottom: 1px solid rgba(0, 150, 255, 0.2);
+    padding: 10px 16px;
+    background: linear-gradient(135deg, rgba(22, 33, 62, 0.98) 0%, rgba(15, 52, 96, 0.98) 100%);
+    border-bottom: 1px solid rgba(0, 217, 181, 0.3);
     gap: 16px;
     flex-wrap: wrap;
+    backdrop-filter: blur(10px);
     z-index: 100;
 }
 
-/* Info section */
+/* ========== Info Section ========== */
 .guacamole-toolbar-info {
     display: flex;
     align-items: center;
@@ -24,36 +25,100 @@
     flex-shrink: 0;
 }
 
-.guacamole-toolbar-icon {
-    font-size: 20px;
+.guacamole-status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.guacamole-status-indicator.connected {
+    background: linear-gradient(135deg, rgba(0, 217, 181, 0.3), rgba(0, 217, 181, 0.1));
+    color: #00d9b5;
+}
+
+.guacamole-status-indicator.connecting {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 193, 7, 0.1));
+    color: #ffc107;
+    animation: pulse-connecting 1s infinite;
+}
+
+.guacamole-status-indicator.error {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.3), rgba(220, 53, 69, 0.1));
+    color: #dc3545;
+}
+
+.guacamole-status-indicator.disconnected {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes pulse-connecting {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 .guacamole-toolbar-name {
     font-size: 14px;
     font-weight: 600;
-    max-width: 200px;
+    max-width: 180px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #fff;
 }
 
 .guacamole-toolbar-address {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.6);
-    padding: 3px 8px;
+    font-family: monospace;
+}
+
+.guacamole-connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.guacamole-connection-badge.connected {
+    background: rgba(0, 217, 181, 0.2);
+    color: #00d9b5;
+}
+
+.guacamole-connection-badge.connecting {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.guacamole-connection-badge.error {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b;
+}
+
+.guacamole-connection-badge.disconnected {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.5);
 }
 
-.guacamole-toolbar-status {
-    font-size: 12px;
-}
-
-/* Controls section */
+/* ========== Controls Section ========== */
 .guacamole-toolbar-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -62,136 +127,279 @@
     gap: 4px;
 }
 
-/* Buttons */
+.guacamole-toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    margin: 0 4px;
+}
+
+/* ========== Buttons ========== */
 .guacamole-toolbar-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    position: relative;
 }
 
-.guacamole-toolbar-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(0, 150, 255, 0.5);
+.guacamole-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(0, 217, 181, 0.5);
+    color: #fff;
+    transform: translateY(-1px);
 }
 
-.guacamole-toolbar-btn:active:not(:disabled) {
-    transform: scale(0.98);
+.guacamole-toolbar-btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .guacamole-toolbar-btn.active {
-    background: rgba(0, 150, 255, 0.2);
-    border-color: #0096ff;
-    color: #0096ff;
+    background: linear-gradient(135deg, rgba(0, 217, 181, 0.25), rgba(0, 217, 181, 0.1));
+    border-color: #00d9b5;
+    color: #00d9b5;
+    box-shadow: 0 0 12px rgba(0, 217, 181, 0.2);
+}
+
+.guacamole-toolbar-btn.has-content {
+    animation: badge-pulse 2s infinite;
+}
+
+@keyframes badge-pulse {
+
+    0%,
+    100% {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    50% {
+        background: rgba(0, 217, 181, 0.15);
+    }
 }
 
 .guacamole-toolbar-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    transform: none !important;
 }
 
 .guacamole-toolbar-btn.close {
-    background: rgba(220, 53, 69, 0.2);
-    border-color: rgba(220, 53, 69, 0.5);
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.4);
     color: #ff6b6b;
 }
 
 .guacamole-toolbar-btn.close:hover {
-    background: #dc3545;
+    background: rgba(220, 53, 69, 0.9);
+    border-color: #dc3545;
     color: #fff;
 }
 
-/* Clipboard Popup */
+/* Quality Badge */
+.guacamole-quality-badge {
+    font-size: 10px;
+    margin-left: 2px;
+}
+
+/* ========== Dropdown Menu ========== */
+.guacamole-toolbar-dropdown {
+    position: relative;
+}
+
+.guacamole-toolbar-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(0, 217, 181, 0.3);
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 160px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: menu-slide-in 0.2s ease;
+}
+
+@keyframes menu-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.guacamole-menu-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 4px 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 4px;
+}
+
+.guacamole-toolbar-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+
+.guacamole-toolbar-menu-item:hover {
+    background: rgba(0, 217, 181, 0.15);
+}
+
+.guacamole-toolbar-menu-item.active {
+    background: linear-gradient(135deg, rgba(0, 217, 181, 0.25), rgba(0, 217, 181, 0.1));
+    color: #00d9b5;
+}
+
+.guacamole-toolbar-menu-item .menu-icon {
+    font-size: 14px;
+}
+
+/* ========== Clipboard Popup ========== */
 .guacamole-clipboard-popup {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10001;
+    animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .guacamole-clipboard-popup-content {
-    background: #1a1a2e;
-    border: 1px solid rgba(0, 150, 255, 0.3);
-    border-radius: 12px;
-    padding: 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(0, 217, 181, 0.3);
+    border-radius: 16px;
+    padding: 24px;
     width: 90%;
-    max-width: 400px;
+    max-width: 420px;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+    animation: popup-scale-in 0.2s ease;
+}
+
+@keyframes popup-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .guacamole-clipboard-popup-content h4 {
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0;
     color: #fff;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.guacamole-clipboard-hint {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
 }
 
 .guacamole-clipboard-popup-content textarea {
     width: 100%;
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
     font-size: 14px;
     resize: vertical;
     font-family: inherit;
+    transition: border-color 0.2s;
 }
 
 .guacamole-clipboard-popup-content textarea:focus {
     outline: none;
-    border-color: #0096ff;
+    border-color: #00d9b5;
+    box-shadow: 0 0 0 3px rgba(0, 217, 181, 0.15);
 }
 
 .guacamole-clipboard-popup-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
+    gap: 10px;
+    margin-top: 16px;
     justify-content: flex-end;
 }
 
 .guacamole-clipboard-popup-actions button {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.guacamole-clipboard-popup-actions button:first-child {
-    background: #0096ff;
-    color: #fff;
+.guacamole-clipboard-popup-actions .btn-primary {
+    background: linear-gradient(135deg, #00d9b5, #00b894);
+    color: #000;
 }
 
-.guacamole-clipboard-popup-actions button:first-child:hover {
+.guacamole-clipboard-popup-actions .btn-primary:hover {
     filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
-.guacamole-clipboard-popup-actions button:last-child {
+.guacamole-clipboard-popup-actions .btn-secondary {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
 
-.guacamole-clipboard-popup-actions button:last-child:hover {
+.guacamole-clipboard-popup-actions .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Light mode */
+/* ========== Light Mode ========== */
 [data-color-scheme="light"] .guacamole-toolbar {
-    background: linear-gradient(135deg, #e8e8e8 0%, #f0f0f0 100%);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -199,24 +407,39 @@
     color: #333;
 }
 
-[data-color-scheme="light"] .guacamole-toolbar-btn {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.2);
+[data-color-scheme="light"] .guacamole-toolbar-name {
     color: #333;
 }
 
-[data-color-scheme="light"] .guacamole-toolbar-btn:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.1);
+[data-color-scheme="light"] .guacamole-toolbar-address {
+    color: rgba(0, 0, 0, 0.6);
 }
 
-/* Responsivo */
+[data-color-scheme="light"] .guacamole-toolbar-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #333;
+}
+
+[data-color-scheme="light"] .guacamole-toolbar-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #000;
+}
+
+[data-color-scheme="light"] .guacamole-toolbar-separator {
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.15), transparent);
+}
+
+/* ========== Responsive ========== */
 @media (max-width: 768px) {
     .guacamole-toolbar {
         padding: 8px 12px;
+        gap: 8px;
     }
 
     .guacamole-toolbar-name {
         max-width: 100px;
+        font-size: 13px;
     }
 
     .guacamole-toolbar-address {
@@ -224,7 +447,20 @@
     }
 
     .guacamole-toolbar-btn {
-        padding: 6px 8px;
-        font-size: 12px;
+        padding: 8px;
+    }
+
+    .guacamole-toolbar-separator {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .guacamole-toolbar-info {
+        flex: 1;
+    }
+
+    .guacamole-connection-badge {
+        display: none;
     }
 }

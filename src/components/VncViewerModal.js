@@ -18,6 +18,7 @@ function VncViewerModal({ connectionInfo, onClose }) {
     const [viewOnly, setViewOnly] = useState(false);
     const [scaleViewport, setScaleViewport] = useState(true);
     const [qualityLevel, setQualityLevel] = useState(6);
+    const [compressionLevel, setCompressionLevel] = useState(2);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Ref para o RFB do noVNC
@@ -169,6 +170,7 @@ function VncViewerModal({ connectionInfo, onClose }) {
                             viewOnly={viewOnly}
                             scaleViewport={scaleViewport}
                             quality={qualityLevel}
+                            compression={compressionLevel}
                             onRfbReady={handleRfbReady}
                         />
                     )}

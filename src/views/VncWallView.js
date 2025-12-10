@@ -54,11 +54,15 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
         );
     }, [vncGroups, searchTerm]);
 
+    // ✨ v4.3: Cálculo do total de páginas para o carrossel
+    const itemsPerPage = gridColumns * 2; // 2 linhas de colunas
+    const totalPages = Math.ceil(connections.length / itemsPerPage);
+
     // ✨ v4.0: Lógica do carrossel automático
     useEffect(() => {
-        if (carouselMode && isPlaying && connections.length > 0) {  // Era allConnections
+        if (carouselMode && isPlaying && totalPages > 1) {
             timerRef.current = setInterval(() => {
-                setCurrentIndex(prev => (prev + 1) % connections.length);  // Era allConnections
+                setCurrentIndex(prev => (prev + 1) % totalPages);
             }, carouselInterval);
 
             return () => {
@@ -67,7 +71,7 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                 }
             };
         }
-    }, [carouselMode, isPlaying, carouselInterval, connections.length]);
+    }, [carouselMode, isPlaying, carouselInterval, totalPages]);
 
     const handleStartMonitoring = async (connection) => {
         // Evita duplicatas
@@ -116,11 +120,11 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
     };
 
     const handleNext = () => {
-        setCurrentIndex(prev => (prev + 1) % allConnections.length);
+        setCurrentIndex(prev => (prev + 1) % (totalPages || 1));
     };
 
     const handlePrevious = () => {
-        setCurrentIndex(prev => (prev - 1 + allConnections.length) % allConnections.length);
+        setCurrentIndex(prev => (prev - 1 + (totalPages || 1)) % (totalPages || 1));
     };
 
     // ✨ v4.1: Abrir fullscreen ao duplo clique
@@ -133,6 +137,17 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
             await handleStopMonitoring(conn.id);
         }
     };
+
+    // ✨ v4.3: Selecionar/Desmarcar todos
+    const handleSelectAll = async () => {
+        for (const conn of allConnections) {
+            if (!connections.find(c => c.id === conn.id)) {
+                await handleStartMonitoring(conn);
+            }
+        }
+    };
+
+    const allSelected = allConnections.length > 0 && connections.length === allConnections.length;
 
     return (
         <div className="vnc-wall-container">
@@ -175,6 +190,17 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                             </div>
                         );
                     })}
+                </div>
+
+                {/* ✨ v4.3: Botão Selecionar/Desmarcar Todos */}
+                <div className="wall-selection-controls">
+                    <button
+                        onClick={allSelected ? handleStopAll : handleSelectAll}
+                        className={`btn-select-all ${allSelected ? 'active' : ''}`}
+                        disabled={allConnections.length === 0}
+                    >
+                        {allSelected ? '✖ Desmarcar Todos' : '✔ Selecionar Todos'}
+                    </button>
                 </div>
 
                 {/* ✨ v4.0: Controles do Carrossel */}
@@ -236,22 +262,20 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                         </>
                     )}
 
-                    {/* ✨ v4.1: Controle de Colunas do Grid */}
-                    {!carouselMode && (
-                        <div className="columns-control">
-                            <label>Colunas do Grid</label>
-                            <input
-                                type="range"
-                                min="1"
-                                max="6"
-                                value={gridColumns}
-                                onChange={(e) => setGridColumns(Number(e.target.value))}
-                                className="columns-slider"
-                                title={`${gridColumns} coluna${gridColumns > 1 ? 's' : ''}`}
-                            />
-                            <div className="columns-value">{gridColumns} {gridColumns === 1 ? 'coluna' : 'colunas'}</div>
-                        </div>
-                    )}
+                    {/* ✨ v4.3: Controle de Colunas do Grid - Funciona em ambos os modos */}
+                    <div className="columns-control">
+                        <label>Colunas do Grid</label>
+                        <input
+                            type="range"
+                            min="1"
+                            max="6"
+                            value={gridColumns}
+                            onChange={(e) => setGridColumns(Number(e.target.value))}
+                            className="columns-slider"
+                            title={`${gridColumns} coluna${gridColumns > 1 ? 's' : ''}`}
+                        />
+                        <div className="columns-value">{gridColumns} {gridColumns === 1 ? 'coluna' : 'colunas'}</div>
+                    </div>
 
                     <button
                         onClick={handleStopAll}
@@ -267,17 +291,44 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
             <div className="vnc-wall-main">
                 {/* ✨ v4.0: Renderização condicional - Carrossel vs Grid */}
                 {carouselMode ? (
-                    connections.length === 0 ? (  // Era allConnections
+                    connections.length === 0 ? (
                         <div className="wall-empty-state">
                             <p>Selecione servidores para exibir no carrossel</p>
                         </div>
                     ) : (
-                        <div className="vnc-carousel-fullscreen">
-                            <VncDisplay
-                                connectionInfo={connections[currentIndex]}  // Era allConnections
-                                onDisconnect={() => handleStopMonitoring(connections[currentIndex].id)}
-                                fullscreen={true}
-                            />
+                        /* ✨ v4.3: Carrossel com Grid - Mostra grid de itens com rotação automática */
+                        <div className="vnc-carousel-grid">
+                            <div className="vnc-wall-grid" style={{
+                                gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
+                            }}>
+                                {connections
+                                    .slice(
+                                        currentIndex * itemsPerPage,
+                                        (currentIndex + 1) * itemsPerPage
+                                    )
+                                    .map(conn => (
+                                        <div key={conn.id} className="vnc-wall-item" onDoubleClick={() => handleDoubleClick(conn)}>
+                                            <div className="vnc-wall-item-label">
+                                                <span className="vnc-wall-item-name">{conn.name}</span>
+                                            </div>
+                                            <VncDisplay
+                                                connectionInfo={conn}
+                                                onDisconnect={() => handleStopMonitoring(conn.id)}
+                                                viewOnly={true}
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
+                            {/* Indicador de página */}
+                            <div className="carousel-page-indicator">
+                                {Array.from({ length: totalPages }).map((_, idx) => (
+                                    <span
+                                        key={idx}
+                                        className={`page-dot ${idx === currentIndex ? 'active' : ''}`}
+                                        onClick={() => setCurrentIndex(idx)}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )
                 ) : (

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # guacd - Backend que faz as conexões reais (RDP/SSH/VNC)
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: guacd
+    restart: unless-stopped
+    ports:
+      - "4822:4822"
+    volumes:
+      - ./guacd-logs:/var/log
+    networks:
+      - guacamole-net
+
+  # guacamole-lite - WebSocket server que conecta com o app Electron
+  guacamole-lite:
+    build:
+      context: ./guacamole-lite
+      dockerfile: Dockerfile
+    container_name: guacamole-lite
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - GUACD_HOST=guacd
+      - GUACD_PORT=4822
+      - SECRET_KEY=GerenciadorRDPv2SecretKey123456!
+    depends_on:
+      - guacd
+    networks:
+      - guacamole-net
+
+networks:
+  guacamole-net:
+    driver: bridge
