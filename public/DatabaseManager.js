@@ -230,12 +230,15 @@ class DatabaseManager {
 
     /**
      * Busca conexões por termo (nome ou IP)
+     * ✅ CORREÇÃO: Retorna campos em camelCase para compatibilidade com o frontend
      */
     searchConnections(term, protocol = null) {
         const searchTerm = `%${term}%`;
 
         let query = `
-            SELECT c.*, g.name as group_name
+            SELECT c.id, c.name, c.ip_address as ipAddress, c.port, c.protocol,
+                   c.username, c.password, c.domain, c.group_id as groupId,
+                   c.group_name as groupName, g.name as groupDisplayName
             FROM connections c
             JOIN groups g ON c.group_id = g.id
             WHERE (c.name LIKE ? OR c.ip_address LIKE ?)
@@ -263,10 +266,13 @@ class DatabaseManager {
 
     /**
      * Obtém uma conexão por ID
+     * ✅ CORREÇÃO: Retorna campos em camelCase para compatibilidade com o frontend
      */
     getConnectionById(connectionId) {
         const stmt = this.db.prepare(`
-            SELECT c.*, g.name as group_name, g.type as group_type
+            SELECT c.id, c.name, c.ip_address as ipAddress, c.port, c.protocol,
+                   c.username, c.password, c.domain, c.group_id as groupId,
+                   c.group_name as groupName, g.name as groupDisplayName, g.type as groupType
             FROM connections c
             JOIN groups g ON c.group_id = g.id
             WHERE c.id = ?

@@ -5,10 +5,12 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+// NOTA: StrictMode removido temporariamente devido a bug com react-beautiful-dnd no React 18
+// Ver: https://github.com/atlassian/react-beautiful-dnd/issues/2399
+// Solução permanente: migrar para @hello-pangea/dnd
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 );
 
 // If you want to start measuring performance in your app, pass a function

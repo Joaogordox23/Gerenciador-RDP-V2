@@ -331,17 +331,26 @@ function AppContent() {
     }, [vncGroups, searchTerm]);
 
     const handleOnDragEnd = useCallback((result) => {
+        console.log('🔄 DnD: handleOnDragEnd chamado', result);
         const { destination, source, type, draggableId } = result;
 
-        if (!destination) return;
-        if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+        if (!destination) {
+            console.log('🔄 DnD: Sem destino, ignorando');
+            return;
+        }
+        if (destination.droppableId === source.droppableId && destination.index === source.index) {
+            console.log('🔄 DnD: Mesma posição, ignorando');
+            return;
+        }
 
         try {
             // Reordenação de grupos
             if (type === 'group') {
+                console.log('🔄 DnD: Reordenando grupo', { source: source.index, dest: destination.index });
                 const newGroups = Array.from(groups);
                 const [reorderedItem] = newGroups.splice(source.index, 1);
                 newGroups.splice(destination.index, 0, reorderedItem);
+                console.log('🔄 DnD: Novos grupos:', newGroups.map(g => g.groupName));
                 reorderGroups(newGroups); // Usa função que pula sync
                 toast.success(`Grupo "${reorderedItem.groupName}" reordenado`);
                 return;
@@ -352,7 +361,10 @@ function AppContent() {
             const startGroup = groups.find(g => g.id.toString() === startGroupId.toString());
             const finishGroup = groups.find(g => g.id.toString() === finishGroupId.toString());
 
+            console.log('🔄 DnD: Movendo servidor', { startGroupId, finishGroupId, startGroup: startGroup?.groupName, finishGroup: finishGroup?.groupName });
+
             if (!startGroup || !finishGroup) {
+                console.error('🔄 DnD: Grupo não encontrado');
                 toast.error('Erro ao mover item: Grupo não encontrado.');
                 return;
             }
@@ -362,18 +374,20 @@ function AppContent() {
                 const newServers = Array.from(startGroup.servers);
                 const [reorderedItem] = newServers.splice(source.index, 1);
                 newServers.splice(destination.index, 0, reorderedItem);
+                console.log('🔄 DnD: Servidor reordenado no mesmo grupo');
                 reorderServersInGroup(startGroup.id, newServers); // Usa função que pula sync
                 toast.success(`Servidor "${reorderedItem.name}" reordenado`);
             } else {
                 // Mover servidor para outro grupo
                 const serverToMove = startGroup.servers[source.index];
                 if (serverToMove) {
+                    console.log('🔄 DnD: Movendo servidor para outro grupo');
                     moveServerToGroup(serverToMove.id, startGroupId, finishGroupId, destination.index);
                     toast.success(`Servidor "${serverToMove.name}" movido para "${finishGroup.groupName}"`);
                 }
             }
         } catch (error) {
-            console.error('Erro no drag and drop:', error);
+            console.error('❌ DnD Erro:', error);
             toast.error('Erro ao reorganizar items. Tente novamente.');
         }
     }, [groups, toast, reorderGroups, reorderServersInGroup, moveServerToGroup]);
@@ -434,7 +448,10 @@ function AppContent() {
                 />
                 {/* Main Content Area */}
                 <main className="app-main-content">
-                    <DragDropContext onDragEnd={handleOnDragEnd}>
+                    <DragDropContext
+                        onDragStart={(start) => console.log('🔄 DnD: onDragStart', start)}
+                        onDragEnd={handleOnDragEnd}
+                    >
                         <ADImportModal
                             isOpen={showADModal}
                             onClose={closeADModal}

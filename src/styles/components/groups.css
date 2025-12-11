@@ -1,51 +1,52 @@
 /* ======================================= */
 /* 📂 GROUPS - Estilos de Grupos           */
-/* Gerenciador Enterprise v4.2             */
+/* Gerenciador Enterprise v5.0             */
 /* ======================================= */
 
 .groups-container {
-    padding: var(--space-32);
+    padding: var(--space-32, 32px);
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-24);
+    gap: var(--space-24, 24px);
 }
 
 /* ======================================= */
-/* GROUP CONTAINER - Glassmorphism         */
+/* GROUP CONTAINER - Glassmorphism Premium */
 /* ======================================= */
 .group-container {
-    background: rgba(var(--color-surface), 0.8);
+    background: var(--color-surface);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-lg);
-    border: 1px solid rgba(var(--color-border), 0.5);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
-        0 2px 8px rgba(0, 0, 0, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     margin-bottom: 16px;
+    overflow: hidden;
 }
 
 .group-container:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12),
-        0 6px 16px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(var(--color-teal-500-rgb), 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(var(--color-teal-500-rgb), 0.1);
+    border-color: rgba(var(--color-teal-500-rgb), 0.2);
 }
 
 /* ======================================= */
-/* GROUP HEADER                            */
+/* GROUP HEADER - Compact Premium Design   */
 /* ======================================= */
 .group-header {
-    padding: var(--space-16) var(--space-24);
-    background: linear-gradient(135deg, rgba(var(--color-secondary), 0.6) 0%, rgba(var(--color-secondary-hover), 0.4) 100%);
-    backdrop-filter: blur(10px);
+    padding: 12px 16px;
+    background: linear-gradient(135deg,
+            rgba(var(--color-teal-500-rgb), 0.08) 0%,
+            rgba(var(--color-teal-500-rgb), 0.02) 100%);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
 }
 
 /* ======================================= */
@@ -141,7 +142,7 @@
 }
 
 /* ======================================= */
-/* GROUP COLLAPSE                          */
+/* GROUP COLLAPSE - Animação Premium       */
 /* ======================================= */
 
 .group-collapse-btn {
@@ -149,7 +150,7 @@
     height: 28px;
     border: none;
     border-radius: 6px;
-    background: transparent;
+    background: rgba(var(--color-teal-500-rgb), 0.08);
     color: var(--color-text-secondary);
     cursor: pointer;
     display: flex;
@@ -160,13 +161,15 @@
 }
 
 .group-collapse-btn:hover {
-    background: rgba(var(--color-teal-500-rgb), 0.1);
+    background: rgba(var(--color-teal-500-rgb), 0.15);
     color: var(--color-primary);
+    transform: scale(1.1);
 }
 
 .group-collapse-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
 }
 
 /* Badge de contagem quando colapsado */
@@ -174,16 +177,29 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
+    min-width: 24px;
     height: 22px;
     padding: 0 8px;
     margin-left: 10px;
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
     color: #000;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(var(--color-teal-500-rgb), 0.3);
+    border-radius: 11px;
+    box-shadow: 0 2px 8px rgba(var(--color-teal-500-rgb), 0.4);
+    animation: badgePop 0.3s ease;
+}
+
+@keyframes badgePop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* Container colapsado */
@@ -192,5 +208,165 @@
 }
 
 .group-container.collapsed .group-header {
-    border-radius: var(--radius-base);
+    border-radius: var(--radius-base, 8px);
+    border-bottom: none;
+}
+
+/* Animação de collapse/expand */
+.servers-row,
+.servers-list {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ======================================= */
+/* GROUP TITLE - Typography Premium        */
+/* ======================================= */
+
+.group-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-title-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.group-title-edit-input {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    background: var(--color-background);
+    color: var(--color-text);
+    outline: none;
+}
+
+.group-title-edit-input:focus {
+    box-shadow: 0 0 0 3px rgba(var(--color-teal-500-rgb), 0.2);
+}
+
+/* ======================================= */
+/* GROUP ACTIONS - Buttons Premium         */
+/* ======================================= */
+
+.group-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.action-button-icon {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.action-button-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.action-button-icon:hover {
+    transform: scale(1.1);
+}
+
+.action-button-icon.add:hover {
+    background: rgba(0, 217, 181, 0.2);
+    color: var(--color-primary);
+}
+
+.action-button-icon.edit:hover {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+}
+
+.action-button-icon.delete:hover {
+    background: rgba(233, 30, 99, 0.2);
+    color: #e91e63;
+}
+
+.action-button-icon.save:hover {
+    background: rgba(0, 175, 116, 0.2);
+    color: #00af74;
+}
+
+.action-button-icon.cancel:hover {
+    background: rgba(233, 30, 99, 0.2);
+    color: #e91e63;
+}
+
+/* Group Drag Handle Premium */
+.group-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: var(--color-text-secondary);
+    cursor: grab;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    letter-spacing: -2px;
+}
+
+.group-drag-handle:hover {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.group-container.dragging {
+    opacity: 0.9;
+    transform: rotate(1deg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* ======================================= */
+/* 🐛 FIX: DRAG AND DROP TRAVANDO          */
+/* Força pointer-events para evitar bloqueio*/
+/* ======================================= */
+
+.group-container,
+.group-container *,
+.servers-row,
+.servers-row *,
+.server-item,
+.server-item * {
+    pointer-events: auto !important;
+}
+
+/* Apenas elementos que devem ser não-clicáveis */
+.server-drag-indicator {
+    pointer-events: none !important;
+}
+
+/* Garante que o grupo não fique bloqueado após drag */
+.group-container[style*="transform"] {
+    pointer-events: auto !important;
 }

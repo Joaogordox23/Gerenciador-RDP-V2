@@ -4,14 +4,25 @@ import './Modal.css';
 
 function EditServerModal({ server, groupId, groups, onSave, onCancel }) {
     const handleSave = (updatedData) => {
+        // Preserva o ID original do servidor
+        const serverWithId = {
+            ...server,
+            ...updatedData,
+            id: server.id // Garante que o ID nunca seja undefined
+        };
+
         // Se newGroupId foi alterado, passa para o handler
         const newGroupId = updatedData.newGroupId;
-        delete updatedData.newGroupId; // Remove do objeto de dados
+        delete serverWithId.newGroupId; // Remove do objeto de dados
 
-        onSave(groupId, {
-            ...server,
-            ...updatedData
-        }, newGroupId);
+        console.log('📝 EditServerModal.handleSave:', {
+            serverId: server.id,
+            groupId,
+            newGroupId,
+            finalData: serverWithId
+        });
+
+        onSave(groupId, serverWithId, newGroupId);
     };
 
     return (

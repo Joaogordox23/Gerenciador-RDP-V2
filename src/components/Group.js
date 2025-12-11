@@ -193,4 +193,4 @@ function Group({
     );
 }
 
-export default React.memo(Group);
+export default Group;

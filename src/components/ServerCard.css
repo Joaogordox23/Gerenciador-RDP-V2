@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* 🎴 SERVER CARD BASE - SHARED STYLES (Phase 2 Design System) */
+/* 🎴 SERVER CARD BASE - SHARED STYLES (Phase 2 Design System v5.0) */
 /* ============================================================================ */
 /* Base styles shared between Server (RDP/SSH) and VNC Connection cards */
 
@@ -9,42 +9,90 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--card-radius);
-    padding: var(--card-padding);
+    border-radius: var(--card-radius, 12px);
+    padding: var(--card-padding, 16px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    box-shadow: var(--card-shadow-sm);
+    box-shadow: var(--card-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.1));
+    min-width: 280px;
+    max-width: 360px;
 }
 
+/* Hover com micro-animação */
 .server-card-base:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: var(--card-shadow-md);
-    transform: translateY(-4px);
+    border-color: rgba(var(--color-teal-500-rgb), 0.3);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(var(--color-teal-500-rgb), 0.1);
+    transform: translateY(-4px) scale(1.02);
 }
 
-.server-card-base.active {
-    background: rgba(0, 175, 116, 0.1);
-    border-color: rgba(0, 175, 116, 0.3);
-    box-shadow: 0 0 20px rgba(0, 175, 116, 0.3), var(--card-shadow-md);
+/* Estado Ativo - Glow Premium */
+.server-card-base.active,
+.server-card-base.active-connection {
+    background: rgba(0, 217, 181, 0.08);
+    border-color: rgba(0, 217, 181, 0.4);
+    box-shadow:
+        0 0 20px rgba(0, 217, 181, 0.25),
+        0 0 40px rgba(0, 217, 181, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.1);
+    animation: activeGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes activeGlow {
+    from {
+        box-shadow:
+            0 0 15px rgba(0, 217, 181, 0.2),
+            0 0 30px rgba(0, 217, 181, 0.08),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    to {
+        box-shadow:
+            0 0 25px rgba(0, 217, 181, 0.35),
+            0 0 50px rgba(0, 217, 181, 0.15),
+            0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Estado Conectando - Pulse */
+.server-card-base.connecting {
+    border-color: rgba(255, 167, 38, 0.5);
+    animation: connectingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes connectingPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 167, 38, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(255, 167, 38, 0);
+    }
 }
 
 /* Light mode */
 [data-color-scheme="light"] .server-card-base {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 [data-color-scheme="light"] .server-card-base:hover {
     background: rgba(255, 255, 255, 1);
-    border-color: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 150, 136, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-[data-color-scheme="light"] .server-card-base.active {
-    background: rgba(0, 175, 116, 0.08);
-    border-color: rgba(0, 175, 116, 0.2);
+[data-color-scheme="light"] .server-card-base.active,
+[data-color-scheme="light"] .server-card-base.active-connection {
+    background: rgba(0, 150, 136, 0.08);
+    border-color: rgba(0, 150, 136, 0.3);
 }
 
 /* === SHARED HEADER === */
@@ -155,6 +203,8 @@
 @media (max-width: 768px) {
     .server-card-base {
         padding: 12px;
+        min-width: 100%;
+        max-width: 100%;
     }
 
     .server-card-actions {
@@ -165,4 +215,173 @@
     .server-card-name {
         font-size: 14px;
     }
+}
+
+/* ============================================================================ */
+/* 🏷️ PROTOCOL BADGES - Premium Design */
+/* ============================================================================ */
+
+.protocol-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.protocol-badge.protocol-rdp {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.2), rgba(0, 242, 254, 0.1));
+    color: #4facfe;
+    border: 1px solid rgba(79, 172, 254, 0.3);
+}
+
+.protocol-badge.protocol-ssh {
+    background: linear-gradient(135deg, rgba(255, 167, 38, 0.2), rgba(255, 193, 7, 0.1));
+    color: #ffa726;
+    border: 1px solid rgba(255, 167, 38, 0.3);
+}
+
+.server-card-base:hover .protocol-badge {
+    transform: scale(1.05);
+}
+
+/* ============================================================================ */
+/* 🔘 ACTION BUTTONS - Premium Hover Effects */
+/* ============================================================================ */
+
+.server-card-action-btn.monitor-btn:hover,
+.server-card-action-btn.monitor-btn.active {
+    background: rgba(0, 217, 181, 0.2);
+    color: var(--color-primary);
+}
+
+.server-card-action-btn.test-btn:hover {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+}
+
+.server-card-action-btn.tab-btn:hover {
+    background: rgba(156, 39, 176, 0.2);
+    color: #ab47bc;
+}
+
+.server-card-action-btn.testing {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================ */
+/* 📊 INDICATORS SECTION */
+/* ============================================================================ */
+
+.server-indicators {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-color-scheme="light"] .server-indicators {
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+.indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-secondary);
+    transition: all 0.2s ease;
+}
+
+.indicator:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+}
+
+.indicator.monitoring-indicator {
+    color: var(--color-primary);
+    background: rgba(var(--color-teal-500-rgb), 0.1);
+}
+
+.indicator.active-indicator {
+    color: var(--color-success, #00af74);
+    background: rgba(0, 175, 116, 0.1);
+}
+
+/* Latency Badge Premium */
+.latency-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-family-mono, monospace);
+    margin-left: auto;
+}
+
+.latency-badge.latency-good {
+    background: rgba(0, 175, 116, 0.15);
+    color: #00af74;
+}
+
+.latency-badge.latency-medium {
+    background: rgba(255, 167, 38, 0.15);
+    color: #ffa726;
+}
+
+.latency-badge.latency-bad {
+    background: rgba(233, 30, 99, 0.15);
+    color: #e91e63;
+}
+
+/* ============================================================================ */
+/* 🔗 DRAG INDICATOR */
+/* ============================================================================ */
+
+.server-drag-indicator {
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    opacity: 0.5;
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+}
+
+.server-card-base.edit-mode-draggable {
+    padding-left: 28px;
+}
+
+.server-card-base.edit-mode-draggable:hover .server-drag-indicator {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.server-card-base.dragging {
+    opacity: 0.9;
+    transform: rotate(2deg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
