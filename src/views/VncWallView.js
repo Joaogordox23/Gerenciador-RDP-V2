@@ -35,6 +35,10 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
     // ✨ v4.1: Controle de colunas do grid
     const [gridColumns, setGridColumns] = useState(3); // 1-6 colunas
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    // ✨ v4.5: Estado para rastrear erros e auto-reconect
+    const [connectionErrors, setConnectionErrors] = useState({}); // { [id]: true/false }
+    const reconnectTimeoutsRef = useRef({}); // Para limpar timeouts
     // Flatten all connections from all groups
     const allConnections = useMemo(() => {
         const connections = vncGroups.flatMap(group =>
@@ -56,7 +60,9 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
     }, [vncGroups, searchTerm]);
 
     // ✨ v4.3: Cálculo do total de páginas para o carrossel
-    const itemsPerPage = gridColumns * 2; // 2 linhas de colunas
+    // Para 1 coluna: 1 item por página (carrossel single)
+    // Para 2+ colunas: gridColumns * 2 (mantém 2 linhas)
+    const itemsPerPage = gridColumns === 1 ? 1 : gridColumns * 2;
     const totalPages = Math.ceil(connections.length / itemsPerPage);
 
     // ✨ v4.0: Lógica do carrossel automático
@@ -100,14 +106,81 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
 
     const handleStopMonitoring = async (connectionId) => {
         try {
+            // Limpa timeout de reconexão se existir
+            if (reconnectTimeoutsRef.current[connectionId]) {
+                clearTimeout(reconnectTimeoutsRef.current[connectionId]);
+                delete reconnectTimeoutsRef.current[connectionId];
+            }
+
             // Para o proxy no backend
             await window.api.vnc.stopProxy(connectionId);
 
-            // Remove da lista local
+            // Remove da lista local e limpa erro
             setConnections(prev => prev.filter(c => c.id !== connectionId));
+            setConnectionErrors(prev => {
+                const newState = { ...prev };
+                delete newState[connectionId];
+                return newState;
+            });
         } catch (error) {
             console.error('Erro ao desconectar:', error);
         }
+    };
+
+    // ✨ v4.5: Handler de erro de conexão com auto-reconect
+    const handleConnectionError = async (connectionId, errorMessage) => {
+        console.warn(`⚠️ Erro na conexão ${connectionId}:`, errorMessage);
+
+        // Marca como erro
+        setConnectionErrors(prev => ({ ...prev, [connectionId]: true }));
+
+        // Encontra a conexão original para reconectar
+        const connection = connections.find(c => c.id === connectionId);
+        if (!connection) return;
+
+        // Limpa timeout anterior se existir
+        if (reconnectTimeoutsRef.current[connectionId]) {
+            clearTimeout(reconnectTimeoutsRef.current[connectionId]);
+        }
+
+        // Tenta reconectar após 5 segundos
+        reconnectTimeoutsRef.current[connectionId] = setTimeout(async () => {
+            console.log(`🔄 Tentando reconectar: ${connection.name}`);
+
+            try {
+                // Para o proxy antigo primeiro
+                await window.api.vnc.stopProxy(connectionId);
+
+                // Inicia novo proxy
+                const result = await window.api.vnc.startProxy(connection);
+
+                if (result.success) {
+                    const proxyUrl = `ws://localhost:${result.port}`;
+
+                    // Atualiza a conexão com novo proxyUrl
+                    setConnections(prev => prev.map(c =>
+                        c.id === connectionId
+                            ? { ...c, proxyUrl, password: result.decryptedPassword || c.password, reconnectKey: Date.now() }
+                            : c
+                    ));
+
+                    // Limpa erro
+                    setConnectionErrors(prev => {
+                        const newState = { ...prev };
+                        delete newState[connectionId];
+                        return newState;
+                    });
+
+                    console.log(`✅ Reconectado: ${connection.name}`);
+                }
+            } catch (err) {
+                console.error(`❌ Falha ao reconectar ${connection.name}:`, err);
+                // Tenta novamente em 10 segundos
+                reconnectTimeoutsRef.current[connectionId] = setTimeout(() => {
+                    handleConnectionError(connectionId, 'Retry');
+                }, 10000);
+            }
+        }, 5000);
     };
 
     // ✨ v4.0: Controles do carrossel
@@ -359,12 +432,17 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                                                 <CloseIcon sx={{ fontSize: 16 }} />
                                             </button>
                                             <div className="vnc-wall-item-label">
-                                                <span className="vnc-wall-item-status"></span>
-                                                <span className="vnc-wall-item-name">{conn.name}</span>
+                                                <span className={`vnc-wall-item-status ${connectionErrors[conn.id] ? 'error' : ''}`}></span>
+                                                <span className="vnc-wall-item-name">
+                                                    {conn.name}
+                                                    {connectionErrors[conn.id] && <span className="reconnecting-badge"> 🔄</span>}
+                                                </span>
                                             </div>
                                             <VncDisplay
+                                                key={conn.reconnectKey || conn.id}
                                                 connectionInfo={conn}
                                                 onDisconnect={() => handleStopMonitoring(conn.id)}
+                                                onError={(err) => handleConnectionError(conn.id, err)}
                                                 viewOnly={true}
                                             />
                                         </div>
@@ -409,12 +487,17 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                                     </button>
                                     {/* Label com nome e status */}
                                     <div className="vnc-wall-item-label">
-                                        <span className="vnc-wall-item-status"></span>
-                                        <span className="vnc-wall-item-name">{conn.name}</span>
+                                        <span className={`vnc-wall-item-status ${connectionErrors[conn.id] ? 'error' : ''}`}></span>
+                                        <span className="vnc-wall-item-name">
+                                            {conn.name}
+                                            {connectionErrors[conn.id] && <span className="reconnecting-badge"> 🔄</span>}
+                                        </span>
                                     </div>
                                     <VncDisplay
+                                        key={conn.reconnectKey || conn.id}
                                         connectionInfo={conn}
                                         onDisconnect={() => handleStopMonitoring(conn.id)}
+                                        onError={(err) => handleConnectionError(conn.id, err)}
                                         viewOnly={true}
                                     />
                                 </div>

@@ -1,7 +1,8 @@
 /**
  * VncToolbar.js
  * Barra de ferramentas premium para o VNC Viewer
- * v2.0: Ícones, tooltips, separadores, indicador de status, auto-hide
+ * v2.1: Ícones, tooltips, separadores, indicador de status, auto-hide
+ * v2.2: Menu de teclas especiais (Ctrl+Alt+Del, Win+R, etc.)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,6 +22,21 @@ import {
     MouseIcon
 } from './MuiIcons';
 import './VncToolbar.css';
+
+// X11 Keysyms para teclas especiais
+const XK = {
+    Control_L: 0xFFE3,
+    Alt_L: 0xFFE9,
+    Shift_L: 0xFFE1,
+    Delete: 0xFFFF,
+    Escape: 0xFF1B,
+    Super_L: 0xFFEB, // Tecla Windows
+    Tab: 0xFF09,
+    F4: 0xFFC1,
+    r: 0x0072,
+    e: 0x0065,
+    d: 0x0064
+};
 
 function VncToolbar({
     rfbRef,
@@ -42,6 +58,7 @@ function VncToolbar({
     const [isAutoHide, setIsAutoHide] = useState(false);
     const [isHovered, setIsHovered] = useState(true);
     const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected', 'connecting', 'error'
+    const [showSpecialKeysMenu, setShowSpecialKeysMenu] = useState(false);
 
     // Auto-hide timer
     useEffect(() => {
@@ -133,8 +150,49 @@ function VncToolbar({
     const sendCtrlAltDel = () => {
         if (rfbRef?.current) {
             rfbRef.current.sendCtrlAltDel();
+            setShowSpecialKeysMenu(false);
         }
     };
+
+    // Função genérica para enviar sequência de teclas
+    const sendSpecialKeys = useCallback((keysyms, label) => {
+        if (!rfbRef?.current || viewOnly) return;
+
+        try {
+            const rfb = rfbRef.current;
+
+            // Pressiona todas as teclas em sequência
+            keysyms.forEach(keysym => {
+                rfb.sendKey(keysym, null, true);
+            });
+
+            // Pequeno delay antes de soltar as teclas (50ms)
+            setTimeout(() => {
+                // Solta todas as teclas (ordem inversa)
+                [...keysyms].reverse().forEach(keysym => {
+                    rfb.sendKey(keysym, null, false);
+                });
+            }, 50);
+
+            console.log(`⌨️ Teclas enviadas: ${label}`);
+        } catch (err) {
+            console.error('Erro ao enviar teclas:', err);
+        }
+
+        setShowSpecialKeysMenu(false);
+    }, [rfbRef, viewOnly]);
+
+    // Lista de combinações de teclas especiais
+    const specialKeyCombos = [
+        { label: 'Ctrl+Alt+Del', keys: null, action: sendCtrlAltDel, icon: '🔐' },
+        { label: 'Ctrl+Shift+Esc', keys: [XK.Control_L, XK.Shift_L, XK.Escape], icon: '📊', desc: 'Gerenciador de Tarefas' },
+        { label: 'Win+R', keys: [XK.Super_L, XK.r], icon: '▶️', desc: 'Executar' },
+        { label: 'Win+E', keys: [XK.Super_L, XK.e], icon: '📁', desc: 'Explorador' },
+        { label: 'Win+D', keys: [XK.Super_L, XK.d], icon: '🖥️', desc: 'Área de Trabalho' },
+        { label: 'Alt+Tab', keys: [XK.Alt_L, XK.Tab], icon: '🔄', desc: 'Alternar Janela' },
+        { label: 'Alt+F4', keys: [XK.Alt_L, XK.F4], icon: '❌', desc: 'Fechar Janela' },
+        { label: 'Ctrl+Esc', keys: [XK.Control_L, XK.Escape], icon: '🪟', desc: 'Menu Iniciar' }
+    ];
 
     // Screenshot
     const takeScreenshot = () => {
@@ -260,14 +318,34 @@ function VncToolbar({
 
                 {/* Grupo: Ações */}
                 <div className="vnc-toolbar-group">
-                    <button
-                        className="vnc-toolbar-btn"
-                        onClick={sendCtrlAltDel}
-                        title="Enviar Ctrl+Alt+Del"
-                        disabled={viewOnly}
-                    >
-                        <KeyboardIcon sx={{ fontSize: 18 }} />
-                    </button>
+                    {/* Menu de Teclas Especiais */}
+                    <div className="vnc-toolbar-dropdown">
+                        <button
+                            className="vnc-toolbar-btn"
+                            onClick={() => setShowSpecialKeysMenu(!showSpecialKeysMenu)}
+                            title="Enviar teclas especiais"
+                            disabled={viewOnly}
+                        >
+                            <KeyboardIcon sx={{ fontSize: 18 }} />
+                        </button>
+                        {showSpecialKeysMenu && (
+                            <div className="vnc-toolbar-menu special-keys-menu">
+                                <div className="vnc-menu-title">⌨️ Teclas Especiais</div>
+                                {specialKeyCombos.map(({ label, keys, action, icon, desc }) => (
+                                    <button
+                                        key={label}
+                                        className="vnc-toolbar-menu-item"
+                                        onClick={() => action ? action() : sendSpecialKeys(keys, label)}
+                                        title={desc || label}
+                                    >
+                                        <span className="menu-icon">{icon}</span>
+                                        <span className="menu-label">{label}</span>
+                                        {desc && <span className="menu-desc">{desc}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <button
                         className="vnc-toolbar-btn"

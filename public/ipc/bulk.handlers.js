@@ -82,7 +82,11 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
                         // Atualiza arquivo físico com a conexão atualizada do banco
                         const connection = databaseManager.getConnectionById(serverId);
                         if (connection && fileSystemManager) {
-                            fileSystemManager.saveConnectionFile(connection);
+                            // Usa groupDisplayName (nome real do grupo) ao invés de groupName (campo antigo)
+                            fileSystemManager.saveConnectionFile({
+                                ...connection,
+                                groupName: connection.groupDisplayName || connection.groupName || 'Sem Grupo'
+                            });
                             console.log(`  📁 Arquivo físico atualizado para ${connection.name}`);
                         }
                     } else {

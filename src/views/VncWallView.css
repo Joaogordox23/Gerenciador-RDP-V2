@@ -682,6 +682,42 @@
     background: #1de9b6;
     flex-shrink: 0;
     box-shadow: 0 0 8px rgba(29, 233, 182, 0.5);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.vnc-wall-item-status.error {
+    background: #ff5722;
+    box-shadow: 0 0 8px rgba(255, 87, 34, 0.5);
+    animation: pulse-error 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-error {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.reconnecting-badge {
+    font-size: 10px;
+    animation: spin-reconnect 1s linear infinite;
+}
+
+@keyframes spin-reconnect {
+    from {
+        display: inline-block;
+        transform: rotate(0deg);
+    }
+
+    to {
+        display: inline-block;
+        transform: rotate(360deg);
+    }
 }
 
 .vnc-wall-item-name {

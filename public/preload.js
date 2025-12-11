@@ -210,6 +210,9 @@ try {
             updateConnection: (connectionId, updatedData) => ipcRenderer.invoke('db-update-connection', { connectionId, updatedData }),
             deleteConnection: (connectionId) => ipcRenderer.invoke('db-delete-connection', connectionId),
 
+            // Importação em massa (AD)
+            importBulk: (groupId, connections, type) => ipcRenderer.invoke('db-import-bulk', { groupId, connections, type }),
+
             // Busca e estatísticas
             searchConnections: (term, protocol) => ipcRenderer.invoke('db-search-connections', { term, protocol }),
             getStats: () => ipcRenderer.invoke('db-get-stats'),
@@ -218,6 +221,30 @@ try {
             forceSync: () => ipcRenderer.invoke('force-sync-from-disk'),
             getLastSyncTime: () => ipcRenderer.invoke('get-last-sync-time'),
             requestInitialData: () => ipcRenderer.invoke('request-initial-data'),
+        },
+
+        // ==========================
+        // API Aplicações (Feature v4.3)
+        // ==========================
+        apps: {
+            // Grupos de Aplicações
+            getGroups: () => ipcRenderer.invoke('app-get-groups'),
+            addGroup: (data) => ipcRenderer.invoke('app-add-group', data),
+            updateGroup: (groupId, data) => ipcRenderer.invoke('app-update-group', { groupId, data }),
+            deleteGroup: (groupId) => ipcRenderer.invoke('app-delete-group', groupId),
+
+            // Aplicações
+            add: (groupId, data) => ipcRenderer.invoke('app-add', { groupId, data }),
+            update: (appId, data) => ipcRenderer.invoke('app-update', { appId, data }),
+            delete: (appId) => ipcRenderer.invoke('app-delete', appId),
+            launch: (appId) => ipcRenderer.invoke('app-launch', appId),
+
+            // Ordenação (Drag & Drop)
+            updateAppsOrder: (appOrders) => ipcRenderer.invoke('app-update-apps-order', appOrders),
+            updateGroupsOrder: (groupOrders) => ipcRenderer.invoke('app-update-groups-order', groupOrders),
+
+            // Utilitários
+            selectFile: (type) => ipcRenderer.invoke('app-select-file', type),
         },
 
         // ==========================
@@ -293,7 +320,7 @@ setInterval(() => {
 // ==========================
 // VERSIONAMENTO E INFORMAÇÕES DO SISTEMA
 // ==========================
-const PRELOAD_VERSION = '4.2.0';
+const PRELOAD_VERSION = '4.4.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
     'batch-testing',

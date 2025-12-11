@@ -258,6 +258,38 @@
 
 .vnc-toolbar-menu-item .menu-icon {
     font-size: 14px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.vnc-toolbar-menu-item .menu-label {
+    font-weight: 500;
+}
+
+.vnc-toolbar-menu-item .menu-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-left: auto;
+}
+
+/* ========== Special Keys Menu ========== */
+.special-keys-menu {
+    min-width: 220px;
+}
+
+.special-keys-menu .vnc-toolbar-menu-item {
+    padding: 8px 12px;
+}
+
+.special-keys-menu .vnc-toolbar-menu-item:first-of-type {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 4px;
+    padding-bottom: 10px;
+}
+
+.special-keys-menu .vnc-toolbar-menu-item:first-of-type .menu-label {
+    color: #00d9b5;
+    font-weight: 600;
 }
 
 /* ========== Clipboard Popup ========== */

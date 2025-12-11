@@ -1,7 +1,7 @@
 // electron.js - VERSÃO 5.0 (MODULAR)
 // IPC handlers movidos para public/ipc/*.handlers.js
 
-const { app, BrowserWindow, Menu, dialog, Notification } = require('electron');
+const { app, BrowserWindow, Menu, dialog, Notification, Tray, nativeImage } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const url = require('url');
@@ -27,6 +27,10 @@ let guacamoleServer = null;
 const isDev = !app.isPackaged;
 const connectivityTester = new ConnectivityTester();
 const connectivityMonitors = new Map();
+
+// Tray e controle de fechamento
+let tray = null;
+let isQuitting = false;
 
 // ==========================
 // FUNÇÕES GETTER (para módulos IPC)
@@ -157,9 +161,76 @@ function createWindow() {
         }
     });
 
+    // ✅ Minimizar para bandeja ao fechar (não encerra a aplicação)
+    win.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            win.hide();
+            console.log('🔽 Janela minimizada para bandeja');
+        }
+    });
+
     // Menu
     const menu = Menu.buildFromTemplate(createMenuTemplate());
     Menu.setApplicationMenu(menu);
+}
+
+// ==========================
+// SYSTEM TRAY (Bandeja do Sistema)
+// ==========================
+function createTray() {
+    // Usa o favicon.ico existente na pasta public
+    const iconPath = path.join(__dirname, 'favicon.ico');
+
+    // Cria ícone nativo (suporta Windows, macOS, Linux)
+    let trayIcon;
+    try {
+        trayIcon = nativeImage.createFromPath(iconPath);
+        // Redimensiona para tamanho adequado de tray (16x16 ou 32x32)
+        trayIcon = trayIcon.resize({ width: 16, height: 16 });
+    } catch (err) {
+        console.warn('⚠️ Erro ao carregar ícone da bandeja:', err);
+        trayIcon = nativeImage.createEmpty();
+    }
+
+    tray = new Tray(trayIcon);
+
+    // Menu de contexto (clique direito)
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Mostrar Gerenciador',
+            click: () => {
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+            }
+        },
+        { type: 'separator' },
+        {
+            label: 'Sair',
+            click: () => {
+                isQuitting = true;
+                app.quit();
+            }
+        }
+    ]);
+
+    tray.setToolTip('Gerenciador RDP - Conexões Remotas');
+    tray.setContextMenu(contextMenu);
+
+    // Clique simples no ícone restaura a janela
+    tray.on('click', () => {
+        if (mainWindow) {
+            if (mainWindow.isVisible()) {
+                mainWindow.focus();
+            } else {
+                mainWindow.show();
+            }
+        }
+    });
+
+    console.log('✅ Bandeja do sistema criada');
 }
 
 // ==========================
@@ -348,10 +419,31 @@ function handleExportConfig() {
 }
 
 // ==========================
+// SINGLE INSTANCE LOCK
+// ==========================
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    // Segunda instância: fecha imediatamente
+    console.log('❌ Aplicação já está em execução. Focando janela existente...');
+    app.quit();
+} else {
+    // Primeira instância: configura listener para segunda instância
+    app.on('second-instance', () => {
+        console.log('📢 Segunda instância detectada. Focando janela existente...');
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+}
+
+// ==========================
 // EVENTOS DO APP
 // ==========================
 app.whenReady().then(async () => {
-    console.log('🚀 Electron App v5.0 (Modular) iniciando...');
+    console.log('🚀 Electron App v5.1 (Single Instance + Tray) iniciando...');
 
     // Iniciar GuacamoleServer
     try {
@@ -382,6 +474,9 @@ app.whenReady().then(async () => {
     // Criar janela
     createWindow();
 
+    // ✅ Criar ícone na bandeja do sistema
+    createTray();
+
     // ✅ CORREÇÃO: Armazenar dados para envio via did-finish-load
     // O evento did-finish-load no createWindow() enviará os dados quando o React estiver pronto
     if (syncedData) {
@@ -391,9 +486,8 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    // Não fechar quando todas as janelas são fechadas (tray mode)
+    // O app só fecha via menu da bandeja ou isQuitting = true
 });
 
 app.on('activate', () => {
@@ -403,11 +497,16 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
+    isQuitting = true; // Permite fechar a janela de verdade
     console.log('🧹 Limpando recursos...');
+    if (tray) {
+        tray.destroy();
+        tray = null;
+    }
     if (guacamoleServer) guacamoleServer.stop();
     connectivityMonitors.forEach((interval) => clearInterval(interval));
     connectivityMonitors.clear();
     console.log('✅ Cleanup concluído');
 });
 
-console.log('📡 Electron v5.0 (Modular) carregado');
+console.log('📡 Electron v5.1 (Single Instance + Tray) carregado');

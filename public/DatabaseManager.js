@@ -85,6 +85,39 @@ class DatabaseManager {
             CREATE INDEX IF NOT EXISTS idx_connections_group ON connections(group_id);
             CREATE INDEX IF NOT EXISTS idx_connections_protocol ON connections(protocol);
             CREATE INDEX IF NOT EXISTS idx_connections_name ON connections(name);
+
+            -- ============================================
+            -- TABELAS PARA APLICAÇÕES (Feature v4.3)
+            -- ============================================
+            
+            -- Grupos de Aplicações
+            CREATE TABLE IF NOT EXISTS app_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                icon TEXT,
+                color TEXT DEFAULT '#00AF74',
+                sort_order INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Aplicações
+            CREATE TABLE IF NOT EXISTS applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                type TEXT NOT NULL CHECK(type IN ('web', 'local')),
+                path TEXT NOT NULL,
+                icon TEXT,
+                arguments TEXT,
+                sort_order INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (group_id) REFERENCES app_groups(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_applications_group ON applications(group_id);
+            CREATE INDEX IF NOT EXISTS idx_applications_type ON applications(type);
         `);
     }
 
@@ -154,6 +187,20 @@ class DatabaseManager {
     deleteGroup(groupId) {
         const stmt = this.db.prepare(`DELETE FROM groups WHERE id = ?`);
         return stmt.run(groupId);
+    }
+
+    /**
+     * Busca um grupo pelo ID
+     * @param {number} groupId - ID do grupo
+     * @returns {Object|null} - Grupo encontrado ou null
+     */
+    getGroupById(groupId) {
+        const stmt = this.db.prepare(`
+            SELECT id, name, type, created_at as createdAt
+            FROM groups 
+            WHERE id = ?
+        `);
+        return stmt.get(groupId) || null;
     }
 
     /**
@@ -488,6 +535,200 @@ class DatabaseManager {
             console.error('Erro ao salvar última sincronização:', error);
         }
     }
+
+    // ============================================
+    // APLICAÇÕES - CRUD (Feature v4.3)
+    // ============================================
+
+    /**
+     * Retorna todos os grupos de aplicações com suas apps
+     * @returns {Array} - Lista de grupos com aplicações
+     */
+    getAppGroups() {
+        const groups = this.db.prepare(`
+            SELECT id, name, icon, color, sort_order as sortOrder, created_at as createdAt
+            FROM app_groups
+            ORDER BY sort_order ASC, name ASC
+        `).all();
+
+        // Busca aplicações para cada grupo
+        return groups.map(group => ({
+            ...group,
+            apps: this.getAppsByGroupId(group.id)
+        }));
+    }
+
+    /**
+     * Busca aplicações de um grupo específico
+     * @param {number} groupId - ID do grupo
+     * @returns {Array}
+     */
+    getAppsByGroupId(groupId) {
+        return this.db.prepare(`
+            SELECT id, group_id as groupId, name, description, type, path,
+                   icon, arguments, sort_order as sortOrder, created_at as createdAt
+            FROM applications
+            WHERE group_id = ?
+            ORDER BY sort_order ASC, name ASC
+        `).all(groupId);
+    }
+
+    /**
+     * Adiciona um grupo de aplicações
+     * @param {Object} data - { name, icon?, color? }
+     * @returns {number} - ID do grupo criado
+     */
+    addAppGroup(data) {
+        const stmt = this.db.prepare(`
+            INSERT INTO app_groups (name, icon, color, sort_order)
+            VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM app_groups))
+        `);
+        const result = stmt.run(data.name, data.icon || null, data.color || '#00AF74');
+        console.log(`✅ Grupo de apps criado: ${data.name} (ID: ${result.lastInsertRowid})`);
+        return result.lastInsertRowid;
+    }
+
+    /**
+     * Atualiza um grupo de aplicações
+     * @param {number} groupId 
+     * @param {Object} data - { name?, icon?, color? }
+     */
+    updateAppGroup(groupId, data) {
+        const stmt = this.db.prepare(`
+            UPDATE app_groups 
+            SET name = COALESCE(?, name),
+                icon = COALESCE(?, icon),
+                color = COALESCE(?, color)
+            WHERE id = ?
+        `);
+        return stmt.run(data.name, data.icon, data.color, groupId);
+    }
+
+    /**
+     * Remove um grupo de aplicações (cascade deleta as apps)
+     * @param {number} groupId 
+     */
+    deleteAppGroup(groupId) {
+        const stmt = this.db.prepare(`DELETE FROM app_groups WHERE id = ?`);
+        return stmt.run(groupId);
+    }
+
+    /**
+     * Obtém uma aplicação por ID
+     * @param {number} appId 
+     * @returns {Object|null}
+     */
+    getAppById(appId) {
+        return this.db.prepare(`
+            SELECT id, group_id as groupId, name, description, type, path,
+                   icon, arguments, sort_order as sortOrder, created_at as createdAt
+            FROM applications
+            WHERE id = ?
+        `).get(appId);
+    }
+
+    /**
+     * Adiciona uma aplicação
+     * @param {number} groupId 
+     * @param {Object} data - { name, description?, type, path, icon?, arguments? }
+     * @returns {number} - ID da aplicação criada
+     */
+    addApp(groupId, data) {
+        const stmt = this.db.prepare(`
+            INSERT INTO applications (group_id, name, description, type, path, icon, arguments, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM applications WHERE group_id = ?))
+        `);
+        const result = stmt.run(
+            groupId,
+            data.name,
+            data.description || null,
+            data.type,
+            data.path,
+            data.icon || null,
+            data.arguments || null,
+            groupId
+        );
+        console.log(`✅ Aplicação criada: ${data.name} (ID: ${result.lastInsertRowid})`);
+        return result.lastInsertRowid;
+    }
+
+    /**
+     * Atualiza uma aplicação
+     * @param {number} appId 
+     * @param {Object} data 
+     */
+    updateApp(appId, data) {
+        const stmt = this.db.prepare(`
+            UPDATE applications 
+            SET name = COALESCE(?, name),
+                description = COALESCE(?, description),
+                type = COALESCE(?, type),
+                path = COALESCE(?, path),
+                icon = COALESCE(?, icon),
+                arguments = COALESCE(?, arguments),
+                group_id = COALESCE(?, group_id),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `);
+        return stmt.run(
+            data.name,
+            data.description,
+            data.type,
+            data.path,
+            data.icon,
+            data.arguments,
+            data.groupId,
+            appId
+        );
+    }
+
+    /**
+     * Remove uma aplicação
+     * @param {number} appId 
+     */
+    deleteApp(appId) {
+        const stmt = this.db.prepare(`DELETE FROM applications WHERE id = ?`);
+        return stmt.run(appId);
+    }
+
+    // ==========================
+    // ORDENAÇÃO DE APPS/GRUPOS
+    // ==========================
+
+    /**
+     * Atualiza a ordem das aplicações dentro de um grupo
+     * @param {Array} appOrders - Array de { id, order } onde order é a nova posição (0-based)
+     */
+    updateAppsOrder(appOrders) {
+        const stmt = this.db.prepare(`UPDATE applications SET sort_order = ? WHERE id = ?`);
+
+        const updateAll = this.db.transaction((orders) => {
+            orders.forEach(({ id, order }) => {
+                stmt.run(order, id);
+            });
+        });
+
+        updateAll(appOrders);
+        console.log(`🔄 Ordem de ${appOrders.length} apps atualizada`);
+    }
+
+    /**
+     * Atualiza a ordem dos grupos de aplicações
+     * @param {Array} groupOrders - Array de { id, order } onde order é a nova posição (0-based)
+     */
+    updateAppGroupsOrder(groupOrders) {
+        const stmt = this.db.prepare(`UPDATE app_groups SET sort_order = ? WHERE id = ?`);
+
+        const updateAll = this.db.transaction((orders) => {
+            orders.forEach(({ id, order }) => {
+                stmt.run(order, id);
+            });
+        });
+
+        updateAll(groupOrders);
+        console.log(`🔄 Ordem de ${groupOrders.length} grupos atualizada`);
+    }
 }
 
 module.exports = new DatabaseManager();
+

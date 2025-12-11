@@ -44,12 +44,14 @@ import { getTheme } from './theme/AppTheme';
 import VncViewerModal from './components/VncViewerModal';
 import ConnectionViewerModal from './components/ConnectionViewerModal';
 import ConnectionTabsContainer from './components/ConnectionTabsContainer';
+import QuickConnectVncModal from './components/QuickConnectVncModal';
 
 // Lazy loading de views
 const RdpSshView = lazy(() => import('./views/RdpSshView'));
 const VncView = lazy(() => import('./views/VncView'));
 const VncWallView = lazy(() => import('./views/VncWallView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
+const ApplicationsView = lazy(() => import('./views/ApplicationsView'));
 
 function App() {
     return (
@@ -159,6 +161,7 @@ function AppContent() {
 
     // Estado para modal de configuração do Guacamole
     const [showGuacamoleConfig, setShowGuacamoleConfig] = useState(false);
+    const [showQuickConnectModal, setShowQuickConnectModal] = useState(false);
     const [guacamoleConfig, setGuacamoleConfig] = useState(null);
 
     // Carrega configuração do Guacamole ao iniciar
@@ -194,15 +197,46 @@ function AppContent() {
         if (typeof message === 'string' && message.trim()) toast.success(message.trim());
     }, [toast]);
 
-    // Handler para Importação do AD
-    const handleImportFromAD = useCallback((targetGroupId, servers, type) => {
-        if (type === 'rdp') {
-            servers.forEach(server => handleAddServer(targetGroupId, server));
+    // Handler para Importação do AD (com verificação de duplicatas)
+    const handleImportFromAD = useCallback(async (targetGroupId, servers, type) => {
+        // Usa o novo handler de importação em massa que verifica duplicatas
+        if (window.api && window.api.db && window.api.db.importBulk) {
+            try {
+                const result = await window.api.db.importBulk(targetGroupId, servers, type);
+
+                // Exibe feedback detalhado
+                if (result.imported > 0) {
+                    toast.success(`✅ ${result.imported} computador(es) importado(s) com sucesso!`);
+                }
+                if (result.skipped > 0) {
+                    toast.warning(`⏭️ ${result.skipped} duplicado(s) ignorado(s): ${result.skippedNames.slice(0, 3).join(', ')}${result.skippedNames.length > 3 ? '...' : ''}`);
+                }
+                if (result.failed > 0) {
+                    toast.error(`❌ ${result.failed} falha(s) na importação`);
+                }
+
+                // Recarrega dados do backend para atualizar a UI
+                if (result.imported > 0) {
+                    const data = await window.api.db.requestInitialData?.();
+                    if (data && data.groups) {
+                        setGroups(data.groups);
+                        if (data.vncGroups) setVncGroups(data.vncGroups);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro na importação do AD:', error);
+                toast.error(`Erro na importação: ${error.message}`);
+            }
         } else {
-            servers.forEach(server => handleAddVncConnection(targetGroupId, server));
+            // Fallback para método antigo (sem verificação de duplicatas)
+            if (type === 'rdp') {
+                servers.forEach(server => handleAddServer(targetGroupId, server));
+            } else {
+                servers.forEach(server => handleAddVncConnection(targetGroupId, server));
+            }
+            showSuccess(`${servers.length} computadores importados com sucesso!`);
         }
-        showSuccess(`${servers.length} computadores importados com sucesso!`);
-    }, [handleAddServer, handleAddVncConnection, showSuccess]);
+    }, [handleAddServer, handleAddVncConnection, showSuccess, toast, setGroups, setVncGroups]);
 
     // Handler para Alteração de Senha Global
     const handleBulkPasswordUpdate = useCallback(async (data) => {
@@ -445,6 +479,7 @@ function AppContent() {
                     onShowGuacamoleConfig={() => setShowGuacamoleConfig(true)}
                     allGroupsCollapsed={allGroupsCollapsed}
                     onToggleAllCollapsed={toggleAllCollapsed}
+                    onShowQuickConnect={() => setShowQuickConnectModal(true)}
                 />
                 {/* Main Content Area */}
                 <main className="app-main-content">
@@ -549,6 +584,9 @@ function AppContent() {
                                     searchTerm={searchTerm}
                                 />
                             )}
+                            {activeView === 'Aplicações' && (
+                                <ApplicationsView />
+                            )}
 
                         </Suspense>
                     </DragDropContext>
@@ -557,7 +595,7 @@ function AppContent() {
                     <div className="footer-content">
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
-                            Gerenciador Enterprise v4.2.0
+                            Gerenciador Enterprise v4.4.0
                         </div>
                         <div>{groups.length + vncGroups.length} grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>
@@ -612,6 +650,14 @@ function AppContent() {
                 {tabConnections.length > 0 && (
                     <ConnectionTabsContainer />
                 )}
+
+                {/* Modal de Quick Connect VNC */}
+                <QuickConnectVncModal
+                    isOpen={showQuickConnectModal}
+                    onClose={() => setShowQuickConnectModal(false)}
+                    vncGroups={vncGroups}
+                    onSaveConnection={handleAddVncConnection}
+                />
 
                 {/* Modal de Configuração do Servidor Guacamole */}
                 <GuacamoleServerConfigModal

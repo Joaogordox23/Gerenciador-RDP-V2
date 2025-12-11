@@ -153,6 +153,20 @@
     box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.3);
 }
 
+/* Quick Connect VNC - Highlighted button */
+.header-action-btn.quick-connect-btn {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    border-color: #FF9800;
+    color: white;
+}
+
+.header-action-btn.quick-connect-btn:hover {
+    background: linear-gradient(135deg, #FFB74D 0%, #FF9800 100%);
+    border-color: #FFB74D;
+    color: white;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.35);
+}
+
 .action-label {
     font-size: 13px;
 }

@@ -13,7 +13,8 @@ import {
     ViewListIcon,
     SettingsIcon,
     UnfoldLessIcon,
-    UnfoldMoreIcon
+    UnfoldMoreIcon,
+    FlashOnIcon
 } from '../MuiIcons';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -31,7 +32,8 @@ function Header({
     onToggleViewMode,
     onShowGuacamoleConfig,
     allGroupsCollapsed,
-    onToggleAllCollapsed
+    onToggleAllCollapsed,
+    onShowQuickConnect
 }) {
     // Mapeamento de views para breadcrumbs
     const viewTitles = {
@@ -89,6 +91,18 @@ function Header({
                         title="Testar Conectividade"
                     >
                         <SyncIcon sx={{ fontSize: 20 }} />
+                    </button>
+                )}
+
+                {/* Quick Connect VNC (show only on VNC view) */}
+                {activeView === 'VNC' && (
+                    <button
+                        className="header-action-btn quick-connect-btn"
+                        onClick={onShowQuickConnect}
+                        title="Conexão VNC Rápida"
+                    >
+                        <FlashOnIcon sx={{ fontSize: 20 }} />
+                        <span className="action-label">Rápida</span>
                     </button>
                 )}
 

@@ -86,5 +86,19 @@ export {
     UnfoldMore as UnfoldMoreIcon,
 
     // Tabs (v4.3)
-    OpenInNew as OpenInNewIcon
+    OpenInNew as OpenInNewIcon,
+
+    // Applications (v4.3)
+    Web as WebIcon,
+    DesktopWindows as DesktopWindowsIcon,
+    Launch as LaunchIcon,
+    Apps as AppsIcon,
+    FolderOpen as FolderOpenIcon,
+    Add as AddIcon,
+
+    // Drag & Drop (v4.3.1)
+    DragIndicator as DragIndicatorIcon,
+
+    // Quick Connect (v4.4)
+    FlashOn as FlashOnIcon
 } from '@mui/icons-material';

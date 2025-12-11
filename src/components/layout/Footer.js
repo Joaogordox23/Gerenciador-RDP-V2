@@ -71,7 +71,7 @@ function Footer({ onSyncComplete }) {
     return (
         <footer className="app-footer">
             <div className="footer-left">
-                <span className="footer-version">v4.2.0</span>
+                <span className="footer-version">v4.4.0</span>
             </div>
 
             <div className="footer-center">
