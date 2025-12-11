@@ -732,3 +732,150 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
 }
+
+/* ============================================ */
+/* === LIGHT MODE SUPPORT - VNC WALL v4.5 === */
+/* ============================================ */
+
+[data-color-scheme="light"] .vnc-wall-main {
+    background: var(--color-background);
+}
+
+[data-color-scheme="light"] .vnc-wall-sidebar {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .sidebar-toggle-btn {
+    background: linear-gradient(135deg, var(--color-background) 0%, #f5f5f5 100%);
+    border-color: var(--color-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .vnc-wall-sidebar-item {
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+[data-color-scheme="light"] .vnc-wall-sidebar-item:hover {
+    background: rgba(var(--color-teal-500-rgb), 0.06);
+}
+
+[data-color-scheme="light"] .vnc-wall-sidebar-item.active {
+    background: rgba(var(--color-teal-500-rgb), 0.1);
+}
+
+/* Grid e Items - Modo Claro */
+[data-color-scheme="light"] .vnc-wall-grid {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-color-scheme="light"] .vnc-wall-item {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] .vnc-wall-item:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 8px 28px rgba(var(--color-teal-500-rgb), 0.15);
+}
+
+[data-color-scheme="light"] .vnc-wall-grid>div {
+    background: linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%);
+    border: 1px solid var(--color-border);
+}
+
+[data-color-scheme="light"] .vnc-wall-grid>div:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 16px rgba(var(--color-teal-500-rgb), 0.12);
+}
+
+/* Carousel Grid - Modo Claro */
+[data-color-scheme="light"] .vnc-carousel-grid {
+    background: linear-gradient(145deg, #fafafa 0%, #f0f0f0 100%);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-color-scheme="light"] .vnc-carousel-fullscreen {
+    background: linear-gradient(145deg, #f5f5f5 0%, #e8e8e8 100%);
+    border: 1px solid var(--color-border);
+}
+
+/* Page Indicator - Modo Claro */
+[data-color-scheme="light"] .carousel-page-indicator {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-color-scheme="light"] .page-dot {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+[data-color-scheme="light"] .page-dot:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Header do Grid - Modo Claro */
+[data-color-scheme="light"] .vnc-wall-main-header {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-color-scheme="light"] .wall-mode-indicator {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Botões - Modo Claro */
+[data-color-scheme="light"] .btn-carousel-toggle,
+[data-color-scheme="light"] .btn-stop-all {
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+[data-color-scheme="light"] .btn-nav,
+[data-color-scheme="light"] .btn-play {
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+/* Columns Control - Modo Claro */
+[data-color-scheme="light"] .columns-control {
+    background: rgba(var(--color-teal-500-rgb), 0.04);
+}
+
+[data-color-scheme="light"] .carousel-info {
+    background: rgba(var(--color-teal-500-rgb), 0.04);
+}
+
+/* Scrollbar - Modo Claro */
+[data-color-scheme="light"] .vnc-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+[data-color-scheme="light"] .vnc-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
+/* Close Button - Modo Claro */
+[data-color-scheme="light"] .vnc-wall-item-close {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+[data-color-scheme="light"] .vnc-wall-item-close:hover {
+    background: #ef5350;
+    border-color: #ef5350;
+    color: white;
+}
+
+/* Label - Modo Claro (mantém escuro para contraste com vídeo) */
+[data-color-scheme="light"] .vnc-wall-item-label {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+}
+
+[data-color-scheme="light"] .vnc-wall-item-name {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+}

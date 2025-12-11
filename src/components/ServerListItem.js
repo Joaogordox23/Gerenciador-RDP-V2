@@ -93,10 +93,9 @@ function ServerListItem({
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
-        if (window.confirm(`Tem certeza que deseja excluir o servidor "${serverInfo.name}"?`)) {
-            onDelete();
-        }
-    }, [serverInfo.name, onDelete]);
+        // Chama onDelete diretamente - o ConfirmationDialog é exibido pelo App.js
+        onDelete();
+    }, [onDelete]);
 
     return (
         <div

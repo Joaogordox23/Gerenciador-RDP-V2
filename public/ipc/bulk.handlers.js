@@ -4,6 +4,18 @@
 const { ipcMain, safeStorage } = require('electron');
 
 /**
+ * Verifica se uma string já está criptografada com safeStorage
+ * @param {string} str - String a verificar
+ * @returns {boolean}
+ */
+function isAlreadyEncrypted(str) {
+    if (!str || typeof str !== 'string') return false;
+    if (str.length < 40) return false;
+    const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+    return base64Regex.test(str);
+}
+
+/**
  * Registra handlers IPC para operações em massa
  * @param {Object} deps - Dependências injetadas
  * @param {Object} deps.store - Instância do electron-store
@@ -23,12 +35,30 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
         try {
             let totalUpdated = 0;
 
+            // ✅ CORREÇÃO: Criptografar a senha ANTES de salvar
+            let encryptedPassword = credentials.password;
+
+            if (credentials.password && typeof credentials.password === 'string') {
+                if (!isAlreadyEncrypted(credentials.password)) {
+                    try {
+                        const encrypted = safeStorage.encryptString(credentials.password);
+                        encryptedPassword = encrypted.toString('base64');
+                        console.log('🔐 Senha criptografada para salvamento em massa');
+                    } catch (e) {
+                        console.error('❌ Falha ao criptografar senha:', e);
+                        // Continua com a senha em texto plano se falhar
+                    }
+                } else {
+                    console.log('🔓 Senha já criptografada, mantendo original');
+                }
+            }
+
             // Atualiza cada servidor selecionado diretamente no SQLite
             for (const serverId of servers) {
                 try {
-                    // Prepara os dados de atualização
+                    // Prepara os dados de atualização com senha criptografada
                     const updateData = {
-                        password: credentials.password
+                        password: encryptedPassword
                     };
 
                     // Para RDP/SSH, também atualiza username e domain
@@ -49,10 +79,11 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
                         results.push({ id: serverId, success: true });
                         console.log(`  ✅ Servidor ${serverId} atualizado`);
 
-                        // Atualiza arquivo físico
+                        // Atualiza arquivo físico com a conexão atualizada do banco
                         const connection = databaseManager.getConnectionById(serverId);
                         if (connection && fileSystemManager) {
                             fileSystemManager.saveConnectionFile(connection);
+                            console.log(`  📁 Arquivo físico atualizado para ${connection.name}`);
                         }
                     } else {
                         results.push({ id: serverId, success: false, error: 'Não encontrado' });
@@ -91,3 +122,4 @@ function registerBulkHandlers({ store, fileSystemManager, databaseManager }) {
 }
 
 module.exports = { registerBulkHandlers };
+

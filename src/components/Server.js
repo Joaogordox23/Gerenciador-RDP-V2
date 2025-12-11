@@ -120,11 +120,9 @@ function Server({
       stopMonitoring(serverKey);
     }
 
-    // Confirma exclusão
-    if (window.confirm(`Tem certeza que deseja excluir o servidor "${serverInfo.name}"?`)) {
-      onDelete();
-    }
-  }, [isMonitored, stopMonitoring, serverKey, serverInfo.name, onDelete]);
+    // Chama onDelete diretamente - o ConfirmationDialog é exibido pelo App.js
+    onDelete();
+  }, [isMonitored, stopMonitoring, serverKey, onDelete]);
 
   const getLatencyClass = (latency) => {
     if (!latency || latency === null) return null;

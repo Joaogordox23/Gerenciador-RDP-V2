@@ -25,10 +25,9 @@ function VncListItem({
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
-        if (window.confirm(`Tem certeza que deseja excluir "${connection.name}"?`)) {
-            onDelete();
-        }
-    }, [connection.name, onDelete]);
+        // Chama onDelete diretamente - o ConfirmationDialog é exibido pelo App.js
+        onDelete();
+    }, [onDelete]);
 
     return (
         <div

@@ -265,6 +265,25 @@ class DatabaseManager {
     }
 
     /**
+     * Busca conexão por nome e IP em QUALQUER grupo do mesmo tipo
+     * Usado para evitar duplicação na sincronização do disco
+     * @param {string} name - Nome da conexão
+     * @param {string} ipAddress - Endereço IP
+     * @param {string} type - Tipo (rdp ou vnc)
+     * @returns {Object|null} - Conexão encontrada ou null
+     */
+    findConnectionByNameAndIp(name, ipAddress, type) {
+        const protocol = type === 'vnc' ? 'vnc' : 'rdp';
+        const stmt = this.db.prepare(`
+            SELECT c.id, c.name, c.ip_address as ipAddress, c.group_name as groupName
+            FROM connections c
+            JOIN groups g ON c.group_id = g.id
+            WHERE c.name = ? AND c.ip_address = ? AND g.type = ?
+        `);
+        return stmt.get(name, ipAddress, protocol) || null;
+    }
+
+    /**
      * Obtém uma conexão por ID
      * ✅ CORREÇÃO: Retorna campos em camelCase para compatibilidade com o frontend
      */
@@ -357,15 +376,26 @@ class DatabaseManager {
                 const type = server.protocol === 'vnc' ? 'vnc' : 'rdp';
                 const groupName = server.groupName || 'Sem Grupo';
 
+                // ✅ CORREÇÃO: Verifica se a conexão já existe em QUALQUER grupo
+                // Isso evita criar duplicatas quando arquivos estão na pasta "Sem Grupo"
+                // mas a conexão já existe em outro grupo no banco
+                const existingConnection = this.findConnectionByNameAndIp(server.name, server.ipAddress, type);
+
+                if (existingConnection) {
+                    console.log(`  ⏭️ Pulando: ${server.name} (${server.ipAddress}) - já existe no grupo "${existingConnection.groupName}"`);
+                    skipped++;
+                    return; // Pula para o próximo servidor
+                }
+
                 // Obtém ou cria o grupo
                 const groupId = this.addGroup(groupName, type);
 
                 // Log para debug
                 console.log(`  📂 Processando: ${server.name} -> Grupo "${groupName}" (ID: ${groupId}, Tipo: ${type})`);
 
-                // Verifica se a conexão já existe
+                // Verifica se a conexão já existe no mesmo grupo
                 const exists = this.connectionExists(server.name, groupId);
-                console.log(`     Existe no banco? ${exists ? 'SIM' : 'NÃO'}`);
+                console.log(`     Existe no grupo? ${exists ? 'SIM' : 'NÃO'}`);
 
                 if (!exists) {
                     this.addConnection(groupId, {
