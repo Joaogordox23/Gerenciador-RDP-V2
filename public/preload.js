@@ -217,6 +217,7 @@ try {
             // Sincronização
             forceSync: () => ipcRenderer.invoke('force-sync-from-disk'),
             getLastSyncTime: () => ipcRenderer.invoke('get-last-sync-time'),
+            requestInitialData: () => ipcRenderer.invoke('request-initial-data'),
         },
 
         // ==========================

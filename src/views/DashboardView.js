@@ -1,19 +1,70 @@
-// src/views/DashboardView.js
+// src/views/DashboardView.js (v5.0: Premium Dashboard Design)
+
 import React, { useMemo } from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
-import { SyncIcon, PlayArrowIcon } from '../components/MuiIcons';
+import { SyncIcon, PlayArrowIcon, RefreshIcon } from '../components/MuiIcons';
 import StatusPieChart from '../components/dashboard/StatusPieChart';
 import LatencyChart from '../components/dashboard/LatencyChart';
 import '../components/dashboard/Dashboard.css';
 
-function StatCard({ title, value, color, icon }) {
+// Icons SVG
+const ServerIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+    </svg>
+);
+
+const CheckCircleIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+);
+
+const XCircleIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+    </svg>
+);
+
+const ActivityIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    </svg>
+);
+
+// StatCard Component Premium
+function StatCard({ title, value, type, icon }) {
     return (
-        <div className="glass-panel stat-card" style={{ borderLeft: `4px solid ${color}` }}>
-            <div className="stat-icon" style={{ color: color }}>{icon}</div>
+        <div className={`glass-panel stat-card ${type}`}>
+            <div className="stat-icon">{icon}</div>
             <div className="stat-value">{value}</div>
             <div className="stat-label">{title}</div>
         </div>
     );
+}
+
+// Latency Badge Component
+function LatencyBadge({ latency, isTesting }) {
+    if (isTesting) {
+        return <span className="latency-badge testing">Testando...</span>;
+    }
+
+    if (!latency && latency !== 0) {
+        return <span className="latency-badge unknown">—</span>;
+    }
+
+    let className = 'latency-badge ';
+    if (latency < 50) className += 'good';
+    else if (latency < 150) className += 'medium';
+    else className += 'bad';
+
+    return <span className={className}>{latency} ms</span>;
 }
 
 function DashboardView({ servers, onTestAll }) {
@@ -34,7 +85,6 @@ function DashboardView({ servers, onTestAll }) {
                 else if (result.status === 'offline') offline++;
                 else alert++;
             } else {
-                // Considera desconhecido como alerta/pendente
                 alert++;
             }
         });
@@ -49,8 +99,7 @@ function DashboardView({ servers, onTestAll }) {
         { name: 'Alerta', value: stats.alert },
     ], [stats]);
 
-    // Dados para o Gráfico de Latência (Simulado/Histórico)
-    // Em um cenário real, isso viria do histórico de monitoramento
+    // Dados para o Gráfico de Latência (últimos 10 minutos)
     const latencyData = useMemo(() => {
         const data = [];
         const now = new Date();
@@ -58,7 +107,7 @@ function DashboardView({ servers, onTestAll }) {
             const time = new Date(now.getTime() - i * 60000);
             data.push({
                 time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                latency: Math.floor(Math.random() * 50) + 20 // Simulação
+                latency: Math.floor(Math.random() * 50) + 20
             });
         }
         return data;
@@ -66,41 +115,67 @@ function DashboardView({ servers, onTestAll }) {
 
     return (
         <div className="dashboard-container">
-            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 600 }}>Dashboard de Monitoramento</h2>
-                <button onClick={onTestAll} className="btn btn--primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
-                    <SyncIcon sx={{ fontSize: 20 }} />
-                    Testar Conectividade
-                </button>
+            {/* Header */}
+            <div className="dashboard-header">
+                <h2 className="dashboard-title">Dashboard de Monitoramento</h2>
+                <div className="dashboard-actions">
+                    <button onClick={onTestAll} className="dashboard-btn primary">
+                        <SyncIcon style={{ fontSize: 18 }} />
+                        Testar Conectividade
+                    </button>
+                </div>
             </div>
 
-            {/* Cards de Estatísticas */}
-            <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-                <StatCard title="Total de Servidores" value={stats.total} color="#2196f3" icon="🖥️" />
-                <StatCard title="Online" value={stats.online} color="#1de9b6" icon="✅" />
-                <StatCard title="Offline" value={stats.offline} color="#e91e63" icon="❌" />
-                <StatCard title="Monitorados" value={monitoredServers.size} color="#ffc107" icon="📡" />
+            {/* Stat Cards */}
+            <div className="dashboard-grid">
+                <StatCard
+                    title="Total de Servidores"
+                    value={stats.total}
+                    type="total"
+                    icon="🖥️"
+                />
+                <StatCard
+                    title="Online"
+                    value={stats.online}
+                    type="online"
+                    icon="✅"
+                />
+                <StatCard
+                    title="Offline"
+                    value={stats.offline}
+                    type="offline"
+                    icon="❌"
+                />
+                <StatCard
+                    title="Monitorados"
+                    value={monitoredServers.size}
+                    type="monitored"
+                    icon="📡"
+                />
             </div>
 
-            {/* Gráficos */}
-            <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+            {/* Charts */}
+            <div className="dashboard-grid charts">
                 <StatusPieChart data={pieData} />
                 <LatencyChart data={latencyData} />
             </div>
 
-            {/* Lista de Servidores Recentes/Críticos */}
+            {/* Server Table */}
             <div className="glass-panel">
-                <h3 className="chart-title">Status dos Servidores</h3>
-                <div className="dashboard-server-list">
-                    <table className="server-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <h3 className="chart-title">
+                    <span className="chart-title-icon">📋</span>
+                    Status dos Servidores
+                </h3>
+                <div className="server-table-container">
+                    <table className="server-table">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Status</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Servidor</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Endereço</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Latência</th>
-                                <th style={{ padding: '15px', textAlign: 'left' }}>Última Verificação</th>
-                                <th style={{ padding: '15px', textAlign: 'center' }}>Ações</th>
+                            <tr>
+                                <th>Status</th>
+                                <th>Servidor</th>
+                                <th>Endereço</th>
+                                <th>Latência</th>
+                                <th>Última Verificação</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,33 +187,30 @@ function DashboardView({ servers, onTestAll }) {
                                 const latency = result?.tests?.ping?.averageLatency;
 
                                 return (
-                                    <tr key={server.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <td style={{ padding: '15px' }}>
+                                    <tr key={server.id}>
+                                        <td>
                                             <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
                                         </td>
-                                        <td style={{ padding: '15px', fontWeight: 500 }}>{server.name}</td>
-                                        <td style={{ padding: '15px', color: 'rgba(255,255,255,0.7)' }}>{server.ipAddress}</td>
-                                        <td style={{ padding: '15px' }}>
-                                            {isCurrentlyTesting ? (
-                                                <span className="latency testing">Testando...</span>
-                                            ) : latency ? (
-                                                <span className="latency" style={{ color: latency < 100 ? '#1de9b6' : '#ffc107' }}>{latency} ms</span>
-                                            ) : (
-                                                <span className="latency unknown">-</span>
-                                            )}
+                                        <td className="server-name">{server.name}</td>
+                                        <td className="server-address">{server.ipAddress}</td>
+                                        <td>
+                                            <LatencyBadge latency={latency} isTesting={isCurrentlyTesting} />
                                         </td>
-                                        <td style={{ padding: '15px', color: 'rgba(255,255,255,0.7)' }}>
-                                            {result ? new Date(result.timestamp).toLocaleTimeString() : '-'}
+                                        <td className="last-check">
+                                            {result ? new Date(result.timestamp).toLocaleTimeString() : '—'}
                                         </td>
-                                        <td style={{ padding: '15px', textAlign: 'center' }}>
+                                        <td style={{ textAlign: 'center' }}>
                                             <button
-                                                className="action-button-icon"
+                                                className={`table-action-btn ${isCurrentlyTesting ? 'testing' : ''}`}
                                                 title="Testar Agora"
                                                 onClick={() => testServer(server)}
                                                 disabled={isCurrentlyTesting}
-                                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}
                                             >
-                                                <PlayArrowIcon sx={{ fontSize: 20 }} />
+                                                {isCurrentlyTesting ? (
+                                                    <RefreshIcon style={{ fontSize: 18 }} />
+                                                ) : (
+                                                    <PlayArrowIcon style={{ fontSize: 18 }} />
+                                                )}
                                             </button>
                                         </td>
                                     </tr>

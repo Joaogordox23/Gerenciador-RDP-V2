@@ -500,33 +500,57 @@ export function useGroups(toast) {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        // 🎯 SOLUÇÃO MINIMALISTA: Aguarda dados do backend via IPC
-        if (window.api && window.api.onInitialDataLoaded) {
-            console.log('📥 useGroups: Aguardando dados do backend via IPC...');
+        // 🎯 CORREÇÃO: Solicita dados ativamente em vez de apenas escutar
+        const loadInitialData = async () => {
+            console.log('📥 useGroups: Iniciando carregamento de dados...');
 
-            // Listener para receber dados diretamente do backend
-            window.api.onInitialDataLoaded((data) => {
-                console.log(`✅ useGroups: Dados recebidos! ${data.groups.length} RDP/SSH, ${data.vncGroups.length} VNC`);
-                setGroups(data.groups || []);
-                setVncGroups(data.vncGroups || []);
-                setIsLoading(false);
-            });
+            // 1. Registra listener para dados enviados pelo backend (did-finish-load)
+            if (window.api && window.api.onInitialDataLoaded) {
+                window.api.onInitialDataLoaded((data) => {
+                    if (isLoading) {
+                        console.log(`✅ useGroups: Dados recebidos via push! ${data.groups.length} RDP/SSH, ${data.vncGroups.length} VNC`);
+                        setGroups(data.groups || []);
+                        setVncGroups(data.vncGroups || []);
+                        setIsLoading(false);
+                    }
+                });
+            }
 
-            // Fallback: se após 5s não receber, tenta ler do store
+            // 2. ✅ NOVO: Solicita dados ativamente (resolve race condition)
+            if (window.api?.db?.requestInitialData) {
+                try {
+                    console.log('📡 useGroups: Solicitando dados ativamente via IPC...');
+                    const data = await window.api.db.requestInitialData();
+                    if (data && (data.groups.length > 0 || data.vncGroups.length > 0 || isLoading)) {
+                        console.log(`✅ useGroups: Dados recebidos via request! ${data.groups.length} RDP/SSH, ${data.vncGroups.length} VNC`);
+                        setGroups(data.groups || []);
+                        setVncGroups(data.vncGroups || []);
+                        setIsLoading(false);
+                        return; // Sucesso, não precisa do fallback
+                    }
+                } catch (error) {
+                    console.error('❌ useGroups: Erro ao solicitar dados:', error);
+                }
+            }
+
+            // 3. Fallback: se após 3s ainda não tiver dados, tenta ler do store
             setTimeout(async () => {
                 if (isLoading) {
-                    console.log('⚠️ useGroups: Timeout waiting for IPC, reading from store as fallback...');
-                    const savedGroups = await window.api.storage.get('groups');
-                    const savedVncGroups = await window.api.storage.get('vncGroups');
-                    setGroups(savedGroups || []);
-                    setVncGroups(savedVncGroups || []);
+                    console.log('⚠️ useGroups: Fallback - lendo do electron-store...');
+                    try {
+                        const savedGroups = await window.api.storage.get('groups');
+                        const savedVncGroups = await window.api.storage.get('vncGroups');
+                        setGroups(savedGroups || []);
+                        setVncGroups(savedVncGroups || []);
+                    } catch (e) {
+                        console.error('❌ Erro no fallback:', e);
+                    }
                     setIsLoading(false);
                 }
-            }, 5000);
-        } else {
-            console.warn('⚠️ useGroups: window.api.onInitialDataLoaded não disponível');
-            setIsLoading(false);
-        }
+            }, 3000);
+        };
+
+        loadInitialData();
     }, []);
 
     // ✅ OTIMIZAÇÃO: useEffect de sync em massa REMOVIDO

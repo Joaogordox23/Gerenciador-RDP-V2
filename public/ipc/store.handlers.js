@@ -98,6 +98,23 @@ function registerStoreHandlers({ store, fileSystemManager, databaseManager }) {
     });
 
     // ==========================
+    // REQUEST INITIAL DATA - Permite frontend solicitar dados ativamente
+    // ✅ CORREÇÃO: Fallback caso o did-finish-load não funcione
+    // ==========================
+    ipcMain.handle('request-initial-data', async () => {
+        console.log('📥 Frontend solicitou dados iniciais via IPC...');
+        try {
+            const groups = databaseManager.getAllGroups('rdp');
+            const vncGroups = databaseManager.getAllGroups('vnc');
+            console.log(`📤 Enviando dados solicitados: ${groups.length} grupos RDP/SSH, ${vncGroups.length} grupos VNC`);
+            return { groups, vncGroups };
+        } catch (error) {
+            console.error('❌ Erro ao obter dados iniciais:', error);
+            return { groups: [], vncGroups: [] };
+        }
+    });
+
+    // ==========================
     // GET LAST SYNC TIME - Obtém timestamp da última sincronização
     // ==========================
     ipcMain.handle('get-last-sync-time', async () => {
@@ -109,7 +126,7 @@ function registerStoreHandlers({ store, fileSystemManager, databaseManager }) {
         }
     });
 
-    console.log('✅ Store handlers registrados (inclui sync)');
+    console.log('✅ Store handlers registrados (inclui sync e request-initial-data)');
 }
 
 /**

@@ -1,9 +1,11 @@
 // src/components/Modal.js
+// Modal base com UX consistente - NÃO fecha ao clicar fora
 
 import React, { useEffect } from 'react';
 import { CloseIcon } from './MuiIcons';
+import './Modal.css';
 
-function Modal({ isOpen, onClose, title, children }) {
+function Modal({ isOpen, onClose, title, children, size = 'md' }) {
     // Adiciona/remove classe no body para esconder o footer quando modal está aberto
     useEffect(() => {
         if (isOpen) {
@@ -36,18 +38,20 @@ function Modal({ isOpen, onClose, title, children }) {
     }, [isOpen, onClose]);
 
     if (!isOpen) {
-
         return null;
     }
 
     // Função para parar a propagação de eventos de clique.
-    // Isso evita que um clique dentro do modal feche o próprio modal.
     const handleContentClick = (e) => e.stopPropagation();
 
+    // Determina a classe de tamanho
+    const sizeClass = size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : 'modal-md';
+
     return (
-        // O overlay é o fundo escurecido que captura o clique para fechar.
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={handleContentClick}>
+        // ✅ CORREÇÃO: O overlay NÃO fecha mais ao clicar fora
+        // Para fechar: use o botão X ou pressione ESC
+        <div className="modal-overlay">
+            <div className={`modal-content ${sizeClass}`} onClick={handleContentClick}>
                 <div className="modal-header">
                     <h3 className="modal-title">{title}</h3>
                     <button className="modal-close-btn" onClick={onClose} title="Fechar (ESC)">

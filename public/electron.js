@@ -121,6 +121,8 @@ async function initializeStore() {
 // ==========================
 // CRIAÇÃO DA JANELA
 // ==========================
+let initialData = null; // Dados iniciais para enviar ao frontend
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
@@ -146,6 +148,14 @@ function createWindow() {
         });
 
     win.loadURL(startUrl);
+
+    // ✅ CORREÇÃO: Envia dados quando a página terminar de carregar completamente
+    win.webContents.on('did-finish-load', () => {
+        if (initialData) {
+            console.log(`📤 [did-finish-load] Enviando dados: ${initialData.groups.length} grupos RDP/SSH, ${initialData.vncGroups.length} grupos VNC`);
+            win.webContents.send('initial-data-loaded', initialData);
+        }
+    });
 
     // Menu
     const menu = Menu.buildFromTemplate(createMenuTemplate());
@@ -372,12 +382,11 @@ app.whenReady().then(async () => {
     // Criar janela
     createWindow();
 
-    // Enviar dados ao frontend
-    if (mainWindow && syncedData) {
-        console.log(`📤 Enviando dados: ${syncedData.groups.length} grupos RDP/SSH, ${syncedData.vncGroups.length} grupos VNC`);
-        setTimeout(() => {
-            mainWindow.webContents.send('initial-data-loaded', syncedData);
-        }, 1000);
+    // ✅ CORREÇÃO: Armazenar dados para envio via did-finish-load
+    // O evento did-finish-load no createWindow() enviará os dados quando o React estiver pronto
+    if (syncedData) {
+        initialData = syncedData;
+        console.log(`📦 Dados preparados para envio: ${syncedData.groups.length} grupos RDP/SSH, ${syncedData.vncGroups.length} grupos VNC`);
     }
 });
 
