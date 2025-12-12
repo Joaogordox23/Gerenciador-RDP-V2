@@ -1,11 +1,13 @@
 /* src/components/apps/AppCard.css */
 /* Card de Aplicação - Premium Design v4.3 */
+/* ✨ v4.6: Fix de layout para drag handles e badges */
 
 .app-card {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 16px;
+    padding-left: 16px;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 12px;
@@ -13,6 +15,11 @@
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
+}
+
+/* Em modo edição, adiciona espaço para o drag handle */
+.app-card.edit-mode {
+    padding-left: 40px;
 }
 
 .app-card::before {
@@ -105,15 +112,16 @@
     text-overflow: ellipsis;
 }
 
-/* Badge de tipo */
+/* Badge de tipo - ✨ v4.6: Menor para não sobrepor nome */
 .app-card-badge {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     flex-shrink: 0;
+    margin-left: auto;
 }
 
 .app-card-badge.web {
@@ -132,20 +140,37 @@
     gap: 6px;
     opacity: 0;
     transition: opacity 0.2s ease;
+    flex-shrink: 0;
 }
 
 .app-card:hover .app-card-actions {
     opacity: 1;
 }
 
+/* ✨ v4.6: Em modo edição, ações sempre visíveis */
+.app-card.edit-mode .app-card-actions {
+    opacity: 1;
+}
+
+/* Em modo edição, esconde o badge para dar mais espaço ao nome */
+.app-card.edit-mode .app-card-badge {
+    display: none;
+}
+
+/* Em modo edição, info usa todo espaço disponível */
+.app-card.edit-mode .app-card-info {
+    flex: 1;
+    min-width: 60px;
+}
+
 .app-action-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.1);
     color: var(--color-text-secondary);
     cursor: pointer;
@@ -193,8 +218,9 @@
 
 .app-card-drag-handle {
     position: absolute;
-    top: 8px;
+    top: 50%;
     left: 8px;
+    transform: translateY(-50%);
     width: 24px;
     height: 24px;
     display: flex;
@@ -202,9 +228,14 @@
     justify-content: center;
     color: var(--color-text-secondary);
     cursor: grab;
-    opacity: 0;
+    opacity: 0.5;
     transition: all 0.2s ease;
     border-radius: 4px;
+    background: transparent;
+}
+
+.app-card-drag-handle:hover {
+    opacity: 1;
     background: rgba(255, 255, 255, 0.1);
 }
 

@@ -11,6 +11,8 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     CloseIcon,
+    FullscreenIcon,
+    FullscreenExitIcon,
 } from '../components/MuiIcons';
 import './VncWallView.css';
 
@@ -39,6 +41,10 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
     // ✨ v4.5: Estado para rastrear erros e auto-reconect
     const [connectionErrors, setConnectionErrors] = useState({}); // { [id]: true/false }
     const reconnectTimeoutsRef = useRef({}); // Para limpar timeouts
+
+    // ✨ v4.7: Modo Fullscreen para painel de monitoramento
+    const [isWallFullscreen, setIsWallFullscreen] = useState(false);
+    const [sidebarHover, setSidebarHover] = useState(false);
     // Flatten all connections from all groups
     const allConnections = useMemo(() => {
         const connections = vncGroups.flatMap(group =>
@@ -223,12 +229,61 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
 
     const allSelected = allConnections.length > 0 && connections.length === allConnections.length;
 
+    // ✨ v4.7: Toggle fullscreen para painel de monitoramento
+    const toggleWallFullscreen = () => {
+        if (!isWallFullscreen) {
+            // Entra em fullscreen
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+            setIsWallFullscreen(true);
+        } else {
+            // Sai do fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            setIsWallFullscreen(false);
+        }
+    };
+
+    // Listener para detectar saída do fullscreen via ESC ou outros meios
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            setIsWallFullscreen(isFullscreen);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
     // ✨ v4.5: Atalhos de teclado
     useEffect(() => {
         const handleKeyDown = (e) => {
             // ESC fecha fullscreen
             if (e.key === 'Escape' && fullscreenConnection) {
                 setFullscreenConnection(null);
+            }
+            // F11 ou F para toggle Wall Fullscreen
+            if ((e.key === 'F11' || (e.key === 'f' && e.ctrlKey)) && !fullscreenConnection) {
+                e.preventDefault();
+                toggleWallFullscreen();
             }
             // Setas navegam carrossel
             if (carouselMode && connections.length > 0) {
@@ -245,12 +300,24 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [fullscreenConnection, carouselMode, connections.length]);
+    }, [fullscreenConnection, carouselMode, connections.length, isWallFullscreen]);
 
     return (
-        <div className="vnc-wall-container">
+        <div className={`vnc-wall-container ${isWallFullscreen ? 'wall-fullscreen' : ''}`}>
+            {/* ✨ v4.7: Trigger area para mostrar sidebar em fullscreen */}
+            {isWallFullscreen && (
+                <div
+                    className="fullscreen-sidebar-trigger"
+                    onMouseEnter={() => setSidebarHover(true)}
+                />
+            )}
+
             {/* Sidebar de Seleção */}
-            <div className={`vnc-wall-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+            <div
+                className={`vnc-wall-sidebar ${isSidebarCollapsed ? 'collapsed' : ''} ${isWallFullscreen && sidebarHover ? 'hover-visible' : ''}`}
+                onMouseEnter={() => isWallFullscreen && setSidebarHover(true)}
+                onMouseLeave={() => isWallFullscreen && setSidebarHover(false)}
+            >
                 <h3>
                     <span>Servidores VNC</span>
                     <button
@@ -382,6 +449,25 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                     >
                         Parar Todos ({connections.length})
                     </button>
+
+                    {/* ✨ v4.7: Botão Fullscreen para Painel de Monitoramento */}
+                    <button
+                        onClick={toggleWallFullscreen}
+                        className={`btn-wall-fullscreen ${isWallFullscreen ? 'active' : ''}`}
+                        title={isWallFullscreen ? 'Sair do Fullscreen (F11)' : 'Modo Fullscreen (F11)'}
+                    >
+                        {isWallFullscreen ? (
+                            <>
+                                <FullscreenExitIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                Sair Fullscreen
+                            </>
+                        ) : (
+                            <>
+                                <FullscreenIcon sx={{ fontSize: 18, marginRight: 1 }} />
+                                Modo Painel
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -397,6 +483,18 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                         <span className="wall-mode-indicator">
                             {carouselMode ? '🎠 Carrossel' : '📺 Grid'} • {gridColumns} col
                         </span>
+                        {/* ✨ v4.7: Botão Fullscreen no header para fácil acesso */}
+                        <button
+                            onClick={toggleWallFullscreen}
+                            className={`btn-header-fullscreen ${isWallFullscreen ? 'active' : ''}`}
+                            title={isWallFullscreen ? 'Sair do Fullscreen (F11)' : 'Modo Painel Fullscreen (F11)'}
+                        >
+                            {isWallFullscreen ? (
+                                <FullscreenExitIcon sx={{ fontSize: 20 }} />
+                            ) : (
+                                <FullscreenIcon sx={{ fontSize: 20 }} />
+                            )}
+                        </button>
                     </div>
                 )}
                 {/* ✨ v4.0: Renderização condicional - Carrossel vs Grid */}

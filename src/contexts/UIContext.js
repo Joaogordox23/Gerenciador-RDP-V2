@@ -16,6 +16,7 @@ export function UIProvider({ children }) {
     // ========== Estados de Modo de Visualização ==========
     const [rdpViewMode, setRdpViewMode] = useState('grid');
     const [vncViewMode, setVncViewMode] = useState('grid');
+    const [appsViewMode, setAppsViewMode] = useState('grid'); // ✨ v4.6
 
     // ========== Estados de Edição/Busca ==========
     const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
@@ -72,6 +73,7 @@ export function UIProvider({ children }) {
         isSidebarCollapsed,
         rdpViewMode,
         vncViewMode,
+        appsViewMode,
         isEditModeEnabled,
         searchTerm,
         allGroupsCollapsed,
@@ -82,6 +84,7 @@ export function UIProvider({ children }) {
         setIsSidebarCollapsed,
         setRdpViewMode,
         setVncViewMode,
+        setAppsViewMode,
         setIsEditModeEnabled,
         setSearchTerm,
         setAllGroupsCollapsed,

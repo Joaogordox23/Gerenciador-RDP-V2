@@ -1,5 +1,6 @@
 /* ============================================
    SSH TERMINAL - xterm.js Styles
+   ✨ v4.6: Fullscreen fix - força xterm a ocupar 100% do container
    ============================================ */
 
 .ssh-terminal-container {
@@ -10,6 +11,7 @@
     background: #0a0a0f;
     border-radius: 8px;
     overflow: hidden;
+    position: relative;
 }
 
 /* Header do Terminal */
@@ -20,6 +22,7 @@
     padding: 10px 16px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-bottom: 1px solid rgba(29, 233, 182, 0.3);
+    flex-shrink: 0;
 }
 
 .ssh-terminal-info {
@@ -81,19 +84,40 @@
     white-space: nowrap;
 }
 
-/* Container do xterm.js */
+/* ============================================
+   Container do xterm.js - ✨ v4.7: CORRIGIDO overflow e scroll
+   ============================================ */
 .ssh-terminal-xterm {
     flex: 1;
     padding: 8px;
     overflow: hidden;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
 }
 
+/* xterm ocupa espaço disponível via flexbox, SEM position absolute */
 .ssh-terminal-xterm .xterm {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+.ssh-terminal-xterm .xterm-screen {
+    width: 100% !important;
 }
 
 .ssh-terminal-xterm .xterm-viewport {
+    width: 100% !important;
     overflow-y: auto !important;
+    /* Garante scroll funcional */
+}
+
+/* Rows container */
+.ssh-terminal-xterm .xterm-rows {
+    width: 100% !important;
 }
 
 /* Scrollbar customizada */
@@ -117,4 +141,9 @@
 /* Seleção de texto */
 .ssh-terminal-xterm .xterm-selection div {
     background: rgba(29, 233, 182, 0.3) !important;
+}
+
+/* Cursor */
+.ssh-terminal-xterm .xterm-cursor-layer {
+    z-index: 10;
 }

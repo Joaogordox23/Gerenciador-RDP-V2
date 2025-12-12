@@ -78,12 +78,14 @@ function AppContent() {
         isSidebarCollapsed,
         rdpViewMode,
         vncViewMode,
+        appsViewMode,
         isEditModeEnabled,
         searchTerm,
         allGroupsCollapsed,
         setActiveView,
         setRdpViewMode,
         setVncViewMode,
+        setAppsViewMode,
         setSearchTerm,
         toggleTheme,
         toggleSidebar,
@@ -468,12 +470,14 @@ function AppContent() {
                     onShowImportAD={openADModal}
                     onShowAddGroup={openAddGroupForm}
                     onShowBulkPassword={openBulkPasswordModal}
-                    viewMode={activeView === 'RDP/SSH' ? rdpViewMode : vncViewMode}
+                    viewMode={activeView === 'RDP/SSH' ? rdpViewMode : activeView === 'VNC' ? vncViewMode : appsViewMode}
                     onToggleViewMode={() => {
                         if (activeView === 'RDP/SSH') {
                             setRdpViewMode(rdpViewMode === 'grid' ? 'list' : 'grid');
                         } else if (activeView === 'VNC') {
                             setVncViewMode(vncViewMode === 'grid' ? 'list' : 'grid');
+                        } else if (activeView === 'Aplicações') {
+                            setAppsViewMode(appsViewMode === 'grid' ? 'list' : 'grid');
                         }
                     }}
                     onShowGuacamoleConfig={() => setShowGuacamoleConfig(true)}

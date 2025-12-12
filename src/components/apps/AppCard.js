@@ -62,7 +62,11 @@ function AppCard({
             {/* Ícone */}
             <div className={`app-card-icon ${isWeb ? 'web' : 'local'}`}>
                 {app.icon ? (
-                    <img src={app.icon} alt={app.name} />
+                    <img
+                        src={app.icon.startsWith('data:') || app.icon.startsWith('http') ? app.icon : `file:///${app.icon.replace(/\\/g, '/')}`}
+                        alt={app.name}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                 ) : isWeb ? (
                     <WebIcon sx={{ fontSize: 32 }} />
                 ) : (

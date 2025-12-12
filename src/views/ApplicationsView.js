@@ -22,7 +22,7 @@ import './ApplicationsView.css';
  */
 function ApplicationsView() {
     const { toast } = useToast();
-    const { isEditModeEnabled, searchTerm, setSearchTerm } = useUI();
+    const { isEditModeEnabled, searchTerm, setSearchTerm, allGroupsCollapsed, appsViewMode } = useUI();
     const { showConfirmDialog } = useModals();
 
     // Hook de aplicações
@@ -256,6 +256,14 @@ function ApplicationsView() {
                                 : 'Ative o modo de edição e crie seu primeiro grupo de aplicações'
                             }
                         </p>
+                        {searchTerm && (
+                            <button
+                                className="btn-clear-search"
+                                onClick={() => setSearchTerm('')}
+                            >
+                                Limpar busca
+                            </button>
+                        )}
                         {!searchTerm && isEditModeEnabled && (
                             <button
                                 className="btn-create-first"
@@ -291,6 +299,8 @@ function ApplicationsView() {
                                                         group={group}
                                                         index={index}
                                                         isEditMode={isEditModeEnabled}
+                                                        forceCollapsed={allGroupsCollapsed}
+                                                        viewMode={appsViewMode}
                                                         onAddApp={handleOpenAddAppModal}
                                                         onEditApp={handleOpenEditAppModal}
                                                         onDeleteApp={handleConfirmDeleteApp}

@@ -77,6 +77,7 @@ export {
     VisibilityOff as VisibilityOffIcon,
     Keyboard as KeyboardIcon,
     Fullscreen as FullscreenIcon,
+    FullscreenExit as FullscreenExitIcon,
     PhotoCamera as PhotoCameraIcon,
     SignalWifi4Bar as SignalWifiIcon,
     Mouse as MouseIcon,

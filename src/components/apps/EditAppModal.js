@@ -78,6 +78,17 @@ function EditAppModal({
         }
     }, [selectFile, handleChange]);
 
+    // ✨ v4.6: Seletor de ícone local
+    const handleSelectIcon = useCallback(async () => {
+        if (!selectFile) return;
+
+        const result = await selectFile('image');
+        console.log('📷 Ícone selecionado:', result ? result.substring(0, 50) + '...' : 'null');
+        if (result) {
+            handleChange('icon', result);
+        }
+    }, [selectFile, handleChange]);
+
     const validate = useCallback(() => {
         const newErrors = {};
 
@@ -204,6 +215,39 @@ function EditAppModal({
                         />
                     </div>
                 )}
+
+                {/* ✨ v4.6: Ícone Customizado */}
+                <div className="form-group">
+                    <label className="form-label">Ícone Personalizado</label>
+                    <div className="icon-input-row">
+                        {formData.icon && (
+                            <img
+                                src={formData.icon}
+                                alt="Preview"
+                                className="icon-preview"
+                                onError={(e) => e.target.style.display = 'none'}
+                            />
+                        )}
+                        <div className="input-with-button" style={{ flex: 1 }}>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={formData.icon}
+                                onChange={(e) => handleChange('icon', e.target.value)}
+                                placeholder="URL ou caminho local do ícone"
+                            />
+                            <button
+                                type="button"
+                                className="btn-browse"
+                                onClick={handleSelectIcon}
+                                title="Procurar imagem"
+                            >
+                                <FolderOpenIcon sx={{ fontSize: 18 }} />
+                            </button>
+                        </div>
+                    </div>
+                    <span className="form-hint">URL, caminho local, ou deixe vazio para ícone padrão</span>
+                </div>
 
                 {/* Grupo */}
                 {groups.length > 1 && (

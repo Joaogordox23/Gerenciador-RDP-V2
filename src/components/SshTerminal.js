@@ -231,13 +231,61 @@ function SshTerminal({ connectionInfo, onClose, onStatusChange }) {
         };
     }, [connectionInfo, updateStatus]);
 
-    // Fit ao mudar tamanho do container
+    // ✨ v4.6: Fit com múltiplos delays e envio de resize ao servidor
     useEffect(() => {
-        const timer = setTimeout(() => {
-            safeFit();
-        }, 300);
-        return () => clearTimeout(timer);
+        if (!terminalRef.current || !terminalInstanceRef.current) return;
+
+        // Função para fit com envio de resize ao SSH
+        const doFitAndResize = () => {
+            if (safeFit() && sessionIdRef.current && window.api?.ssh) {
+                const { cols, rows } = terminalInstanceRef.current;
+                window.api.ssh.resize(sessionIdRef.current, cols, rows);
+                console.log(`📐 Terminal resized: ${cols}x${rows}`);
+            }
+        };
+
+        // Múltiplos fits com delays crescentes para garantir que funcione
+        const timers = [
+            setTimeout(doFitAndResize, 100),
+            setTimeout(doFitAndResize, 300),
+            setTimeout(doFitAndResize, 500),
+            setTimeout(doFitAndResize, 1000),
+        ];
+
+        // Observer para detectar quando o elemento se torna visível
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Delay pequeno para dar tempo do layout estabilizar
+                    setTimeout(doFitAndResize, 50);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        observer.observe(terminalRef.current);
+
+        return () => {
+            timers.forEach(t => clearTimeout(t));
+            observer.disconnect();
+        };
     }, [safeFit]);
+
+    // ✨ v4.5: Handler de context menu para colar (botão direito)
+    const handleContextMenu = useCallback(async (e) => {
+        e.preventDefault();
+
+        if (!terminalInstanceRef.current || !sessionIdRef.current) return;
+
+        try {
+            // Tenta ler do clipboard e enviar para o terminal
+            const text = await navigator.clipboard.readText();
+            if (text && window.api?.ssh) {
+                window.api.ssh.write(sessionIdRef.current, text);
+            }
+        } catch (err) {
+            console.warn('Não foi possível colar do clipboard:', err);
+        }
+    }, []);
 
     return (
         <div className="ssh-terminal-container">
@@ -255,6 +303,7 @@ function SshTerminal({ connectionInfo, onClose, onStatusChange }) {
             <div
                 ref={terminalRef}
                 className="ssh-terminal-xterm"
+                onContextMenu={handleContextMenu}
             />
         </div>
     );

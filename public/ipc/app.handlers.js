@@ -181,25 +181,38 @@ function registerAppHandlers({ databaseManager }) {
         }
     });
 
-    // Abre diálogo para selecionar arquivo/executável
+    // Abre diálogo para selecionar arquivo/executável/imagem
     ipcMain.handle('app-select-file', async (event, type) => {
         const { dialog } = require('electron');
 
         try {
-            const options = type === 'executable'
-                ? {
+            let options;
+
+            if (type === 'executable') {
+                options = {
                     title: 'Selecionar Executável',
                     filters: [
                         { name: 'Executáveis', extensions: ['exe', 'bat', 'cmd', 'ps1'] },
                         { name: 'Todos os Arquivos', extensions: ['*'] }
                     ]
-                }
-                : {
+                };
+            } else if (type === 'image') {
+                // ✨ v4.6: Suporte para selecionar imagens
+                options = {
+                    title: 'Selecionar Ícone',
+                    filters: [
+                        { name: 'Imagens', extensions: ['png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'webp', 'bmp'] },
+                        { name: 'Todos os Arquivos', extensions: ['*'] }
+                    ]
+                };
+            } else {
+                options = {
                     title: 'Selecionar Arquivo',
                     filters: [
                         { name: 'Todos os Arquivos', extensions: ['*'] }
                     ]
                 };
+            }
 
             const result = await dialog.showOpenDialog(options);
 
@@ -207,7 +220,36 @@ function registerAppHandlers({ databaseManager }) {
                 return { success: false, canceled: true };
             }
 
-            return { success: true, path: result.filePaths[0] };
+            const filePath = result.filePaths[0];
+
+            // ✨ v4.6: Para imagens, retorna como data URL base64
+            if (type === 'image') {
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const fileBuffer = fs.readFileSync(filePath);
+                    const base64 = fileBuffer.toString('base64');
+                    const ext = path.extname(filePath).toLowerCase().replace('.', '');
+                    const mimeTypes = {
+                        'png': 'image/png',
+                        'jpg': 'image/jpeg',
+                        'jpeg': 'image/jpeg',
+                        'gif': 'image/gif',
+                        'ico': 'image/x-icon',
+                        'svg': 'image/svg+xml',
+                        'webp': 'image/webp',
+                        'bmp': 'image/bmp'
+                    };
+                    const mimeType = mimeTypes[ext] || 'image/png';
+                    const dataUrl = `data:${mimeType};base64,${base64}`;
+                    return { success: true, path: dataUrl };
+                } catch (imgError) {
+                    console.error('❌ Erro ao ler imagem:', imgError);
+                    return { success: false, error: 'Não foi possível ler a imagem' };
+                }
+            }
+
+            return { success: true, path: filePath };
         } catch (error) {
             console.error('❌ Erro ao abrir diálogo:', error);
             return { success: false, error: error.message };

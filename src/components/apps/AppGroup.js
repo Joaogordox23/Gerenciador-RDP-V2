@@ -2,7 +2,7 @@
 // Grupo de aplicações colapsável (Feature v4.3)
 // v4.3.1: Suporte a Drag & Drop
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import {
     ChevronRightIcon,
@@ -18,12 +18,15 @@ import './AppGroup.css';
 /**
  * Grupo de aplicações com header e lista colapsável
  * Suporta Drag & Drop via react-beautiful-dnd
+ * ✨ v4.6: Suporte a forceCollapsed para "colapsar todos"
  */
 function AppGroup({
     group,
     index, // Índice para Draggable do grupo
     isEditMode = false,
     defaultCollapsed = false,
+    forceCollapsed = null, // ✨ v4.6: Controle externo de collapse
+    viewMode = 'grid', // ✨ v4.6: Modo de visualização (grid/list)
     onAddApp,
     onEditApp,
     onDeleteApp,
@@ -33,11 +36,25 @@ function AppGroup({
     dragHandleProps = null, // Props do drag handle do grupo
     isDraggingGroup = false // Se o grupo está sendo arrastado
 }) {
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [localCollapsed, setLocalCollapsed] = useState(defaultCollapsed);
+
+    // ✨ v4.6: Determina se está colapsado com override local
+    const [hasLocalOverride, setHasLocalOverride] = useState(false);
+    const isCollapsed = hasLocalOverride ? localCollapsed : (forceCollapsed !== null ? forceCollapsed : localCollapsed);
+
+    // Reset override quando forceCollapsed muda
+    useEffect(() => {
+        if (forceCollapsed !== null) {
+            setHasLocalOverride(false);
+            setLocalCollapsed(forceCollapsed);
+        }
+    }, [forceCollapsed]);
 
     const handleToggleCollapse = useCallback(() => {
-        setIsCollapsed(prev => !prev);
-    }, []);
+        const newState = !isCollapsed;
+        setLocalCollapsed(newState);
+        setHasLocalOverride(true);
+    }, [isCollapsed]);
 
     const handleAddApp = useCallback((e) => {
         e.stopPropagation();
@@ -61,7 +78,7 @@ function AppGroup({
         <div className={`app-group ${isCollapsed ? 'collapsed' : ''} ${isDraggingGroup ? 'dragging' : ''}`}>
             {/* Header */}
             <div
-                className="app-group-header"
+                className={`app-group-header ${isEditMode ? 'edit-mode' : ''}`}
                 onClick={handleToggleCollapse}
                 style={{ '--group-color': group.color || 'var(--color-primary)' }}
             >
@@ -132,7 +149,7 @@ function AppGroup({
                                     {provided.placeholder}
                                 </div>
                             ) : (
-                                <div className="app-group-grid">
+                                <div className={`app-group-grid ${viewMode}`}>
                                     {apps.map((app, appIndex) => (
                                         <Draggable
                                             key={app.id}

@@ -170,9 +170,10 @@ function createWindow() {
         }
     });
 
-    // Menu
-    const menu = Menu.buildFromTemplate(createMenuTemplate());
-    Menu.setApplicationMenu(menu);
+    // Menu - DESABILITADO v4.4.1 (barra de menu removida)
+    // const menu = Menu.buildFromTemplate(createMenuTemplate());
+    // Menu.setApplicationMenu(menu);
+    Menu.setApplicationMenu(null);
 }
 
 // ==========================
@@ -431,10 +432,26 @@ if (!gotTheLock) {
     // Primeira instância: configura listener para segunda instância
     app.on('second-instance', () => {
         console.log('📢 Segunda instância detectada. Focando janela existente...');
-        if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.show();
-            mainWindow.focus();
+        try {
+            // Verifica se mainWindow existe e não foi destruída
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                // Se está escondida (na tray), mostra primeiro
+                if (!mainWindow.isVisible()) {
+                    mainWindow.show();
+                }
+                // Se está minimizada, restaura
+                if (mainWindow.isMinimized()) {
+                    mainWindow.restore();
+                }
+                // Foca a janela
+                mainWindow.focus();
+                console.log('✅ Janela restaurada e focada');
+            } else {
+                // Não criamos nova janela aqui porque causaria conflito com GuacamoleServer
+                console.warn('⚠️ mainWindow não disponível - app pode estar em estado inconsistente');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao restaurar janela:', error);
         }
     });
 }
@@ -445,7 +462,9 @@ if (!gotTheLock) {
 app.whenReady().then(async () => {
     console.log('🚀 Electron App v5.1 (Single Instance + Tray) iniciando...');
 
-    // Iniciar GuacamoleServer
+    // ⚠️ GuacamoleServer DESABILITADO - não está sendo usado
+    // Se precisar reativar, descomente o bloco abaixo:
+    /*
     try {
         guacamoleServer = new GuacamoleServer(8080);
         await guacamoleServer.start();
@@ -453,6 +472,7 @@ app.whenReady().then(async () => {
     } catch (error) {
         console.error('❌ Falha ao iniciar GuacamoleServer:', error);
     }
+    */
 
     // Inicializar store
     const syncedData = await initializeStore();

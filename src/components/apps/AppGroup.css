@@ -19,11 +19,17 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px;
+    padding-left: 16px;
     cursor: pointer;
     background: linear-gradient(135deg, rgba(var(--color-teal-500-rgb), 0.05), transparent);
     border-bottom: 1px solid transparent;
     transition: all 0.2s ease;
     position: relative;
+}
+
+/* Espaço para drag handle em modo edição */
+.app-group-header.edit-mode {
+    padding-left: 40px;
 }
 
 .app-group-header::before {
@@ -149,11 +155,18 @@
     }
 }
 
-/* Grid de Apps */
+/* Grid de Apps - ✨ v4.6: Suporte a modo lista/grid */
 .app-group-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
+}
+
+.app-group-grid.grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.app-group-grid.list {
+    grid-template-columns: 1fr;
 }
 
 /* Empty State */
@@ -193,7 +206,7 @@
 
 .app-group-drag-handle {
     position: absolute;
-    left: -8px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
     width: 24px;
@@ -203,10 +216,16 @@
     justify-content: center;
     color: var(--color-text-secondary);
     cursor: grab;
-    opacity: 0;
+    opacity: 0.5;
     transition: all 0.2s ease;
     border-radius: 4px;
     z-index: 10;
+    background: transparent;
+}
+
+.app-group-drag-handle:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .app-group-drag-handle:active {
@@ -215,7 +234,6 @@
 
 .app-group-header:hover .app-group-drag-handle {
     opacity: 1;
-    left: 8px;
 }
 
 .app-group.dragging {

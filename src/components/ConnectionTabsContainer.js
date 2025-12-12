@@ -125,26 +125,35 @@ function ConnectionTabsContainer() {
                 ))}
             </div>
 
-            {/* Viewer da Aba Ativa */}
+            {/* ✨ v4.5: Renderiza TODAS as abas, mas mostra apenas a ativa
+                Isso mantém as conexões SSH/VNC ativas ao trocar de aba */}
             <div className="connection-tabs-content">
-                {activeTab && activeTab.type === 'vnc' && (
-                    <VncViewerModal
-                        connectionInfo={activeTab.info}
-                        onClose={handleCloseActiveTab}
-                    />
-                )}
-                {activeTab && activeTab.type === 'rdp' && (
-                    <ConnectionViewerModal
-                        connectionInfo={activeTab.info}
-                        onClose={handleCloseActiveTab}
-                    />
-                )}
-                {activeTab && activeTab.type === 'ssh' && (
-                    <SshTerminal
-                        connectionInfo={activeTab.info}
-                        onClose={handleCloseActiveTab}
-                    />
-                )}
+                {tabConnections.map(tab => (
+                    <div
+                        key={tab.id}
+                        className={`connection-tab-panel ${tab.id === activeTabId ? 'active' : 'hidden'}`}
+                        style={{ display: tab.id === activeTabId ? 'flex' : 'none' }}
+                    >
+                        {tab.type === 'vnc' && (
+                            <VncViewerModal
+                                connectionInfo={tab.info}
+                                onClose={() => removeTabConnection(tab.id)}
+                            />
+                        )}
+                        {tab.type === 'rdp' && (
+                            <ConnectionViewerModal
+                                connectionInfo={tab.info}
+                                onClose={() => removeTabConnection(tab.id)}
+                            />
+                        )}
+                        {tab.type === 'ssh' && (
+                            <SshTerminal
+                                connectionInfo={tab.info}
+                                onClose={() => removeTabConnection(tab.id)}
+                            />
+                        )}
+                    </div>
+                ))}
             </div>
         </div>
     );

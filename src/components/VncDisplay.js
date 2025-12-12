@@ -78,7 +78,8 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
         }
     }, [quality, compression]);
 
-    // Conecta ao VNC quando container tem dimensões válidas
+    // ✨ v4.7: CORRIGIDO - useEffect de conexão APENAS depende de proxyUrl e password
+    // Outras configs (viewOnly, scaleViewport, quality) são atualizadas via refs/efeitos separados
     useEffect(() => {
         if (!connectionInfo || !connectionInfo.proxyUrl || !vncContainerRef.current || !isMounted) {
             return;
@@ -106,7 +107,7 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     credentials: { password: password },
                 });
 
-                // ✅ Configurações de visualização
+                // ✅ Configurações de visualização - usa valores atuais
                 rfb.viewOnly = viewOnly;
                 rfb.scaleViewport = scaleViewport; // Ajusta ao tamanho do container
                 rfb.clipViewport = false; // Não corta - permite ver tudo
@@ -231,8 +232,9 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                 rfbRef.current = null;
             }
         };
+        // ✨ v4.7: APENAS proxyUrl e password como dependências para evitar reconexões
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, containerSize, viewOnly, scaleViewport, quality]);
+    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, containerSize.width > 0 && containerSize.height > 0]);
 
     if (!connectionInfo) return null;
 

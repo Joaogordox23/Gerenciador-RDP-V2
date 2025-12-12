@@ -41,20 +41,28 @@ function Group({
         return saved === 'true';
     });
 
-    // Determina se está colapsado: usa forceCollapsed se definido, senão usa local
-    const isCollapsed = forceCollapsed !== null ? forceCollapsed : localCollapsed;
+    // Determina se está colapsado: usa override local se o usuário clicou após forceCollapsed
+    const [hasLocalOverride, setHasLocalOverride] = useState(false);
+    const isCollapsed = hasLocalOverride ? localCollapsed : (forceCollapsed !== null ? forceCollapsed : localCollapsed);
+
+    // Reset override quando forceCollapsed muda
+    useEffect(() => {
+        if (forceCollapsed !== null) {
+            setHasLocalOverride(false);
+            setLocalCollapsed(forceCollapsed);
+        }
+    }, [forceCollapsed]);
 
     useEffect(() => {
         setNewGroupName(groupInfo.groupName);
     }, [groupInfo.groupName]);
 
-    // Persiste estado de collapse (apenas se não estiver em modo forçado)
+    // Persiste estado de collapse e marca override local
     const toggleCollapse = () => {
-        if (forceCollapsed === null) {
-            const newState = !localCollapsed;
-            setLocalCollapsed(newState);
-            localStorage.setItem(`group-collapsed-${groupInfo.id}`, newState.toString());
-        }
+        const newState = !isCollapsed;
+        setLocalCollapsed(newState);
+        setHasLocalOverride(true);
+        localStorage.setItem(`group-collapsed-${groupInfo.id}`, newState.toString());
     };
 
     const handleSaveGroupName = (e) => {
