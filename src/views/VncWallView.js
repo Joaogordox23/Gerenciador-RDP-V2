@@ -1,5 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+// src/views/VncWallView.js
+// ✨ v4.8: Migrado para Tailwind CSS
+// ✨ v5.1: Modo Snapshot para economia de memória
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import VncDisplay from '../components/VncDisplay';
+import VncSnapshot from '../components/VncSnapshot';
 import VncFullscreen from '../components/VncFullscreen';
 import {
     SlideshowIcon,
@@ -14,603 +18,440 @@ import {
     FullscreenIcon,
     FullscreenExitIcon,
 } from '../components/MuiIcons';
-import './VncWallView.css';
-
-
 
 const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searchTerm = '' }) => {
-    // Estado local para conexões ativas se não for passado via props (fallback)
     const [localActiveConnections, setLocalActiveConnections] = useState([]);
     const connections = activeConnections || localActiveConnections;
     const setConnections = setActiveConnections || setLocalActiveConnections;
 
-    // ✨ v4.0: Estados para modo carrossel
     const [carouselMode, setCarouselMode] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [carouselInterval, setCarouselInterval] = useState(5000); // 5 segundos
+    const [carouselInterval, setCarouselInterval] = useState(5000);
     const timerRef = useRef(null);
 
-    // ✨ v4.1: Fullscreen interativo
     const [fullscreenConnection, setFullscreenConnection] = useState(null);
-
-    // ✨ v4.1: Controle de colunas do grid
-    const [gridColumns, setGridColumns] = useState(3); // 1-6 colunas
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-    // ✨ v4.5: Estado para rastrear erros e auto-reconect
-    const [connectionErrors, setConnectionErrors] = useState({}); // { [id]: true/false }
-    const reconnectTimeoutsRef = useRef({}); // Para limpar timeouts
-
-    // ✨ v4.7: Modo Fullscreen para painel de monitoramento
+    const [gridColumns, setGridColumns] = useState(3);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+        const saved = localStorage.getItem('vnc-wall-sidebar-collapsed');
+        return saved === 'true';
+    });
+    const [connectionErrors, setConnectionErrors] = useState({});
+    const reconnectTimeoutsRef = useRef({});
     const [isWallFullscreen, setIsWallFullscreen] = useState(false);
     const [sidebarHover, setSidebarHover] = useState(false);
-    // Flatten all connections from all groups
+    const pendingConnectionsRef = useRef(new Set()); // ✅ v5.0: Rastrear conexões sendo iniciadas
+
     const allConnections = useMemo(() => {
-        const connections = vncGroups.flatMap(group =>
+        const conns = vncGroups.flatMap(group =>
             group.connections.map(conn => ({
                 ...conn,
                 groupName: group.groupName
             }))
         );
 
-        // Filtrar por searchTerm
-        if (!searchTerm) return connections;
-
+        if (!searchTerm) return conns;
         const term = searchTerm.toLowerCase();
-        return connections.filter(conn =>
+        return conns.filter(conn =>
             conn.name?.toLowerCase().includes(term) ||
             conn.ipAddress?.toLowerCase().includes(term) ||
             conn.groupName?.toLowerCase().includes(term)
         );
     }, [vncGroups, searchTerm]);
 
-    // ✨ v4.3: Cálculo do total de páginas para o carrossel
-    // Para 1 coluna: 1 item por página (carrossel single)
-    // Para 2+ colunas: gridColumns * 2 (mantém 2 linhas)
-    const itemsPerPage = gridColumns === 1 ? 1 : gridColumns * 2;
-    const totalPages = Math.ceil(connections.length / itemsPerPage);
+    // Filtrar conexões ativas pelo termo de busca
+    const filteredConnections = useMemo(() => {
+        if (!searchTerm) return connections;
+        const term = searchTerm.toLowerCase();
+        return connections.filter(conn =>
+            conn.name?.toLowerCase().includes(term) ||
+            conn.ipAddress?.toLowerCase().includes(term) ||
+            conn.groupName?.toLowerCase().includes(term)
+        );
+    }, [connections, searchTerm]);
 
-    // ✨ v4.0: Lógica do carrossel automático
+    // Cálculo de linhas baseado no número de colunas (máximo 4 linhas)
+    // 1 col = 1 linha, 2 cols = 2 linhas, 3 cols = 3 linhas, 4+ cols = 4 linhas
+    const gridRows = Math.min(gridColumns, 4);
+    const itemsPerPage = gridColumns * gridRows;
+    const totalPages = Math.ceil(filteredConnections.length / itemsPerPage);
+
     useEffect(() => {
         if (carouselMode && isPlaying && totalPages > 1) {
             timerRef.current = setInterval(() => {
                 setCurrentIndex(prev => (prev + 1) % totalPages);
             }, carouselInterval);
-
-            return () => {
-                if (timerRef.current) {
-                    clearInterval(timerRef.current);
-                }
-            };
+            return () => { if (timerRef.current) clearInterval(timerRef.current); };
         }
     }, [carouselMode, isPlaying, carouselInterval, totalPages]);
 
     const handleStartMonitoring = async (connection) => {
-        // Evita duplicatas
-        if (connections.find(c => c.id === connection.id)) return;
+        // ✅ v5.0: Verifica se já está sendo monitorada OU já está sendo iniciada
+        if (pendingConnectionsRef.current.has(connection.id)) {
+            console.log(`⚠️ [${connection.name}] Já está sendo iniciada, ignorando`);
+            return;
+        }
+
+        // Marca como pendente ANTES de iniciar
+        pendingConnectionsRef.current.add(connection.id);
 
         try {
-            // Solicita ao backend para iniciar o proxy
             const result = await window.api.vnc.startProxy(connection);
-
             if (result.success) {
                 const proxyUrl = `ws://localhost:${result.port}`;
-                setConnections(prev => [...prev, {
-                    ...connection,
-                    proxyUrl,
-                    password: result.decryptedPassword || connection.password
-                }]);
-            } else {
-                console.error('Erro ao iniciar proxy:', result.error);
-                // Opcional: Mostrar toast de erro
+                setConnections(prev => {
+                    // Verifica duplicata no momento da atualização
+                    if (prev.find(c => c.id === connection.id)) {
+                        console.log(`⚠️ [${connection.name}] Já existe nas conexões ativas`);
+                        return prev;
+                    }
+                    return [...prev, {
+                        ...connection, proxyUrl,
+                        password: result.decryptedPassword || connection.password
+                    }];
+                });
             }
         } catch (error) {
-            console.error('Erro ao conectar:', error);
+            console.error(`❌ Erro ao conectar ${connection.name}:`, error);
+        } finally {
+            // Remove do pendente após conclusão (sucesso ou erro)
+            pendingConnectionsRef.current.delete(connection.id);
         }
     };
 
     const handleStopMonitoring = async (connectionId) => {
         try {
-            // Limpa timeout de reconexão se existir
             if (reconnectTimeoutsRef.current[connectionId]) {
                 clearTimeout(reconnectTimeoutsRef.current[connectionId]);
                 delete reconnectTimeoutsRef.current[connectionId];
             }
-
-            // Para o proxy no backend
             await window.api.vnc.stopProxy(connectionId);
-
-            // Remove da lista local e limpa erro
             setConnections(prev => prev.filter(c => c.id !== connectionId));
-            setConnectionErrors(prev => {
-                const newState = { ...prev };
-                delete newState[connectionId];
-                return newState;
-            });
+            setConnectionErrors(prev => { const newState = { ...prev }; delete newState[connectionId]; return newState; });
         } catch (error) {
             console.error('Erro ao desconectar:', error);
         }
     };
 
-    // ✨ v4.5: Handler de erro de conexão com auto-reconect
     const handleConnectionError = async (connectionId, errorMessage) => {
         console.warn(`⚠️ Erro na conexão ${connectionId}:`, errorMessage);
-
-        // Marca como erro
         setConnectionErrors(prev => ({ ...prev, [connectionId]: true }));
-
-        // Encontra a conexão original para reconectar
         const connection = connections.find(c => c.id === connectionId);
         if (!connection) return;
+        if (reconnectTimeoutsRef.current[connectionId]) clearTimeout(reconnectTimeoutsRef.current[connectionId]);
 
-        // Limpa timeout anterior se existir
-        if (reconnectTimeoutsRef.current[connectionId]) {
-            clearTimeout(reconnectTimeoutsRef.current[connectionId]);
-        }
-
-        // Tenta reconectar após 5 segundos
         reconnectTimeoutsRef.current[connectionId] = setTimeout(async () => {
-            console.log(`🔄 Tentando reconectar: ${connection.name}`);
-
             try {
-                // Para o proxy antigo primeiro
                 await window.api.vnc.stopProxy(connectionId);
-
-                // Inicia novo proxy
                 const result = await window.api.vnc.startProxy(connection);
-
                 if (result.success) {
                     const proxyUrl = `ws://localhost:${result.port}`;
-
-                    // Atualiza a conexão com novo proxyUrl
                     setConnections(prev => prev.map(c =>
-                        c.id === connectionId
-                            ? { ...c, proxyUrl, password: result.decryptedPassword || c.password, reconnectKey: Date.now() }
-                            : c
+                        c.id === connectionId ? { ...c, proxyUrl, password: result.decryptedPassword || c.password, reconnectKey: Date.now() } : c
                     ));
-
-                    // Limpa erro
-                    setConnectionErrors(prev => {
-                        const newState = { ...prev };
-                        delete newState[connectionId];
-                        return newState;
-                    });
-
-                    console.log(`✅ Reconectado: ${connection.name}`);
+                    setConnectionErrors(prev => { const newState = { ...prev }; delete newState[connectionId]; return newState; });
                 }
             } catch (err) {
-                console.error(`❌ Falha ao reconectar ${connection.name}:`, err);
-                // Tenta novamente em 10 segundos
-                reconnectTimeoutsRef.current[connectionId] = setTimeout(() => {
-                    handleConnectionError(connectionId, 'Retry');
-                }, 10000);
+                reconnectTimeoutsRef.current[connectionId] = setTimeout(() => handleConnectionError(connectionId, 'Retry'), 10000);
             }
         }, 5000);
     };
 
-    // ✨ v4.0: Controles do carrossel
-    const toggleCarouselMode = () => {
-        setCarouselMode(prev => !prev);
-        setIsPlaying(false);
-    };
+    const toggleCarouselMode = () => { setCarouselMode(prev => !prev); setIsPlaying(false); };
+    const handlePlayPause = () => setIsPlaying(prev => !prev);
+    const handleNext = () => setCurrentIndex(prev => (prev + 1) % (totalPages || 1));
+    const handlePrevious = () => setCurrentIndex(prev => (prev - 1 + (totalPages || 1)) % (totalPages || 1));
+    const handleDoubleClick = (connection) => setFullscreenConnection(connection);
+    const handleStopAll = async () => { for (const conn of connections) await handleStopMonitoring(conn.id); };
 
-    const handlePlayPause = () => {
-        setIsPlaying(prev => !prev);
-    };
-
-    const handleNext = () => {
-        setCurrentIndex(prev => (prev + 1) % (totalPages || 1));
-    };
-
-    const handlePrevious = () => {
-        setCurrentIndex(prev => (prev - 1 + (totalPages || 1)) % (totalPages || 1));
-    };
-
-    // ✨ v4.1: Abrir fullscreen ao duplo clique
-    const handleDoubleClick = (connection) => {
-        setFullscreenConnection(connection);
-    };
-
-    const handleStopAll = async () => {
-        for (const conn of connections) {
-            await handleStopMonitoring(conn.id);
-        }
-    };
-
-    // ✨ v4.3: Selecionar/Desmarcar todos
+    // ✅ v5.0: Seleção em lotes para evitar sobrecarga
     const handleSelectAll = async () => {
-        for (const conn of allConnections) {
-            if (!connections.find(c => c.id === conn.id)) {
-                await handleStartMonitoring(conn);
+        const connectionsToAdd = allConnections.filter(conn => !connections.find(c => c.id === conn.id));
+        if (connectionsToAdd.length === 0) return;
+
+        console.log(`🔌 Iniciando conexão de ${connectionsToAdd.length} servidores VNC em lotes...`);
+
+        // Processa em lotes de 5 para não sobrecarregar
+        const batchSize = 5;
+        for (let i = 0; i < connectionsToAdd.length; i += batchSize) {
+            const batch = connectionsToAdd.slice(i, i + batchSize);
+
+            // Inicia todas as conexões do lote em paralelo
+            await Promise.allSettled(batch.map(conn => handleStartMonitoring(conn)));
+
+            // Pequeno delay entre lotes para dar tempo ao React processar
+            if (i + batchSize < connectionsToAdd.length) {
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
         }
-    };
 
+        console.log(`✅ Conexão de ${connectionsToAdd.length} servidores VNC concluída`);
+    };
     const allSelected = allConnections.length > 0 && connections.length === allConnections.length;
 
-    // ✨ v4.7: Toggle fullscreen para painel de monitoramento
-    const toggleWallFullscreen = () => {
+    const toggleWallFullscreen = useCallback(() => {
         if (!isWallFullscreen) {
-            // Entra em fullscreen
             const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
-            }
+            if (elem.requestFullscreen) elem.requestFullscreen();
             setIsWallFullscreen(true);
         } else {
-            // Sai do fullscreen
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
+            if (document.exitFullscreen) document.exitFullscreen();
             setIsWallFullscreen(false);
         }
-    };
+    }, [isWallFullscreen]);
 
-    // Listener para detectar saída do fullscreen via ESC ou outros meios
     useEffect(() => {
         const handleFullscreenChange = () => {
-            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
             setIsWallFullscreen(isFullscreen);
         };
-
         document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-        };
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
-    // ✨ v4.5: Atalhos de teclado
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // ESC fecha fullscreen
-            if (e.key === 'Escape' && fullscreenConnection) {
-                setFullscreenConnection(null);
-            }
-            // F11 ou F para toggle Wall Fullscreen
-            if ((e.key === 'F11' || (e.key === 'f' && e.ctrlKey)) && !fullscreenConnection) {
-                e.preventDefault();
-                toggleWallFullscreen();
-            }
-            // Setas navegam carrossel
+            if (e.key === 'Escape' && fullscreenConnection) setFullscreenConnection(null);
+            if ((e.key === 'F11' || (e.key === 'f' && e.ctrlKey)) && !fullscreenConnection) { e.preventDefault(); toggleWallFullscreen(); }
             if (carouselMode && connections.length > 0) {
-                if (e.key === 'ArrowRight') {
-                    handleNext();
-                } else if (e.key === 'ArrowLeft') {
-                    handlePrevious();
-                } else if (e.key === ' ') {
-                    e.preventDefault();
-                    handlePlayPause();
-                }
+                if (e.key === 'ArrowRight') handleNext();
+                else if (e.key === 'ArrowLeft') handlePrevious();
+                else if (e.key === ' ') { e.preventDefault(); handlePlayPause(); }
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [fullscreenConnection, carouselMode, connections.length, isWallFullscreen]);
+    }, [fullscreenConnection, carouselMode, connections.length, isWallFullscreen, toggleWallFullscreen]);
+
+    // Classes base para botões
+    const btnBase = "flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer";
+    const btnPrimary = `${btnBase} bg-gradient-to-br from-primary to-primary-hover text-white shadow-md shadow-primary/30 hover:-translate-y-0.5`;
+    const btnSecondary = `${btnBase} bg-cream-50 dark:bg-dark-bg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary hover:text-primary`;
+    const btnDanger = `${btnBase} bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20`;
 
     return (
-        <div className={`vnc-wall-container ${isWallFullscreen ? 'wall-fullscreen' : ''}`}>
-            {/* ✨ v4.7: Trigger area para mostrar sidebar em fullscreen */}
+        <div className={`flex gap-4 p-4 transition-all duration-300
+            ${isWallFullscreen ? 'fixed inset-0 z-[9999] bg-black p-0 gap-0' : 'h-[calc(100vh-140px)]'}`}
+        >
+            {/* Trigger para sidebar em fullscreen */}
             {isWallFullscreen && (
-                <div
-                    className="fullscreen-sidebar-trigger"
-                    onMouseEnter={() => setSidebarHover(true)}
-                />
+                <div className="fixed left-0 top-0 bottom-0 w-5 z-[9999]" onMouseEnter={() => setSidebarHover(true)} />
             )}
 
-            {/* Sidebar de Seleção */}
+            {/* Sidebar */}
             <div
-                className={`vnc-wall-sidebar ${isSidebarCollapsed ? 'collapsed' : ''} ${isWallFullscreen && sidebarHover ? 'hover-visible' : ''}`}
+                className={`
+                    ${isSidebarCollapsed ? 'w-14 min-w-14 max-w-14 px-2' : 'w-[240px] min-w-[240px] max-w-[240px] p-4'}
+                    bg-cream-100 dark:bg-dark-surface border border-gray-200 dark:border-gray-700
+                    rounded-xl flex flex-col shadow-lg transition-all duration-300 overflow-hidden
+                    ${isWallFullscreen ? `fixed left-0 top-0 bottom-0 z-[10000] rounded-none ${sidebarHover ? 'translate-x-0' : '-translate-x-full'}` : ''}
+                `}
                 onMouseEnter={() => isWallFullscreen && setSidebarHover(true)}
                 onMouseLeave={() => isWallFullscreen && setSidebarHover(false)}
             >
-                <h3>
-                    <span>Servidores VNC</span>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-primary">
+                    {!isSidebarCollapsed && <span className="text-sm font-bold text-slate-900 dark:text-white">Servidores VNC</span>}
                     <button
-                        className="sidebar-toggle-btn"
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        title={isSidebarCollapsed ? 'Expandir' : 'Recolher'}
+                        className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 
+                            bg-cream-50 dark:bg-dark-bg text-gray-500 flex items-center justify-center shrink-0
+                            transition-all hover:bg-primary hover:text-white hover:border-primary hover:scale-110"
+                        onClick={() => {
+                            const newState = !isSidebarCollapsed;
+                            setIsSidebarCollapsed(newState);
+                            localStorage.setItem('vnc-wall-sidebar-collapsed', newState.toString());
+                        }}
                     >
                         {isSidebarCollapsed ? <ChevronRightIcon sx={{ fontSize: 16 }} /> : <ChevronLeftIcon sx={{ fontSize: 16 }} />}
                     </button>
-                </h3>
-                <div className="vnc-list">
-                    {allConnections.map(conn => {
-                        const isActive = connections.find(c => c.id === conn.id);
-                        return (
-                            <div
-                                key={conn.id}
-                                className={`vnc-wall-sidebar-item ${isActive ? 'active' : ''}`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={!!isActive}
-                                    onChange={() => {
-                                        if (isActive) {
-                                            handleStopMonitoring(conn.id);
-                                        } else {
-                                            handleStartMonitoring(conn);
-                                        }
-                                    }}
-                                    className="vnc-checkbox"
-                                />
-                                <span className="vnc-server-name">{conn.name}</span>
-                                <span className="vnc-server-status">
-                                    {isActive ? '🟢' : '⚫'}
-                                </span>
+                </div>
+
+                {/* Lista de Conexões */}
+                {!isSidebarCollapsed && (
+                    <div className="flex-1 overflow-y-auto flex flex-col gap-1 mb-3 scrollbar-thin">
+                        {allConnections.map(conn => {
+                            const isActive = connections.find(c => c.id === conn.id);
+                            return (
+                                <label key={conn.id} className={`flex items-center gap-2 px-2.5 py-2
+                                    bg-cream-50 dark:bg-dark-bg border border-gray-200 dark:border-gray-700
+                                    rounded-lg cursor-pointer transition-all text-xs
+                                    ${isActive ? 'border-primary bg-primary/10' : 'hover:border-primary/50'}`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={!!isActive}
+                                        onChange={() => isActive ? handleStopMonitoring(conn.id) : handleStartMonitoring(conn)}
+                                        className="w-4 h-4 rounded accent-primary"
+                                    />
+                                    <span className="flex-1 truncate text-slate-900 dark:text-white">{conn.name}</span>
+                                    <span>{isActive ? '🟢' : '⚫'}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Controles */}
+                {!isSidebarCollapsed && (
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        {/* Selecionar Todos */}
+                        <button onClick={allSelected ? handleStopAll : handleSelectAll} disabled={allConnections.length === 0}
+                            className={`w-full ${allSelected ? btnDanger : btnSecondary} justify-center`}>
+                            {allSelected ? '✖ Desmarcar Todos' : '✔ Selecionar Todos'}
+                        </button>
+
+                        {/* Toggle Carrossel */}
+                        <button onClick={toggleCarouselMode} className={`w-full justify-center ${carouselMode ? btnPrimary : btnSecondary}`}>
+                            {carouselMode ? <><GridViewIcon sx={{ fontSize: 16 }} /> Modo Normal</> : <><SlideshowIcon sx={{ fontSize: 16 }} /> Carrossel</>}
+                        </button>
+
+                        {/* Controles Carrossel */}
+                        {carouselMode && connections.length > 0 && (
+                            <div className="flex items-center justify-center gap-2">
+                                <button onClick={handlePrevious} className={btnSecondary}><NavigateBeforeIcon sx={{ fontSize: 18 }} /></button>
+                                <button onClick={handlePlayPause} className={`${btnPrimary} px-4`}>
+                                    {isPlaying ? <PauseIcon sx={{ fontSize: 16 }} /> : <PlayArrowIcon sx={{ fontSize: 16 }} />}
+                                </button>
+                                <button onClick={handleNext} className={btnSecondary}><NavigateNextIcon sx={{ fontSize: 18 }} /></button>
                             </div>
-                        );
-                    })}
-                </div>
-
-                {/* ✨ v4.3: Botão Selecionar/Desmarcar Todos */}
-                <div className="wall-selection-controls">
-                    <button
-                        onClick={allSelected ? handleStopAll : handleSelectAll}
-                        className={`btn-select-all ${allSelected ? 'active' : ''}`}
-                        disabled={allConnections.length === 0}
-                    >
-                        {allSelected ? '✖ Desmarcar Todos' : '✔ Selecionar Todos'}
-                    </button>
-                </div>
-
-                {/* ✨ v4.0: Controles do Carrossel */}
-                <div className="wall-controls">
-                    <button
-                        onClick={toggleCarouselMode}
-                        className={`btn-carousel-toggle ${carouselMode ? 'active' : ''}`}
-                    >
-                        {carouselMode ? (
-                            <>
-                                <GridViewIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                                Modo Normal
-                            </>
-                        ) : (
-                            <>
-                                <SlideshowIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                                Modo Carrossel
-                            </>
                         )}
-                    </button>
 
-                    {carouselMode && allConnections.length > 0 && (
-                        <>
-                            <div className="carousel-controls">
-                                <button onClick={handlePrevious} className="btn-nav" title="Anterior">
-                                    <NavigateBeforeIcon sx={{ fontSize: 20 }} />
-                                </button>
-                                <button onClick={handlePlayPause} className="btn-play">
-                                    {isPlaying ? (
-                                        <>
-                                            <PauseIcon sx={{ fontSize: 18, marginRight: 0.5 }} />
-                                            Pausar
-                                        </>
-                                    ) : (
-                                        <>
-                                            <PlayArrowIcon sx={{ fontSize: 18, marginRight: 0.5 }} />
-                                            Play
-                                        </>
-                                    )}
-                                </button>
-                                <button onClick={handleNext} className="btn-nav" title="Próximo">
-                                    <NavigateNextIcon sx={{ fontSize: 20 }} />
-                                </button>
-                            </div>
-
-                            <div className="carousel-info">
-                                <span>{currentIndex + 1} / {allConnections.length}</span>
-                                <input
-                                    type="range"
-                                    min="2000"
-                                    max="30000"
-                                    step="1000"
+                        {/* Tempo do Carrossel */}
+                        {carouselMode && (
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-500">Intervalo: {carouselInterval / 1000}s</label>
+                                <select
                                     value={carouselInterval}
                                     onChange={(e) => setCarouselInterval(Number(e.target.value))}
-                                    title="Intervalo de transição"
-                                />
-                                <span>{(carouselInterval / 1000).toFixed(0)}s</span>
+                                    className="w-full px-3 py-2 text-sm bg-cream-50 dark:bg-dark-bg 
+                                        border border-gray-200 dark:border-gray-700 rounded-lg
+                                        text-slate-900 dark:text-white cursor-pointer
+                                        focus:outline-none focus:border-primary"
+                                >
+                                    <option value={3000}>3 segundos</option>
+                                    <option value={5000}>5 segundos</option>
+                                    <option value={10000}>10 segundos</option>
+                                    <option value={15000}>15 segundos</option>
+                                    <option value={30000}>30 segundos</option>
+                                </select>
                             </div>
-                        </>
-                    )}
-
-                    {/* ✨ v4.3: Controle de Colunas do Grid - Funciona em ambos os modos */}
-                    <div className="columns-control">
-                        <label>Colunas do Grid</label>
-                        <input
-                            type="range"
-                            min="1"
-                            max="6"
-                            value={gridColumns}
-                            onChange={(e) => setGridColumns(Number(e.target.value))}
-                            className="columns-slider"
-                            title={`${gridColumns} coluna${gridColumns > 1 ? 's' : ''}`}
-                        />
-                        <div className="columns-value">{gridColumns} {gridColumns === 1 ? 'coluna' : 'colunas'}</div>
-                    </div>
-
-                    <button
-                        onClick={handleStopAll}
-                        className="btn-stop-all"
-                        disabled={connections.length === 0}
-                    >
-                        Parar Todos ({connections.length})
-                    </button>
-
-                    {/* ✨ v4.7: Botão Fullscreen para Painel de Monitoramento */}
-                    <button
-                        onClick={toggleWallFullscreen}
-                        className={`btn-wall-fullscreen ${isWallFullscreen ? 'active' : ''}`}
-                        title={isWallFullscreen ? 'Sair do Fullscreen (F11)' : 'Modo Fullscreen (F11)'}
-                    >
-                        {isWallFullscreen ? (
-                            <>
-                                <FullscreenExitIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                                Sair Fullscreen
-                            </>
-                        ) : (
-                            <>
-                                <FullscreenIcon sx={{ fontSize: 18, marginRight: 1 }} />
-                                Modo Painel
-                            </>
                         )}
-                    </button>
-                </div>
-            </div>
 
-            {/* Grid de Visualização */}
-            <div className="vnc-wall-main">
-                {/* ✨ v4.5: Header com contador */}
-                {connections.length > 0 && (
-                    <div className="vnc-wall-main-header">
-                        <span className="wall-active-count">
-                            <span className="count-number">{connections.length}</span>
-                            <span className="count-label">de {allConnections.length} ativos</span>
-                        </span>
-                        <span className="wall-mode-indicator">
-                            {carouselMode ? '🎠 Carrossel' : '📺 Grid'} • {gridColumns} col
-                        </span>
-                        {/* ✨ v4.7: Botão Fullscreen no header para fácil acesso */}
-                        <button
-                            onClick={toggleWallFullscreen}
-                            className={`btn-header-fullscreen ${isWallFullscreen ? 'active' : ''}`}
-                            title={isWallFullscreen ? 'Sair do Fullscreen (F11)' : 'Modo Painel Fullscreen (F11)'}
-                        >
-                            {isWallFullscreen ? (
-                                <FullscreenExitIcon sx={{ fontSize: 20 }} />
-                            ) : (
-                                <FullscreenIcon sx={{ fontSize: 20 }} />
-                            )}
+                        {/* Colunas */}
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Colunas: {gridColumns}</label>
+                            <input type="range" min="1" max="6" value={gridColumns} onChange={(e) => setGridColumns(Number(e.target.value))}
+                                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary" />
+                        </div>
+
+                        {/* Parar Todos e Fullscreen */}
+                        <button onClick={handleStopAll} disabled={connections.length === 0} className={`w-full justify-center ${btnDanger}`}>
+                            Parar Todos ({connections.length})
+                        </button>
+                        <button onClick={toggleWallFullscreen} className={`w-full justify-center ${isWallFullscreen ? btnPrimary : btnSecondary}`}>
+                            {isWallFullscreen ? <><FullscreenExitIcon sx={{ fontSize: 16 }} /> Sair Fullscreen</> : <><FullscreenIcon sx={{ fontSize: 16 }} /> Modo Painel</>}
                         </button>
                     </div>
                 )}
-                {/* ✨ v4.0: Renderização condicional - Carrossel vs Grid */}
-                {carouselMode ? (
-                    connections.length === 0 ? (
-                        <div className="wall-empty-state">
-                            <p>Selecione servidores para exibir no carrossel</p>
-                        </div>
-                    ) : (
-                        /* ✨ v4.3: Carrossel com Grid - Mostra grid de itens com rotação automática */
-                        <div className="vnc-carousel-grid">
-                            <div className="vnc-wall-grid" style={{
-                                gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
-                            }}>
-                                {connections
-                                    .slice(
-                                        currentIndex * itemsPerPage,
-                                        (currentIndex + 1) * itemsPerPage
-                                    )
-                                    .map(conn => (
-                                        <div
-                                            key={conn.id}
-                                            className="vnc-wall-item"
-                                            onDoubleClick={() => handleDoubleClick(conn)}
-                                            title={`${conn.name}\n${conn.ipAddress}:${conn.port}\nGrupo: ${conn.groupName}\nDuplo clique para fullscreen`}
+            </div>
+
+            {/* Área Principal */}
+            <div className={`flex-1 flex flex-col min-h-0 bg-cream-50 dark:bg-dark-bg rounded-xl p-4 overflow-hidden
+                ${isWallFullscreen ? 'p-2 rounded-none bg-black' : ''}`}>
+                {/* Header */}
+                {filteredConnections.length > 0 && !isWallFullscreen && (
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <span className="text-sm">
+                            <span className="text-2xl font-bold text-primary">{filteredConnections.length}</span>
+                            <span className="text-gray-500 ml-1">de {connections.length} ativos</span>
+                        </span>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                            {carouselMode ? <SlideshowIcon sx={{ fontSize: 14 }} /> : <GridViewIcon sx={{ fontSize: 14 }} />}
+                            {carouselMode ? 'Carrossel (streaming)' : 'Grid (qualidade reduzida)'} • {gridColumns}x{gridRows}
+                        </span>
+                        <button onClick={toggleWallFullscreen} className={btnSecondary}>
+                            <FullscreenIcon sx={{ fontSize: 18 }} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Grid/Carrossel */}
+                {filteredConnections.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-2">
+                        {connections.length === 0 ? (
+                            <>
+                                <span>{`Selecione servidores para ${carouselMode ? 'exibir no carrossel' : 'monitorar'}`}</span>
+                                {searchTerm && filteredAllConnections.length > 0 && (
+                                    <span className="text-sm text-primary">
+                                        {filteredAllConnections.length} conexões disponíveis correspondem à busca "{searchTerm}"
+                                    </span>
+                                )}
+                            </>
+                        ) : (
+                            <span>Nenhuma conexão ativa corresponde à busca "{searchTerm}"</span>
+                        )}
+                    </div>
+                ) : (
+                    <div className={`flex-1 ${carouselMode ? 'overflow-hidden' : 'overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600 hover:scrollbar-thumb-primary'}`}>
+                        <div
+                            className="grid gap-2 h-full"
+                            style={{
+                                gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+                                gridTemplateRows: `repeat(${gridRows}, 1fr)`
+                            }}
+                        >
+                            {/* Grid/Carrossel: VncDisplay com qualidade ajustável */}
+                            {(carouselMode ? filteredConnections.slice(currentIndex * itemsPerPage, (currentIndex + 1) * itemsPerPage) : filteredConnections)
+                                .map(conn => (
+                                    <div key={conn.id}
+                                        className="relative bg-black rounded-lg overflow-hidden group"
+                                        onDoubleClick={() => handleDoubleClick(conn)}
+                                        title={`${conn.name}\nDuplo clique para fullscreen`}
+                                    >
+                                        <button
+                                            className="absolute top-2 right-2 z-10 w-6 h-6 rounded bg-black/50 text-white 
+                                                opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center
+                                                hover:bg-red-500"
+                                            onClick={(e) => { e.stopPropagation(); handleStopMonitoring(conn.id); }}
                                         >
-                                            {/* Botão Fechar Individual */}
-                                            <button
-                                                className="vnc-wall-item-close"
-                                                onClick={(e) => { e.stopPropagation(); handleStopMonitoring(conn.id); }}
-                                                title="Fechar conexão"
-                                            >
-                                                <CloseIcon sx={{ fontSize: 16 }} />
-                                            </button>
-                                            <div className="vnc-wall-item-label">
-                                                <span className={`vnc-wall-item-status ${connectionErrors[conn.id] ? 'error' : ''}`}></span>
-                                                <span className="vnc-wall-item-name">
-                                                    {conn.name}
-                                                    {connectionErrors[conn.id] && <span className="reconnecting-badge"> 🔄</span>}
-                                                </span>
-                                            </div>
-                                            <VncDisplay
-                                                key={conn.reconnectKey || conn.id}
-                                                connectionInfo={conn}
-                                                onDisconnect={() => handleStopMonitoring(conn.id)}
-                                                onError={(err) => handleConnectionError(conn.id, err)}
-                                                viewOnly={true}
-                                            />
+                                            <CloseIcon sx={{ fontSize: 14 }} />
+                                        </button>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent 
+                                            px-2 py-1 flex items-center gap-2 z-10">
+                                            <span className={`w-2 h-2 rounded-full ${connectionErrors[conn.id] ? 'bg-red-500' : 'bg-primary'} animate-pulse`}></span>
+                                            <span className="text-white text-xs truncate">{conn.name}</span>
+                                            {connectionErrors[conn.id] && <span className="text-yellow-400">🔄</span>}
                                         </div>
-                                    ))}
-                            </div>
-                            {/* Indicador de página */}
-                            <div className="carousel-page-indicator">
+                                        <VncDisplay
+                                            key={conn.reconnectKey || conn.id}
+                                            connectionInfo={conn}
+                                            onDisconnect={() => handleStopMonitoring(conn.id)}
+                                            onError={(err) => handleConnectionError(conn.id, err)}
+                                            viewOnly={true}
+                                            quality={carouselMode ? 6 : 2}
+                                            compression={carouselMode ? 2 : 8}
+                                            frameInterval={carouselMode ? 0 : 5000}
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                        {/* Indicador de páginas (carrossel) */}
+                        {carouselMode && totalPages > 1 && (
+                            <div className="flex justify-center gap-2 mt-3">
                                 {Array.from({ length: totalPages }).map((_, idx) => (
-                                    <span
-                                        key={idx}
-                                        className={`page-dot ${idx === currentIndex ? 'active' : ''}`}
-                                        onClick={() => setCurrentIndex(idx)}
+                                    <button key={idx} onClick={() => setCurrentIndex(idx)}
+                                        className={`w-3 h-3 rounded-full transition-all ${idx === currentIndex ? 'bg-primary scale-125' : 'bg-gray-400'}`}
                                     />
                                 ))}
                             </div>
-                        </div>
-                    )
-                ) : (
-                    // Modo Normal: Grid de múltiplos servidores
-                    connections.length === 0 ? (
-                        <div className="wall-empty-state">
-                            <p>Selecione servidores na lista para monitorar</p>
-                        </div>
-                    ) : (
-                        <div className="vnc-wall-grid" style={{
-                            gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
-                        }}>
-                            {connections.map(conn => (
-                                <div
-                                    key={conn.id}
-                                    className="vnc-wall-item"
-                                    onDoubleClick={() => handleDoubleClick(conn)}
-                                    title={`${conn.name}\n${conn.ipAddress}:${conn.port}\nGrupo: ${conn.groupName}\nDuplo clique para fullscreen`}
-                                >
-                                    {/* Botão Fechar Individual */}
-                                    <button
-                                        className="vnc-wall-item-close"
-                                        onClick={(e) => { e.stopPropagation(); handleStopMonitoring(conn.id); }}
-                                        title="Fechar conexão"
-                                    >
-                                        <CloseIcon sx={{ fontSize: 16 }} />
-                                    </button>
-                                    {/* Label com nome e status */}
-                                    <div className="vnc-wall-item-label">
-                                        <span className={`vnc-wall-item-status ${connectionErrors[conn.id] ? 'error' : ''}`}></span>
-                                        <span className="vnc-wall-item-name">
-                                            {conn.name}
-                                            {connectionErrors[conn.id] && <span className="reconnecting-badge"> 🔄</span>}
-                                        </span>
-                                    </div>
-                                    <VncDisplay
-                                        key={conn.reconnectKey || conn.id}
-                                        connectionInfo={conn}
-                                        onDisconnect={() => handleStopMonitoring(conn.id)}
-                                        onError={(err) => handleConnectionError(conn.id, err)}
-                                        viewOnly={true}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    )
+                        )}
+                    </div>
                 )}
             </div>
 
-            {/* ✨ v4.1: Modal Fullscreen */}
+            {/* Modal Fullscreen */}
             {fullscreenConnection && (
-                <VncFullscreen
-                    connection={fullscreenConnection}
-                    onClose={() => setFullscreenConnection(null)}
-                />
+                <VncFullscreen connection={fullscreenConnection} onClose={() => setFullscreenConnection(null)} />
             )}
         </div>
     );

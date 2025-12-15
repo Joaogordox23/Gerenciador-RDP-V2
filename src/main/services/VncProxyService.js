@@ -110,6 +110,51 @@ class VncProxyService {
             });
         });
     }
+
+    /**
+     * Verifica se conexão VNC está acessível (teste TCP rápido)
+     * Muito mais rápido e confiável que handshake VNC completo
+     */
+    async captureSnapshot(serverInfo, timeout = 3000) {
+        const targetHost = serverInfo.ipAddress;
+        const targetPort = parseInt(serverInfo.port) || 5900;
+
+        return new Promise((resolve) => {
+            const socket = net.createConnection({
+                host: targetHost,
+                port: targetPort,
+                timeout: timeout
+            });
+
+            const timeoutId = setTimeout(() => {
+                socket.destroy();
+                resolve(null);
+            }, timeout);
+
+            socket.on('connect', () => {
+                clearTimeout(timeoutId);
+                socket.destroy();
+                resolve({
+                    connected: true,
+                    timestamp: Date.now(),
+                    host: targetHost,
+                    port: targetPort
+                });
+            });
+
+            socket.on('timeout', () => {
+                clearTimeout(timeoutId);
+                socket.destroy();
+                resolve(null);
+            });
+
+            socket.on('error', () => {
+                clearTimeout(timeoutId);
+                socket.destroy();
+                resolve(null);
+            });
+        });
+    }
 }
 
 module.exports = new VncProxyService();

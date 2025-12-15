@@ -82,7 +82,6 @@ function AppContent() {
         isEditModeEnabled,
         searchTerm,
         allGroupsCollapsed,
-        setActiveView,
         setRdpViewMode,
         setVncViewMode,
         setAppsViewMode,
@@ -90,7 +89,8 @@ function AppContent() {
         toggleTheme,
         toggleSidebar,
         toggleEditMode,
-        toggleAllCollapsed
+        toggleAllCollapsed,
+        changeView
     } = useUI();
 
     // Estados de Modais do ModalContext
@@ -344,26 +344,54 @@ function AppContent() {
 
     const filteredGroups = useMemo(() => {
         if (!searchTerm) return groups;
-        return groups.filter(group => {
-            const term = searchTerm.toLowerCase();
-            const groupNameMatches = group.groupName.toLowerCase().includes(term);
-            const serverMatches = (group.servers || []).some(server =>
-                server.name.toLowerCase().includes(term) || server.ipAddress.toLowerCase().includes(term)
-            );
-            return groupNameMatches || serverMatches;
-        });
+        const term = searchTerm.toLowerCase();
+
+        return groups
+            .map(group => {
+                const groupNameMatches = group.groupName.toLowerCase().includes(term);
+
+                // Se o nome do grupo corresponde, mostra todos os servidores
+                if (groupNameMatches) return group;
+
+                // Caso contrário, filtra apenas os servidores que correspondem
+                const filteredServers = (group.servers || []).filter(server =>
+                    server.name.toLowerCase().includes(term) ||
+                    server.ipAddress.toLowerCase().includes(term)
+                );
+
+                // Retorna grupo com servidores filtrados (ou null se vazio)
+                if (filteredServers.length > 0) {
+                    return { ...group, servers: filteredServers };
+                }
+                return null;
+            })
+            .filter(Boolean); // Remove grupos vazios
     }, [groups, searchTerm]);
 
     const filteredVncGroups = useMemo(() => {
         if (!searchTerm) return vncGroups;
-        return vncGroups.filter(group => {
-            const term = searchTerm.toLowerCase();
-            const groupNameMatches = group.groupName.toLowerCase().includes(term);
-            const connectionMatches = (group.connections || []).some(conn =>
-                conn.name.toLowerCase().includes(term) || conn.ipAddress.toLowerCase().includes(term)
-            );
-            return groupNameMatches || connectionMatches;
-        });
+        const term = searchTerm.toLowerCase();
+
+        return vncGroups
+            .map(group => {
+                const groupNameMatches = group.groupName.toLowerCase().includes(term);
+
+                // Se o nome do grupo corresponde, mostra todas as conexões
+                if (groupNameMatches) return group;
+
+                // Caso contrário, filtra apenas as conexões que correspondem
+                const filteredConnections = (group.connections || []).filter(conn =>
+                    conn.name.toLowerCase().includes(term) ||
+                    conn.ipAddress.toLowerCase().includes(term)
+                );
+
+                // Retorna grupo com conexões filtradas (ou null se vazio)
+                if (filteredConnections.length > 0) {
+                    return { ...group, connections: filteredConnections };
+                }
+                return null;
+            })
+            .filter(Boolean); // Remove grupos vazios
     }, [vncGroups, searchTerm]);
 
     const handleOnDragEnd = useCallback((result) => {
@@ -452,7 +480,7 @@ function AppContent() {
                 {/* Phase 1 - Sidebar */}
                 <Sidebar
                     activeView={activeView}
-                    onViewChange={setActiveView}
+                    onViewChange={changeView}
                     theme={theme}
                     onThemeToggle={toggleTheme}
                     isCollapsed={isSidebarCollapsed}
@@ -484,6 +512,7 @@ function AppContent() {
                     allGroupsCollapsed={allGroupsCollapsed}
                     onToggleAllCollapsed={toggleAllCollapsed}
                     onShowQuickConnect={() => setShowQuickConnectModal(true)}
+                    isSidebarCollapsed={isSidebarCollapsed}
                 />
                 {/* Main Content Area */}
                 <main className="app-main-content">
@@ -599,7 +628,7 @@ function AppContent() {
                     <div className="footer-content">
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
-                            Gerenciador Enterprise v4.4.0
+                            Gerenciador Enterprise v5.0.0
                         </div>
                         <div>{groups.length + vncGroups.length} grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>
@@ -672,7 +701,7 @@ function AppContent() {
                 />
 
                 {/* Footer com botão de sincronização */}
-                <Footer onSyncComplete={handleSyncComplete} />
+                <Footer onSyncComplete={handleSyncComplete} isSidebarCollapsed={isSidebarCollapsed} />
             </div>
         </ThemeProvider >
     );

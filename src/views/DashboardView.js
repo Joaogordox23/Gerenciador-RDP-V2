@@ -1,50 +1,41 @@
-// src/views/DashboardView.js (v5.0: Premium Dashboard Design)
-
+// src/views/DashboardView.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useMemo } from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
-import { SyncIcon, PlayArrowIcon, RefreshIcon } from '../components/MuiIcons';
+import { SyncIcon, PlayArrowIcon, RefreshIcon, ComputerIcon, CheckCircleIcon, CancelIcon, SensorsIcon, ListAltIcon } from '../components/MuiIcons';
 import StatusPieChart from '../components/dashboard/StatusPieChart';
 import LatencyChart from '../components/dashboard/LatencyChart';
-import '../components/dashboard/Dashboard.css';
 
-// Icons SVG
-const ServerIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-        <line x1="6" y1="6" x2="6.01" y2="6"></line>
-        <line x1="6" y1="18" x2="6.01" y2="18"></line>
-    </svg>
-);
-
-const CheckCircleIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
-);
-
-const XCircleIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-);
-
-const ActivityIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-    </svg>
-);
-
-// StatCard Component Premium
+// StatCard Component
 function StatCard({ title, value, type, icon }) {
+    const typeStyles = {
+        total: 'border-blue-500/30 bg-blue-500/5',
+        online: 'border-primary/30 bg-primary/5',
+        offline: 'border-red-500/30 bg-red-500/5',
+        monitored: 'border-purple-500/30 bg-purple-500/5'
+    };
+
+    const valueStyles = {
+        total: 'text-blue-400',
+        online: 'text-primary',
+        offline: 'text-red-400',
+        monitored: 'text-purple-400'
+    };
+
     return (
-        <div className={`glass-panel stat-card ${type}`}>
-            <div className="stat-icon">{icon}</div>
-            <div className="stat-value">{value}</div>
-            <div className="stat-label">{title}</div>
+        <div className={`
+            bg-cream-100/80 dark:bg-dark-surface/80 backdrop-blur-sm
+            border ${typeStyles[type] || 'border-gray-200 dark:border-gray-700'}
+            rounded-xl p-6 
+            flex flex-col items-center justify-center
+            transition-all duration-200
+            hover:shadow-lg hover:-translate-y-1
+        `}>
+            <div className="mb-2">{icon}</div>
+            <div className={`text-4xl font-bold mb-1 ${valueStyles[type] || 'text-slate-900 dark:text-white'}`}>
+                {value}
+            </div>
+            <div className="text-sm text-gray-500">{title}</div>
         </div>
     );
 }
@@ -52,19 +43,23 @@ function StatCard({ title, value, type, icon }) {
 // Latency Badge Component
 function LatencyBadge({ latency, isTesting }) {
     if (isTesting) {
-        return <span className="latency-badge testing">Testando...</span>;
+        return (
+            <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-500/20 text-yellow-500 animate-pulse">
+                Testando...
+            </span>
+        );
     }
 
     if (!latency && latency !== 0) {
-        return <span className="latency-badge unknown">—</span>;
+        return <span className="px-2 py-1 rounded text-xs font-medium bg-gray-500/20 text-gray-400">—</span>;
     }
 
-    let className = 'latency-badge ';
-    if (latency < 50) className += 'good';
-    else if (latency < 150) className += 'medium';
-    else className += 'bad';
+    let colorClass = '';
+    if (latency < 50) colorClass = 'bg-primary/20 text-primary';
+    else if (latency < 150) colorClass = 'bg-yellow-500/20 text-yellow-500';
+    else colorClass = 'bg-red-500/20 text-red-500';
 
-    return <span className={className}>{latency} ms</span>;
+    return <span className={`px-2 py-1 rounded text-xs font-medium ${colorClass}`}>{latency} ms</span>;
 }
 
 function DashboardView({ servers, onTestAll }) {
@@ -99,7 +94,7 @@ function DashboardView({ servers, onTestAll }) {
         { name: 'Alerta', value: stats.alert },
     ], [stats]);
 
-    // Dados para o Gráfico de Latência (últimos 10 minutos)
+    // Dados para o Gráfico de Latência (simulado)
     const latencyData = useMemo(() => {
         const data = [];
         const now = new Date();
@@ -114,68 +109,57 @@ function DashboardView({ servers, onTestAll }) {
     }, []);
 
     return (
-        <div className="dashboard-container">
+        <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="dashboard-header">
-                <h2 className="dashboard-title">Dashboard de Monitoramento</h2>
-                <div className="dashboard-actions">
-                    <button onClick={onTestAll} className="dashboard-btn primary">
-                        <SyncIcon style={{ fontSize: 18 }} />
-                        Testar Conectividade
-                    </button>
-                </div>
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Dashboard de Monitoramento
+                </h2>
+                <button
+                    onClick={onTestAll}
+                    className="flex items-center gap-2 px-4 py-2.5
+                        bg-gradient-to-br from-primary to-primary-hover
+                        text-white font-semibold rounded-xl
+                        shadow-lg shadow-primary/30
+                        transition-all duration-200
+                        hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40"
+                >
+                    <SyncIcon style={{ fontSize: 18 }} />
+                    Testar Conectividade
+                </button>
             </div>
 
             {/* Stat Cards */}
-            <div className="dashboard-grid">
-                <StatCard
-                    title="Total de Servidores"
-                    value={stats.total}
-                    type="total"
-                    icon="🖥️"
-                />
-                <StatCard
-                    title="Online"
-                    value={stats.online}
-                    type="online"
-                    icon="✅"
-                />
-                <StatCard
-                    title="Offline"
-                    value={stats.offline}
-                    type="offline"
-                    icon="❌"
-                />
-                <StatCard
-                    title="Monitorados"
-                    value={monitoredServers.size}
-                    type="monitored"
-                    icon="📡"
-                />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Total de Servidores" value={stats.total} type="total" icon={<ComputerIcon className="text-blue-400" sx={{ fontSize: 36 }} />} />
+                <StatCard title="Online" value={stats.online} type="online" icon={<CheckCircleIcon className="text-primary" sx={{ fontSize: 36 }} />} />
+                <StatCard title="Offline" value={stats.offline} type="offline" icon={<CancelIcon className="text-red-400" sx={{ fontSize: 36 }} />} />
+                <StatCard title="Monitorados" value={monitoredServers.size} type="monitored" icon={<SensorsIcon className="text-purple-400" sx={{ fontSize: 36 }} />} />
             </div>
 
             {/* Charts */}
-            <div className="dashboard-grid charts">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <StatusPieChart data={pieData} />
                 <LatencyChart data={latencyData} />
             </div>
 
             {/* Server Table */}
-            <div className="glass-panel">
-                <h3 className="chart-title">
-                    <span className="chart-title-icon">📋</span>
+            <div className="bg-cream-100/80 dark:bg-dark-surface/80 backdrop-blur-sm 
+                border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                    <ListAltIcon className="text-primary" sx={{ fontSize: 20 }} />
                     Status dos Servidores
                 </h3>
-                <div className="server-table-container">
-                    <table className="server-table">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
                         <thead>
-                            <tr>
-                                <th>Status</th>
-                                <th>Servidor</th>
-                                <th>Endereço</th>
-                                <th>Latência</th>
-                                <th>Última Verificação</th>
-                                <th>Ações</th>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <th className="py-3 px-4 text-left font-semibold text-gray-500">Status</th>
+                                <th className="py-3 px-4 text-left font-semibold text-gray-500">Servidor</th>
+                                <th className="py-3 px-4 text-left font-semibold text-gray-500">Endereço</th>
+                                <th className="py-3 px-4 text-left font-semibold text-gray-500">Latência</th>
+                                <th className="py-3 px-4 text-left font-semibold text-gray-500">Última Verificação</th>
+                                <th className="py-3 px-4 text-center font-semibold text-gray-500">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -184,24 +168,35 @@ function DashboardView({ servers, onTestAll }) {
                                 const result = results.get(key);
                                 const isCurrentlyTesting = isTesting.has(key);
                                 const status = result ? result.status : 'unknown';
-                                const latency = result?.tests?.ping?.averageLatency;
+                                const latency = result?.latency;
 
                                 return (
-                                    <tr key={server.id}>
-                                        <td>
-                                            <div className={`status-indicator ${isCurrentlyTesting ? 'testing' : status}`}></div>
+                                    <tr key={server.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-primary/5 transition-colors">
+                                        <td className="py-3 px-4">
+                                            <div className={`w-3 h-3 rounded-full ${isCurrentlyTesting ? 'bg-yellow-500 animate-pulse' :
+                                                status === 'online' ? 'bg-primary' :
+                                                    status === 'offline' ? 'bg-red-500' : 'bg-gray-400'
+                                                }`}></div>
                                         </td>
-                                        <td className="server-name">{server.name}</td>
-                                        <td className="server-address">{server.ipAddress}</td>
-                                        <td>
+                                        <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                                            {server.name}
+                                        </td>
+                                        <td className="py-3 px-4 text-gray-500 font-mono text-xs">
+                                            {server.ipAddress}
+                                        </td>
+                                        <td className="py-3 px-4">
                                             <LatencyBadge latency={latency} isTesting={isCurrentlyTesting} />
                                         </td>
-                                        <td className="last-check">
+                                        <td className="py-3 px-4 text-gray-500 text-xs">
                                             {result ? new Date(result.timestamp).toLocaleTimeString() : '—'}
                                         </td>
-                                        <td style={{ textAlign: 'center' }}>
+                                        <td className="py-3 px-4 text-center">
                                             <button
-                                                className={`table-action-btn ${isCurrentlyTesting ? 'testing' : ''}`}
+                                                className={`p-2 rounded-lg transition-all duration-200
+                                                    ${isCurrentlyTesting
+                                                        ? 'bg-yellow-500/20 text-yellow-500 cursor-not-allowed animate-spin'
+                                                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                    }`}
                                                 title="Testar Agora"
                                                 onClick={() => testServer(server)}
                                                 disabled={isCurrentlyTesting}

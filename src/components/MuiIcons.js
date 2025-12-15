@@ -101,5 +101,9 @@ export {
     DragIndicator as DragIndicatorIcon,
 
     // Quick Connect (v4.4)
-    FlashOn as FlashOnIcon
+    FlashOn as FlashOnIcon,
+
+    // Dashboard Icons (v5.0)
+    ListAlt as ListAltIcon,
+    Sensors as SensorsIcon
 } from '@mui/icons-material';

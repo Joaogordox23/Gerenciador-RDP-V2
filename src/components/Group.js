@@ -1,17 +1,18 @@
-// src/components/Group.js (v4.2: Com DnD de grupos, viewMode e collapse)
-
+// src/components/Group.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import Server from './Server';
 import ServerListItem from './ServerListItem';
 
-const AddIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
-const EditIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>);
-const DeleteIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>);
-const SaveIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>);
-const CancelIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
-const ChevronDownIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>);
-const ChevronRightIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>);
+// Ícones inline
+const AddIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
+const EditIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>);
+const DeleteIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>);
+const SaveIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="20 6 9 17 4 12"></polyline></svg>);
+const CancelIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
+const ChevronDownIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="6 9 12 15 18 9"></polyline></svg>);
+const ChevronRightIcon = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="9 18 15 12 9 6"></polyline></svg>);
 
 function Group({
     groupInfo,
@@ -30,26 +31,26 @@ function Group({
     viewMode = 'grid',
     onEditServer,
     onRemoteConnect,
-    onOpenInTab, // Nova prop para abrir em nova aba
-    forceCollapsed = null // Estado global de colapso (null = usar local, true/false = override)
+    onOpenInTab,
+    forceCollapsed = null
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
-
-    // Estado de collapse local com persistência em localStorage
     const [localCollapsed, setLocalCollapsed] = useState(() => {
         const saved = localStorage.getItem(`group-collapsed-${groupInfo.id}`);
         return saved === 'true';
     });
-
-    // Determina se está colapsado: usa override local se o usuário clicou após forceCollapsed
     const [hasLocalOverride, setHasLocalOverride] = useState(false);
+    // Quando forceCollapsed é null, usa estado local (padrão expandido após changeView)
     const isCollapsed = hasLocalOverride ? localCollapsed : (forceCollapsed !== null ? forceCollapsed : localCollapsed);
 
-    // Reset override quando forceCollapsed muda
     useEffect(() => {
         if (forceCollapsed !== null) {
             setHasLocalOverride(false);
             setLocalCollapsed(forceCollapsed);
+        } else {
+            // Quando forceCollapsed volta para null (após changeView), expande os grupos
+            setHasLocalOverride(false);
+            setLocalCollapsed(false);
         }
     }, [forceCollapsed]);
 
@@ -57,7 +58,6 @@ function Group({
         setNewGroupName(groupInfo.groupName);
     }, [groupInfo.groupName]);
 
-    // Persiste estado de collapse e marca override local
     const toggleCollapse = () => {
         const newState = !isCollapsed;
         setLocalCollapsed(newState);
@@ -70,48 +70,67 @@ function Group({
         onUpdateGroup(groupInfo.id, newGroupName);
     };
 
+    // Classes para botões de ação
+    const actionBtnBase = "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer";
+
     return (
         <Draggable draggableId={`group-${groupInfo.id}`} index={index}>
             {(provided, snapshot) => (
                 <div
-                    className={`group-container ${snapshot.isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+                    className={`
+                        bg-cream-100 dark:bg-dark-surface 
+                        border border-gray-200 dark:border-gray-700 
+                        rounded-xl mb-4 overflow-hidden
+                        transition-all duration-200
+                        ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary' : 'shadow-md'}
+                    `}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                 >
-                    <div className="group-header">
-                        {/* Botão de Collapse/Expand */}
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-cream-50/50 dark:bg-dark-bg/50 border-b border-gray-200 dark:border-gray-700">
+                        {/* Botão Collapse */}
                         <button
-                            className="group-collapse-btn"
+                            className={`${actionBtnBase} bg-cream-50 dark:bg-dark-bg border border-gray-200 dark:border-gray-700 
+                                text-gray-500 hover:text-primary hover:border-primary`}
                             onClick={toggleCollapse}
                             title={isCollapsed ? 'Expandir grupo' : 'Recolher grupo'}
                         >
                             {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
                         </button>
 
-                        {/* Handle de arrastar grupo */}
-                        <div className="group-drag-handle" {...provided.dragHandleProps} title="Arrastar grupo">
-                            <span>⋮⋮</span>
+                        {/* Drag Handle */}
+                        <div
+                            className="w-6 h-8 flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing 
+                                hover:text-primary select-none text-lg font-bold"
+                            {...provided.dragHandleProps}
+                            title="Arrastar grupo"
+                        >
+                            ⋮⋮
                         </div>
 
-                        <div className="group-title-container">
+                        {/* Título */}
+                        <div className="flex-1 min-w-0">
                             {isEditing && isEditModeEnabled ? (
-                                <form onSubmit={handleSaveGroupName} style={{ width: '100%' }}>
+                                <form onSubmit={handleSaveGroupName} className="w-full">
                                     <input
                                         type="text"
                                         value={newGroupName}
                                         onChange={(e) => setNewGroupName(e.target.value)}
                                         onBlur={handleSaveGroupName}
                                         onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
-                                        className="group-title-edit-input"
+                                        className="w-full px-3 py-1.5 bg-cream-50 dark:bg-dark-bg 
+                                            border-2 border-primary rounded-lg text-sm font-semibold
+                                            text-slate-900 dark:text-white outline-none"
                                         autoFocus
                                         onFocus={(e) => e.target.select()}
                                     />
                                 </form>
                             ) : (
-                                <h2 className="group-title">
+                                <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white truncate">
                                     {groupInfo.groupName}
                                     {isCollapsed && (
-                                        <span className="group-count-badge">
+                                        <span className="px-2 py-0.5 text-xs font-semibold bg-primary/20 text-primary rounded-full">
                                             {groupInfo.servers?.length || 0}
                                         </span>
                                     )}
@@ -119,34 +138,35 @@ function Group({
                             )}
                         </div>
 
-                        <div className="group-actions">
-                            {isEditModeEnabled && (
-                                <>
-                                    {isEditing ? (
-                                        <>
-                                            <button className="action-button-icon save" title="Salvar Nome" onClick={handleSaveGroupName}><SaveIcon /></button>
-                                            <button className="action-button-icon cancel" title="Cancelar Edição" onClick={onCancelEdit}><CancelIcon /></button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button className="action-button-icon add" title="Adicionar Servidor" onClick={() => {
-                                                console.log('Add Server clicked for group:', groupInfo.id);
-                                                onShowAddServerModal(groupInfo.id);
-                                            }}><AddIcon /></button>
-                                            <button className="action-button-icon edit" title="Editar Nome do Grupo" onClick={onStartEdit}><EditIcon /></button>
-                                            <button className="action-button-icon delete" title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
-                                        </>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                        {/* Actions */}
+                        {isEditModeEnabled && (
+                            <div className="flex items-center gap-1">
+                                {isEditing ? (
+                                    <>
+                                        <button className={`${actionBtnBase} bg-primary/20 text-primary hover:bg-primary hover:text-white`}
+                                            title="Salvar" onClick={handleSaveGroupName}><SaveIcon /></button>
+                                        <button className={`${actionBtnBase} bg-gray-200 dark:bg-gray-700 text-gray-500 hover:bg-gray-300`}
+                                            title="Cancelar" onClick={onCancelEdit}><CancelIcon /></button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button className={`${actionBtnBase} bg-primary/10 text-primary hover:bg-primary hover:text-white`}
+                                            title="Adicionar Servidor" onClick={() => onShowAddServerModal(groupInfo.id)}><AddIcon /></button>
+                                        <button className={`${actionBtnBase} bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white`}
+                                            title="Editar Nome" onClick={onStartEdit}><EditIcon /></button>
+                                        <button className={`${actionBtnBase} bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white`}
+                                            title="Deletar Grupo" onClick={() => onDeleteGroup(groupInfo.id, groupInfo.groupName)}><DeleteIcon /></button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Renderização condicional - só mostra se não estiver colapsado */}
+                    {/* Conteúdo */}
                     {!isCollapsed && (
                         <>
                             {viewMode === 'list' ? (
-                                <div className="servers-list">
+                                <div className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {groupInfo.servers && groupInfo.servers.map((server) => (
                                         <ServerListItem
                                             key={server.id}
@@ -164,14 +184,10 @@ function Group({
                                 <Droppable droppableId={groupInfo.id.toString()} type="server" direction="horizontal">
                                     {(droppableProvided, droppableSnapshot) => (
                                         <div
-                                            className="servers-row"
+                                            className={`flex flex-wrap gap-4 p-4 min-h-[100px] transition-colors duration-200
+                                                ${droppableSnapshot.isDraggingOver ? 'bg-primary/5' : ''}`}
                                             ref={droppableProvided.innerRef}
                                             {...droppableProvided.droppableProps}
-                                            style={{
-                                                backgroundColor: droppableSnapshot.isDraggingOver ? 'rgba(0, 217, 181, 0.05)' : 'transparent',
-                                                minHeight: '100px',
-                                                transition: 'background-color 0.2s ease'
-                                            }}
                                         >
                                             {groupInfo.servers && groupInfo.servers.map((server, idx) => (
                                                 <Server

@@ -181,6 +181,7 @@ try {
         vnc: {
             startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-proxy-start', connectionInfo),
             stopProxy: (serverId) => ipcRenderer.invoke('vnc-proxy-stop', serverId),
+            captureSnapshot: (serverInfo) => ipcRenderer.invoke('vnc-snapshot', serverInfo),
         },
 
         // API Guacamole (RDP/SSH/VNC integrado)
@@ -320,7 +321,7 @@ setInterval(() => {
 // ==========================
 // VERSIONAMENTO E INFORMAÇÕES DO SISTEMA
 // ==========================
-const PRELOAD_VERSION = '4.4.0';
+const PRELOAD_VERSION = '5.0.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
     'batch-testing',

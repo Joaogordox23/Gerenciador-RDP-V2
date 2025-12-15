@@ -1,6 +1,6 @@
 {
   "name": "GerenciadorRDP",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "private": true,
   "main": "public/electron.js",
   "homepage": "./",
@@ -32,20 +32,24 @@
     "xterm": "^5.3.0"
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "autoprefixer": "^10.4.22",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^31.0.2",
     "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
     "png-to-ico": "^3.0.1",
+    "postcss": "^8.5.6",
     "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.19",
     "to-ico": "^1.1.5",
     "wait-on": "^7.2.0"
   },
   "scripts": {
-    "start": "cross-env BROWSER=none NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
-    "build:react": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "cross-env BROWSER=none NODE_OPTIONS=--openssl-legacy-provider craco start",
+    "build:react": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "electron": "npm run electron:start",
     "electron:start": "concurrently \"npm:start\" \"wait-on http://localhost:3000 && electron .\"",

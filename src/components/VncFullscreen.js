@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import VncDisplay from './VncDisplay';
 import VncToolbar from './VncToolbar';
-import { CloseIcon } from './MuiIcons';
-import './VncFullscreen.css';
 
 /**
  * v4.2: Modal Fullscreen para VNC com VncToolbar integrada
  * Ativado ao dar duplo clique em uma conexão do VNC Wall
+ * 
+ * Migrado para Tailwind CSS
  */
 function VncFullscreen({ connection, onClose }) {
     const [scaleViewport, setScaleViewport] = useState(true);
@@ -78,8 +78,23 @@ function VncFullscreen({ connection, onClose }) {
     if (!connection) return null;
 
     return (
-        <div className="vnc-fullscreen-overlay" ref={containerRef}>
-            <div className="vnc-fullscreen-container">
+        <div
+            ref={containerRef}
+            className={`
+                fixed inset-0
+                bg-black/[0.98] z-[10000]
+                flex flex-col
+                animate-fade-in
+            `}
+        >
+            <div className={`
+                flex flex-col overflow-hidden
+                animate-scale-in
+                ${isFullscreen
+                    ? 'w-screen h-screen rounded-none'
+                    : 'w-[95vw] h-[95vh] m-auto rounded-xl shadow-2xl md:w-screen md:h-screen md:rounded-none'
+                }
+            `}>
                 {/* VncToolbar integrada */}
                 <VncToolbar
                     rfbRef={rfbRef}
@@ -95,7 +110,12 @@ function VncFullscreen({ connection, onClose }) {
                 />
 
                 {/* Display VNC com controle total */}
-                <div className="vnc-fullscreen-display">
+                <div className="
+                    flex-1 overflow-hidden
+                    bg-black
+                    flex items-center justify-center
+                    relative
+                ">
                     <VncDisplay
                         connectionInfo={connection}
                         scaleViewport={scaleViewport}

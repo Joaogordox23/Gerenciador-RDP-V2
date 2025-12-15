@@ -1,7 +1,5 @@
 // src/components/apps/AppCard.js
-// Card individual de aplicação (Feature v4.3)
-// v4.3.1: Suporte a Drag & Drop
-
+// ✨ v4.9: Corrigido posicionamento dos botões de edição
 import React, { useCallback } from 'react';
 import {
     WebIcon,
@@ -11,14 +9,7 @@ import {
     LaunchIcon,
     DragIndicatorIcon
 } from '../MuiIcons';
-import './AppCard.css';
 
-/**
- * Card de aplicação com ícone, nome e ações
- * @param {Object} app - Dados da aplicação
- * @param {Object} dragHandleProps - Props do drag handle (react-beautiful-dnd)
- * @param {boolean} isDragging - Se está sendo arrastado
- */
 function AppCard({
     app,
     onLaunch,
@@ -48,23 +39,39 @@ function AppCard({
 
     return (
         <div
-            className={`app-card ${isEditMode ? 'edit-mode' : ''} ${isDragging ? 'dragging' : ''}`}
+            className={`
+                relative w-[180px] bg-cream-100 dark:bg-dark-surface
+                border border-gray-200 dark:border-gray-700 rounded-xl
+                p-4 ${isEditMode ? 'pb-12' : 'pb-4'}
+                cursor-pointer transition-all duration-200 group
+                hover:shadow-lg hover:-translate-y-1 hover:border-primary/50
+                ${isDragging ? 'shadow-2xl ring-2 ring-primary scale-105' : 'shadow-md'}
+                ${isEditMode ? 'cursor-grab' : ''}
+            `}
             onClick={handleLaunch}
             title={isEditMode ? 'Arraste para reordenar' : `Abrir ${app.name}`}
         >
-            {/* Drag Handle (visível apenas em modo edição) */}
+            {/* Drag Handle */}
             {isEditMode && dragHandleProps && (
-                <div className="app-card-drag-handle" {...dragHandleProps}>
-                    <DragIndicatorIcon sx={{ fontSize: 18 }} />
+                <div className="absolute top-2 left-2 p-1 text-gray-400 hover:text-primary cursor-grab" {...dragHandleProps}>
+                    <DragIndicatorIcon sx={{ fontSize: 16 }} />
                 </div>
             )}
 
+            {/* Badge de tipo */}
+            <div className={`absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded
+                ${isWeb ? 'bg-blue-500/20 text-blue-500' : 'bg-purple-500/20 text-purple-500'}`}>
+                {isWeb ? 'WEB' : 'LOCAL'}
+            </div>
+
             {/* Ícone */}
-            <div className={`app-card-icon ${isWeb ? 'web' : 'local'}`}>
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3 mt-2
+                ${isWeb ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'}`}>
                 {app.icon ? (
                     <img
                         src={app.icon.startsWith('data:') || app.icon.startsWith('http') ? app.icon : `file:///${app.icon.replace(/\\/g, '/')}`}
                         alt={app.name}
+                        className="w-10 h-10 object-contain"
                         onError={(e) => { e.target.style.display = 'none'; }}
                     />
                 ) : isWeb ? (
@@ -75,42 +82,41 @@ function AppCard({
             </div>
 
             {/* Info */}
-            <div className="app-card-info">
-                <span className="app-card-name">{app.name}</span>
+            <div className="text-center">
+                <span className="block font-semibold text-sm text-slate-900 dark:text-white truncate">{app.name}</span>
                 {app.description && (
-                    <span className="app-card-desc">{app.description}</span>
+                    <span className="block text-xs text-gray-500 truncate mt-1">{app.description}</span>
                 )}
             </div>
 
-            {/* Badge de tipo */}
-            <div className={`app-card-badge ${isWeb ? 'web' : 'local'}`}>
-                {isWeb ? 'WEB' : 'LOCAL'}
-            </div>
-
-            {/* Ações de edição */}
+            {/* Ações de edição - agora com mais espaço abaixo do nome */}
             {isEditMode && (
-                <div className="app-card-actions">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2"
+                    onClick={e => e.stopPropagation()}>
                     <button
-                        className="app-action-btn edit"
+                        type="button"
+                        className="p-1.5 rounded-lg bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white transition-all cursor-pointer"
                         onClick={handleEdit}
                         title="Editar"
                     >
-                        <EditIcon sx={{ fontSize: 18 }} />
+                        <EditIcon sx={{ fontSize: 16 }} />
                     </button>
                     <button
-                        className="app-action-btn delete"
+                        type="button"
+                        className="p-1.5 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer"
                         onClick={handleDelete}
                         title="Excluir"
                     >
-                        <DeleteIcon sx={{ fontSize: 18 }} />
+                        <DeleteIcon sx={{ fontSize: 16 }} />
                     </button>
                 </div>
             )}
 
-            {/* Botão de abrir (quando não está em modo edição) */}
+            {/* Botão de abrir */}
             {!isEditMode && (
-                <div className="app-card-launch">
-                    <LaunchIcon sx={{ fontSize: 20 }} />
+                <div className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-primary/10 text-primary
+                    opacity-0 group-hover:opacity-100 transition-opacity">
+                    <LaunchIcon sx={{ fontSize: 18 }} />
                 </div>
             )}
         </div>
@@ -118,4 +124,3 @@ function AppCard({
 }
 
 export default React.memo(AppCard);
-

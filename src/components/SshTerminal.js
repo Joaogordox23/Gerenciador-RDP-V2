@@ -1,12 +1,12 @@
 // src/components/SshTerminal.js
 // Terminal SSH nativo com xterm.js
+// Migrado para Tailwind CSS
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import 'xterm/css/xterm.css';
-import './SshTerminal.css';
 
 function SshTerminal({ connectionInfo, onClose, onStatusChange }) {
     const terminalRef = useRef(null);
@@ -287,22 +287,65 @@ function SshTerminal({ connectionInfo, onClose, onStatusChange }) {
         }
     }, []);
 
+    // Status indicator classes
+    const getStatusClasses = () => {
+        switch (status) {
+            case 'connecting':
+                return 'bg-amber-500 animate-pulse';
+            case 'connected':
+                return 'bg-primary shadow-[0_0_8px_rgba(29,233,182,0.5)]';
+            case 'error':
+                return 'bg-red-500';
+            case 'disconnected':
+                return 'bg-gray-500';
+            default:
+                return 'bg-gray-500';
+        }
+    };
+
     return (
-        <div className="ssh-terminal-container">
-            <div className="ssh-terminal-header">
-                <div className="ssh-terminal-info">
-                    <span className={`ssh-status-indicator ${status}`}></span>
-                    <span className="ssh-terminal-title">
+        <div className="flex flex-col h-full w-full bg-[#0a0a0f] rounded-lg overflow-hidden relative">
+            {/* Header */}
+            <div className="
+                flex items-center justify-between
+                px-4 py-2.5
+                bg-gradient-to-r from-dark-surface to-dark-elevated
+                border-b border-primary/30
+                shrink-0
+            ">
+                <div className="flex items-center gap-2.5">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getStatusClasses()}`} />
+                    <span className="font-mono text-sm font-semibold text-primary">
                         SSH: {connectionInfo?.username}@{connectionInfo?.ipAddress}
                     </span>
                 </div>
                 {error && (
-                    <span className="ssh-terminal-error">{error}</span>
+                    <span className="text-xs text-red-500 max-w-[300px] truncate">
+                        {error}
+                    </span>
                 )}
             </div>
+
+            {/* Terminal Container */}
             <div
                 ref={terminalRef}
-                className="ssh-terminal-xterm"
+                className="
+                    flex-1 p-2
+                    overflow-hidden
+                    min-h-0 min-w-0
+                    flex flex-col
+                    relative
+                    [&_.xterm]:flex-1 [&_.xterm]:min-h-0 [&_.xterm]:w-full
+                    [&_.xterm-screen]:w-full
+                    [&_.xterm-viewport]:w-full [&_.xterm-viewport]:overflow-y-auto
+                    [&_.xterm-rows]:w-full
+                    [&_.xterm-viewport]:scrollbar-thin
+                    [&_.xterm-viewport]:scrollbar-track-[#0a0a0f]
+                    [&_.xterm-viewport]:scrollbar-thumb-dark-elevated
+                    [&_.xterm-viewport:hover]:scrollbar-thumb-primary
+                    [&_.xterm-selection_div]:!bg-primary/30
+                    [&_.xterm-cursor-layer]:z-10
+                "
                 onContextMenu={handleContextMenu}
             />
         </div>

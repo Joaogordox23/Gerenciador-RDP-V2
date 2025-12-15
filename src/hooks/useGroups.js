@@ -498,7 +498,12 @@ export function useGroups(toast) {
 
     // --- INITIAL DATA LOADING & PERSISTENCE ---
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Ref para acessar isLoading dentro dos callbacks sem precisar adicionar às dependências
+    const isLoadingRef = useRef(isLoading);
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
     useEffect(() => {
         // 🎯 CORREÇÃO: Solicita dados ativamente em vez de apenas escutar
         const loadInitialData = async () => {
@@ -507,7 +512,7 @@ export function useGroups(toast) {
             // 1. Registra listener para dados enviados pelo backend (did-finish-load)
             if (window.api && window.api.onInitialDataLoaded) {
                 window.api.onInitialDataLoaded((data) => {
-                    if (isLoading) {
+                    if (isLoadingRef.current) {
                         console.log(`✅ useGroups: Dados recebidos via push! ${data.groups.length} RDP/SSH, ${data.vncGroups.length} VNC`);
                         setGroups(data.groups || []);
                         setVncGroups(data.vncGroups || []);
@@ -521,7 +526,7 @@ export function useGroups(toast) {
                 try {
                     console.log('📡 useGroups: Solicitando dados ativamente via IPC...');
                     const data = await window.api.db.requestInitialData();
-                    if (data && (data.groups.length > 0 || data.vncGroups.length > 0 || isLoading)) {
+                    if (data && (data.groups.length > 0 || data.vncGroups.length > 0 || isLoadingRef.current)) {
                         console.log(`✅ useGroups: Dados recebidos via request! ${data.groups.length} RDP/SSH, ${data.vncGroups.length} VNC`);
                         setGroups(data.groups || []);
                         setVncGroups(data.vncGroups || []);
@@ -535,7 +540,7 @@ export function useGroups(toast) {
 
             // 3. Fallback: se após 3s ainda não tiver dados, tenta ler do store
             setTimeout(async () => {
-                if (isLoading) {
+                if (isLoadingRef.current) {
                     console.log('⚠️ useGroups: Fallback - lendo do electron-store...');
                     try {
                         const savedGroups = await window.api.storage.get('groups');

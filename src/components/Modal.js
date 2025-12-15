@@ -1,64 +1,60 @@
 // src/components/Modal.js
-// Modal base com UX consistente - NÃO fecha ao clicar fora
-
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useEffect } from 'react';
 import { CloseIcon } from './MuiIcons';
-import './Modal.css';
 
 function Modal({ isOpen, onClose, title, children, size = 'md' }) {
-    // Adiciona/remove classe no body para esconder o footer quando modal está aberto
     useEffect(() => {
         if (isOpen) {
-            document.body.classList.add('modal-open');
+            document.body.classList.add('overflow-hidden');
         } else {
-            document.body.classList.remove('modal-open');
+            document.body.classList.remove('overflow-hidden');
         }
-
-        // Cleanup ao desmontar
-        return () => {
-            document.body.classList.remove('modal-open');
-        };
+        return () => document.body.classList.remove('overflow-hidden');
     }, [isOpen]);
 
-    // Listener para tecla ESC fechar o modal
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && isOpen) {
-                onClose();
-            }
+            if (e.key === 'Escape' && isOpen) onClose();
         };
-
-        if (isOpen) {
-            window.addEventListener('keydown', handleKeyDown);
-        }
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        if (isOpen) window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    if (!isOpen) {
-        return null;
-    }
+    if (!isOpen) return null;
 
-    // Função para parar a propagação de eventos de clique.
     const handleContentClick = (e) => e.stopPropagation();
 
-    // Determina a classe de tamanho
-    const sizeClass = size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : 'modal-md';
+    const sizeClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-lg',
+        lg: 'max-w-3xl',
+        xl: 'max-w-5xl'
+    };
 
     return (
-        // ✅ CORREÇÃO: O overlay NÃO fecha mais ao clicar fora
-        // Para fechar: use o botão X ou pressione ESC
-        <div className="modal-overlay">
-            <div className={`modal-content ${sizeClass}`} onClick={handleContentClick}>
-                <div className="modal-header">
-                    <h3 className="modal-title">{title}</h3>
-                    <button className="modal-close-btn" onClick={onClose} title="Fechar (ESC)">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 
+            bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className={`${sizeClasses[size] || sizeClasses.md} w-full 
+                bg-cream-100 dark:bg-dark-surface 
+                border border-gray-200 dark:border-gray-700 
+                rounded-2xl shadow-2xl overflow-hidden animate-slide-up`}
+                onClick={handleContentClick}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 
+                    bg-cream-50/50 dark:bg-dark-bg/50 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+                    <button
+                        className="p-2 rounded-lg text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all"
+                        onClick={onClose}
+                        title="Fechar (ESC)"
+                    >
                         <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
-                <div className="modal-body">
+                {/* Body */}
+                <div className="p-6 max-h-[70vh] overflow-y-auto">
                     {children}
                 </div>
             </div>

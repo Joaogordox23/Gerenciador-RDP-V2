@@ -2,17 +2,20 @@
  * ConnectionViewerModal.js
  * Modal fullscreen para conexões remotas via Guacamole
  * Suporta RDP e SSH com toolbar integrada
+ * 
+ * Migrado para Tailwind CSS
+ * v4.8: Corrigido para funcionar dentro de ConnectionTabsContainer
  */
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import RemoteDesktopViewer from './RemoteDesktopViewer';
 import GuacamoleToolbar from './GuacamoleToolbar';
-import './ConnectionViewerModal.css';
 
 function ConnectionViewerModal({ connectionInfo, onClose }) {
     const [status, setStatus] = useState('connecting');
     const [autoScale, setAutoScale] = useState(true);
     const clientRef = useRef(null);
+    const containerRef = useRef(null);
 
     // Atalho ESC para fechar
     useEffect(() => {
@@ -38,15 +41,14 @@ function ConnectionViewerModal({ connectionInfo, onClose }) {
 
     // Toggle fullscreen nativo do navegador
     const handleFullscreen = useCallback(() => {
-        const elem = document.querySelector('.connection-viewer-modal');
-        if (elem) {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            } else {
-                elem.requestFullscreen().catch(err => {
-                    console.warn('Fullscreen não suportado:', err);
-                });
-            }
+        if (!containerRef.current) return;
+
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            containerRef.current.requestFullscreen().catch(err => {
+                console.warn('Fullscreen não suportado:', err);
+            });
         }
     }, []);
 
@@ -85,32 +87,40 @@ function ConnectionViewerModal({ connectionInfo, onClose }) {
     if (!connectionInfo || !guacamoleConnection) return null;
 
     return (
-        <div className="connection-viewer-modal-overlay">
-            <div className="connection-viewer-modal">
-                {/* Toolbar Guacamole */}
-                <GuacamoleToolbar
-                    clientRef={clientRef}
-                    connectionName={connectionInfo.name}
-                    connectionAddress={guacamoleConnection.hostname}
-                    protocol={protocol}
-                    status={status}
-                    autoScale={autoScale}
-                    setAutoScale={setAutoScale}
-                    onClose={onClose}
-                    onFullscreen={handleFullscreen}
-                />
+        <div
+            ref={containerRef}
+            className="
+                connection-viewer-modal
+                w-full h-full
+                flex flex-col
+                bg-black
+                [&_.remote-desktop-viewer]:flex-1 [&_.remote-desktop-viewer]:h-full
+                [&_.viewer-display]:flex-1 [&_.viewer-display]:min-h-0
+            "
+        >
+            {/* Toolbar Guacamole */}
+            <GuacamoleToolbar
+                clientRef={clientRef}
+                connectionName={connectionInfo.name}
+                connectionAddress={guacamoleConnection.hostname}
+                protocol={protocol}
+                status={status}
+                autoScale={autoScale}
+                setAutoScale={setAutoScale}
+                onClose={onClose}
+                onFullscreen={handleFullscreen}
+            />
 
-                {/* Viewer */}
-                <div className="connection-viewer-content">
-                    <RemoteDesktopViewer
-                        connectionInfo={guacamoleConnection}
-                        onDisconnect={onClose}
-                        onClientReady={handleClientReady}
-                        onStatusChange={handleStatusChange}
-                        autoScale={autoScale}
-                        fullscreen={true}
-                    />
-                </div>
+            {/* Viewer */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <RemoteDesktopViewer
+                    connectionInfo={guacamoleConnection}
+                    onDisconnect={onClose}
+                    onClientReady={handleClientReady}
+                    onStatusChange={handleStatusChange}
+                    autoScale={autoScale}
+                    fullscreen={true}
+                />
             </div>
         </div>
     );

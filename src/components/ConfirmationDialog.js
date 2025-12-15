@@ -1,110 +1,95 @@
-// src/components/ConfirmationDialog.js - VERSÃO MELHORADA COM ACESSIBILIDADE
-
+// src/components/ConfirmationDialog.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useEffect, useCallback } from 'react';
 import { WarningAmberIcon, InfoIcon, CloseIcon, CheckIcon, CancelIcon } from './MuiIcons';
 
 function ConfirmationDialog({ message, onConfirm, onCancel, isOpen, title = 'Confirmação' }) {
-    // Handler para tecla ESC
     const handleEscapeKey = useCallback((event) => {
-        if (event.key === 'Escape' && isOpen) {
-            onCancel();
-        }
+        if (event.key === 'Escape' && isOpen) onCancel();
     }, [isOpen, onCancel]);
 
-    // Handler para clique no overlay
     const handleOverlayClick = useCallback((event) => {
-        if (event.target.classList.contains('modal-overlay')) {
-            onCancel();
-        }
+        if (event.target.classList.contains('modal-overlay')) onCancel();
     }, [onCancel]);
 
-    // Adiciona listeners para teclado
     useEffect(() => {
         if (isOpen) {
             document.addEventListener('keydown', handleEscapeKey);
-
-            // Impede scroll do body quando dialog está aberto
             document.body.style.overflow = 'hidden';
-
-            // Foca o primeiro botão
             setTimeout(() => {
                 const firstButton = document.querySelector('.btn-cancel');
-                if (firstButton) {
-                    firstButton.focus();
-                }
+                if (firstButton) firstButton.focus();
             }, 100);
         }
-
         return () => {
             document.removeEventListener('keydown', handleEscapeKey);
             document.body.style.overflow = 'unset';
         };
     }, [isOpen, handleEscapeKey]);
 
-    if (!isOpen) {
-        return null; // Se não estiver aberto, não renderiza nada
-    }
+    if (!isOpen) return null;
 
     return (
         <div
-            className="modal-overlay"
+            className="modal-overlay fixed inset-0 z-[9999] flex items-center justify-center p-4 
+                bg-black/60 backdrop-blur-sm animate-fade-in"
             onClick={handleOverlayClick}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="dialog-title"
-            aria-describedby="dialog-message"
         >
-            <div className="modal-content" style={{ maxWidth: '400px' }}>
-                {/* Cabeçalho do dialog */}
-                <div className="modal-header">
-                    <h3 id="dialog-title" className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <WarningAmberIcon sx={{ fontSize: 24, color: 'var(--color-warning)' }} />
+            <div className="max-w-[400px] w-full bg-cream-100 dark:bg-dark-surface 
+                border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl 
+                overflow-hidden animate-slide-up">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 
+                    bg-cream-50/50 dark:bg-dark-bg/50 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+                        <WarningAmberIcon sx={{ fontSize: 24 }} className="text-yellow-500" />
                         {title}
                     </h3>
                     <button
-                        className="modal-close"
+                        className="p-2 rounded-lg text-gray-500 hover:bg-red-500/20 hover:text-red-500 transition-all"
                         onClick={onCancel}
-                        aria-label="Fechar"
                         title="Fechar (ESC)"
                     >
                         <CloseIcon sx={{ fontSize: 20 }} />
                     </button>
                 </div>
 
-                {/* Mensagem do dialog */}
-                <div className="modal-body">
-                    <p id="dialog-message" style={{ margin: 0 }}>
-                        {message}
-                    </p>
+                {/* Body */}
+                <div className="px-6 py-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{message}</p>
                 </div>
 
-                {/* Botões de ação */}
-                <div className="modal-footer">
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 px-6 py-4 
+                    bg-cream-50/30 dark:bg-dark-bg/30 border-t border-gray-200 dark:border-gray-700">
                     <button
-                        className="btn btn--secondary btn-cancel"
+                        className="btn-cancel flex items-center gap-2 px-4 py-2 rounded-lg 
+                            bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 
+                            font-semibold transition-all hover:bg-gray-300 dark:hover:bg-gray-600"
                         onClick={onCancel}
                         autoFocus
-                        title="Pressione ESC para cancelar"
                     >
-                        <CancelIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        <CancelIcon sx={{ fontSize: 18 }} />
                         Cancelar
                     </button>
                     <button
-                        className="btn btn--primary btn-confirm"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg 
+                            bg-gradient-to-br from-primary to-primary-hover text-white 
+                            font-semibold shadow-md shadow-primary/30 transition-all 
+                            hover:-translate-y-0.5"
                         onClick={onConfirm}
-                        title="Confirmar ação"
                     >
-                        <CheckIcon sx={{ fontSize: 18, marginRight: '8px' }} />
+                        <CheckIcon sx={{ fontSize: 18 }} />
                         Confirmar
                     </button>
                 </div>
 
-                {/* Dica de atalho */}
-                <div style={{ padding: '0 24px 16px', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
-                    <small style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <InfoIcon sx={{ fontSize: 14 }} />
-                        Use ESC para cancelar ou clique fora para fechar
-                    </small>
+                {/* Hint */}
+                <div className="px-6 pb-4 flex items-center gap-1 text-xs text-gray-500">
+                    <InfoIcon sx={{ fontSize: 14 }} />
+                    Use ESC para cancelar ou clique fora para fechar
                 </div>
             </div>
         </div>

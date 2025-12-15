@@ -2,6 +2,8 @@
  * ConnectionTabsContainer.js
  * Gerenciador de múltiplas conexões em abas
  * Permite acessar vários servidores simultaneamente
+ * 
+ * Migrado para Tailwind CSS
  */
 
 import React, { useCallback, useMemo } from 'react';
@@ -10,7 +12,6 @@ import VncViewerModal from './VncViewerModal';
 import ConnectionViewerModal from './ConnectionViewerModal';
 import SshTerminal from './SshTerminal';
 import { CloseIcon, MonitorIcon, TerminalIcon, ChevronLeftIcon } from './MuiIcons';
-import './ConnectionTabsContainer.css';
 
 function ConnectionTabsContainer() {
     const {
@@ -35,13 +36,6 @@ function ConnectionTabsContainer() {
         removeTabConnection(tabId);
     }, [removeTabConnection]);
 
-    // Wrapper para fechar aba ativa
-    const handleCloseActiveTab = useCallback(() => {
-        if (activeTab) {
-            removeTabConnection(activeTab.id);
-        }
-    }, [activeTab, removeTabConnection]);
-
     // Ícone baseado no tipo de conexão
     const getTabIcon = useCallback((type) => {
         switch (type) {
@@ -55,16 +49,16 @@ function ConnectionTabsContainer() {
         }
     }, []);
 
-    // Status indicator
-    const getStatusClass = useCallback((status) => {
+    // Status indicator colors
+    const getStatusClasses = useCallback((status) => {
         switch (status) {
             case 'connected':
-                return 'status-connected';
+                return 'bg-primary';
             case 'error':
-                return 'status-error';
+                return 'bg-red-500';
             case 'connecting':
             default:
-                return 'status-connecting';
+                return 'bg-amber-500 animate-pulse';
         }
     }, []);
 
@@ -76,9 +70,19 @@ function ConnectionTabsContainer() {
     // Se minimizado, mostra apenas barra flutuante
     if (isMinimized) {
         return (
-            <div className="connection-tabs-minimized">
+            <div className="fixed bottom-20 right-5 z-[9990]">
                 <button
-                    className="tabs-restore-btn"
+                    className="
+                        flex items-center gap-2 px-5 py-3
+                        bg-gradient-to-br from-dark-surface to-dark-elevated
+                        border border-primary rounded-xl
+                        text-white text-sm font-semibold
+                        shadow-lg shadow-black/30
+                        hover:bg-primary hover:text-black
+                        hover:-translate-y-0.5
+                        transition-all duration-300
+                        cursor-pointer
+                    "
                     onClick={() => setIsMinimized(false)}
                     title="Restaurar conexões"
                 >
@@ -90,12 +94,33 @@ function ConnectionTabsContainer() {
     }
 
     return (
-        <div className="connection-tabs-container">
+        <div className="
+            fixed inset-0 z-[9999]
+            flex flex-col
+            bg-dark-bg
+            pb-[env(safe-area-inset-bottom,0)]
+        ">
             {/* Barra de Abas */}
-            <div className="connection-tabs-bar">
+            <div className="
+                flex items-center
+                min-h-[40px] px-2 gap-0.5
+                bg-dark-surface
+                border-b border-dark-border
+                overflow-x-auto
+                shrink-0
+                scrollbar-thin scrollbar-thumb-dark-border
+            ">
                 {/* Botão Voltar */}
                 <button
-                    className="tabs-back-btn"
+                    className="
+                        flex items-center justify-center gap-1.5
+                        px-3 py-1.5 mr-3
+                        bg-primary/15 border border-primary rounded-md
+                        text-primary text-xs font-semibold
+                        hover:bg-primary hover:text-black
+                        transition-all duration-200
+                        shrink-0 cursor-pointer
+                    "
                     onClick={() => setIsMinimized(true)}
                     title="Voltar para lista de conexões"
                 >
@@ -103,19 +128,52 @@ function ConnectionTabsContainer() {
                     Voltar
                 </button>
 
+                {/* Tabs */}
                 {tabConnections.map(tab => (
                     <div
                         key={tab.id}
-                        className={`connection-tab ${tab.id === activeTabId ? 'active' : ''}`}
+                        className={`
+                            flex items-center gap-2
+                            px-3 py-2
+                            rounded-t-lg
+                            cursor-pointer
+                            text-sm
+                            min-w-[120px] max-w-[200px]
+                            transition-all duration-200
+                            relative
+                            ${tab.id === activeTabId
+                                ? 'bg-dark-bg text-white border-b-2 border-primary'
+                                : 'bg-transparent text-gray-400 hover:bg-white/5 hover:text-white'
+                            }
+                        `}
                         onClick={() => switchToTab(tab.id)}
                     >
-                        <span className={`tab-status ${getStatusClass(tab.status)}`} />
+                        {/* Status Indicator */}
+                        <span className={`
+                            w-2 h-2 rounded-full shrink-0
+                            ${getStatusClasses(tab.status)}
+                        `} />
+
+                        {/* Icon */}
                         {getTabIcon(tab.type)}
-                        <span className="tab-name">
+
+                        {/* Name */}
+                        <span className="flex-1 truncate">
                             {tab.info?.name || 'Conexão'}
                         </span>
+
+                        {/* Close Button */}
                         <button
-                            className="tab-close-btn"
+                            className="
+                                flex items-center justify-center
+                                w-[18px] h-[18px]
+                                bg-transparent border-none rounded
+                                text-gray-400
+                                opacity-60
+                                hover:opacity-100 hover:bg-red-500/20 hover:text-red-500
+                                transition-all duration-200
+                                shrink-0 cursor-pointer
+                            "
                             onClick={(e) => handleCloseTab(tab.id, e)}
                             title="Fechar conexão"
                         >
@@ -125,14 +183,17 @@ function ConnectionTabsContainer() {
                 ))}
             </div>
 
-            {/* ✨ v4.5: Renderiza TODAS as abas, mas mostra apenas a ativa
-                Isso mantém as conexões SSH/VNC ativas ao trocar de aba */}
-            <div className="connection-tabs-content">
+            {/* ✨ v5.0: Renderiza TODAS as abas mantidas montadas  
+                Usando visibility em vez de display:none para não desmontar componentes */}
+            <div className="flex-1 relative min-h-0">
                 {tabConnections.map(tab => (
                     <div
                         key={tab.id}
-                        className={`connection-tab-panel ${tab.id === activeTabId ? 'active' : 'hidden'}`}
-                        style={{ display: tab.id === activeTabId ? 'flex' : 'none' }}
+                        className="flex flex-col absolute inset-0 pb-1 min-h-0"
+                        style={{
+                            visibility: tab.id === activeTabId ? 'visible' : 'hidden',
+                            zIndex: tab.id === activeTabId ? 1 : 0
+                        }}
                     >
                         {tab.type === 'vnc' && (
                             <VncViewerModal
@@ -160,4 +221,3 @@ function ConnectionTabsContainer() {
 }
 
 export default ConnectionTabsContainer;
-

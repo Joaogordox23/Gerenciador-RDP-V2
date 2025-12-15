@@ -2,6 +2,8 @@
  * QuickConnectVncModal.js
  * Modal para conexão VNC rápida (temporária)
  * v4.4: Feature de Quick Connect
+ * 
+ * Migrado para Tailwind CSS
  */
 
 import React, { useState, useCallback } from 'react';
@@ -10,14 +12,12 @@ import {
     SettingsEthernetIcon,
     LockIcon,
     PlayArrowIcon,
-    CloseIcon,
     SaveIcon,
     CancelIcon,
     FlashOnIcon
 } from './MuiIcons';
 import VncViewerModal from './VncViewerModal';
 import Modal from './Modal';
-import './QuickConnectVncModal.css';
 
 /**
  * Modal de Conexão Rápida VNC
@@ -85,6 +85,21 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
         }
     }, [connectionData]);
 
+    // Finaliza e reseta (definido primeiro para ser usado como dependência)
+    const handleFinish = useCallback(() => {
+        setShowSaveDialog(false);
+        setShowVncViewer(false);
+        setConnectionData(null);
+        setSelectedGroupId('');
+        setFormData({
+            name: '',
+            ipAddress: '',
+            port: '5900',
+            password: ''
+        });
+        onClose();
+    }, [onClose]);
+
     // Salvar conexão
     const handleSaveConnection = useCallback(() => {
         if (!selectedGroupId || !connectionData) {
@@ -103,27 +118,12 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
 
         // Fecha tudo
         handleFinish();
-    }, [selectedGroupId, connectionData, onSaveConnection]);
+    }, [selectedGroupId, connectionData, onSaveConnection, handleFinish]);
 
     // Não salvar, apenas fechar
     const handleDontSave = useCallback(() => {
         handleFinish();
-    }, []);
-
-    // Finaliza e reseta
-    const handleFinish = useCallback(() => {
-        setShowSaveDialog(false);
-        setShowVncViewer(false);
-        setConnectionData(null);
-        setSelectedGroupId('');
-        setFormData({
-            name: '',
-            ipAddress: '',
-            port: '5900',
-            password: ''
-        });
-        onClose();
-    }, [onClose]);
+    }, [handleFinish]);
 
     // Fecha o modal principal (sem conectar)
     const handleCloseModal = useCallback(() => {
@@ -151,86 +151,147 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                     icon={<FlashOnIcon sx={{ fontSize: 24 }} />}
                     size="small"
                 >
-                    <div className="quick-connect-form">
-                        <p className="quick-connect-hint">
+                    <div className="py-2">
+                        {/* Hint */}
+                        <p className="
+                            text-sm text-gray-400 mb-5
+                            px-4 py-3
+                            bg-primary/10 rounded-lg
+                            border-l-3 border-primary
+                        ">
                             Conecte-se temporariamente a um servidor VNC. Você poderá salvar esta conexão após desconectar.
                         </p>
 
-                        <div className="form-group">
-                            <label>Nome (opcional)</label>
-                            <div className="input-with-icon">
-                                <ComputerIcon className="input-icon" />
+                        {/* Nome (opcional) */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                Nome (opcional)
+                            </label>
+                            <div className="relative">
+                                <ComputerIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                                 <input
                                     type="text"
                                     name="name"
                                     value={formData.name}
                                     onChange={handleInputChange}
                                     placeholder="Ex: Servidor Temporário"
-                                    className="form-control"
+                                    className="
+                                        w-full pl-10 pr-4 py-2.5
+                                        bg-dark-elevated border border-dark-border rounded-lg
+                                        text-white placeholder-gray-500
+                                        focus:border-primary focus:ring-1 focus:ring-primary/30
+                                        outline-none transition-all
+                                    "
                                 />
                             </div>
                         </div>
 
-                        <div className="form-group">
-                            <label>IP ou Hostname *</label>
-                            <div className="input-with-icon">
-                                <SettingsEthernetIcon className="input-icon" />
+                        {/* IP ou Hostname */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                IP ou Hostname *
+                            </label>
+                            <div className="relative">
+                                <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                                 <input
                                     type="text"
                                     name="ipAddress"
                                     value={formData.ipAddress}
                                     onChange={handleInputChange}
                                     placeholder="Ex: 192.168.1.100"
-                                    className="form-control"
+                                    className="
+                                        w-full pl-10 pr-4 py-2.5
+                                        bg-dark-elevated border border-dark-border rounded-lg
+                                        text-white placeholder-gray-500
+                                        focus:border-primary focus:ring-1 focus:ring-primary/30
+                                        outline-none transition-all
+                                    "
                                     autoFocus
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Porta</label>
-                                <div className="input-with-icon">
-                                    <SettingsEthernetIcon className="input-icon" />
+                        {/* Porta e Senha */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                    Porta
+                                </label>
+                                <div className="relative">
+                                    <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                                     <input
                                         type="number"
                                         name="port"
                                         value={formData.port}
                                         onChange={handleInputChange}
                                         placeholder="5900"
-                                        className="form-control"
+                                        className="
+                                            w-full pl-10 pr-4 py-2.5
+                                            bg-dark-elevated border border-dark-border rounded-lg
+                                            text-white placeholder-gray-500
+                                            focus:border-primary focus:ring-1 focus:ring-primary/30
+                                            outline-none transition-all
+                                        "
                                     />
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label>Senha (opcional)</label>
-                                <div className="input-with-icon">
-                                    <LockIcon className="input-icon" />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                    Senha (opcional)
+                                </label>
+                                <div className="relative">
+                                    <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                                     <input
                                         type="password"
                                         name="password"
                                         value={formData.password}
                                         onChange={handleInputChange}
                                         placeholder="Senha VNC"
-                                        className="form-control"
+                                        className="
+                                            w-full pl-10 pr-4 py-2.5
+                                            bg-dark-elevated border border-dark-border rounded-lg
+                                            text-white placeholder-gray-500
+                                            focus:border-primary focus:ring-1 focus:ring-primary/30
+                                            outline-none transition-all
+                                        "
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="form-actions">
-                            <button type="button" onClick={onClose} className="btn btn--secondary">
-                                <CancelIcon sx={{ fontSize: 18, marginRight: '6px' }} />
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-dark-border">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="
+                                    flex items-center gap-1.5
+                                    px-4 py-2
+                                    bg-dark-elevated text-gray-300
+                                    rounded-lg text-sm font-medium
+                                    hover:bg-dark-border
+                                    transition-colors cursor-pointer
+                                "
+                            >
+                                <CancelIcon sx={{ fontSize: 18 }} />
                                 Cancelar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleConnect}
-                                className="btn btn--primary"
                                 disabled={!formData.ipAddress.trim()}
+                                className="
+                                    flex items-center gap-1.5
+                                    px-4 py-2
+                                    bg-primary text-black
+                                    rounded-lg text-sm font-medium
+                                    hover:bg-primary-hover
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transition-colors cursor-pointer
+                                "
                             >
-                                <PlayArrowIcon sx={{ fontSize: 20, marginRight: '6px' }} />
+                                <PlayArrowIcon sx={{ fontSize: 20 }} />
                                 Conectar
                             </button>
                         </div>
@@ -255,20 +316,30 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                     icon={<SaveIcon sx={{ fontSize: 24 }} />}
                     size="small"
                 >
-                    <div className="save-connection-dialog">
-                        <p>
-                            Deseja salvar a conexão <strong>"{connectionData?.name}"</strong> em um grupo?
+                    <div className="py-2">
+                        <p className="mb-3 text-base">
+                            Deseja salvar a conexão <strong className="text-primary">"{connectionData?.name}"</strong> em um grupo?
                         </p>
-                        <p className="save-hint">
+                        <p className="text-sm text-gray-400 italic mb-5">
                             Se não salvar, a conexão será perdida.
                         </p>
 
-                        <div className="form-group">
-                            <label>Selecione um grupo:</label>
+                        {/* Select Group */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                Selecione um grupo:
+                            </label>
                             <select
                                 value={selectedGroupId}
                                 onChange={(e) => setSelectedGroupId(e.target.value)}
-                                className="form-control"
+                                className="
+                                    w-full px-4 py-2.5
+                                    bg-dark-elevated border border-dark-border rounded-lg
+                                    text-white
+                                    focus:border-primary focus:ring-1 focus:ring-primary/30
+                                    outline-none transition-all
+                                    cursor-pointer
+                                "
                             >
                                 <option value="">-- Selecione um grupo --</option>
                                 {vncGroups.map(group => (
@@ -279,18 +350,38 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                             </select>
                         </div>
 
-                        <div className="form-actions">
-                            <button type="button" onClick={handleDontSave} className="btn btn--secondary">
-                                <CancelIcon sx={{ fontSize: 18, marginRight: '6px' }} />
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-dark-border">
+                            <button
+                                type="button"
+                                onClick={handleDontSave}
+                                className="
+                                    flex items-center gap-1.5
+                                    px-4 py-2
+                                    bg-dark-elevated text-gray-300
+                                    rounded-lg text-sm font-medium
+                                    hover:bg-dark-border
+                                    transition-colors cursor-pointer
+                                "
+                            >
+                                <CancelIcon sx={{ fontSize: 18 }} />
                                 Não Salvar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleSaveConnection}
-                                className="btn btn--primary"
                                 disabled={!selectedGroupId}
+                                className="
+                                    flex items-center gap-1.5
+                                    px-4 py-2
+                                    bg-primary text-black
+                                    rounded-lg text-sm font-medium
+                                    hover:bg-primary-hover
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    transition-colors cursor-pointer
+                                "
                             >
-                                <SaveIcon sx={{ fontSize: 18, marginRight: '6px' }} />
+                                <SaveIcon sx={{ fontSize: 18 }} />
                                 Salvar no Grupo
                             </button>
                         </div>

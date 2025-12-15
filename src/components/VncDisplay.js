@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import RFB from '@novnc/novnc/core/rfb';
 
-function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 6, compression = 2, onRfbReady }) {
+function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 6, compression = 2, onRfbReady, frameInterval = 0 }) {
     const wrapperRef = useRef(null);
     const vncContainerRef = useRef(null);
     const rfbRef = useRef(null);
@@ -78,6 +78,9 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
         }
     }, [quality, compression]);
 
+    // Nota: frameInterval foi removido pois interferia com scaleViewport
+    // A economia de recursos é feita via quality e compression reduzidos
+
     // ✨ v4.7: CORRIGIDO - useEffect de conexão APENAS depende de proxyUrl e password
     // Outras configs (viewOnly, scaleViewport, quality) são atualizadas via refs/efeitos separados
     useEffect(() => {
@@ -149,6 +152,37 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                             }, 100);
                         }
                     }, 300);
+
+                    // ✅ v5.3: Sincronização automática de clipboard (Ctrl+V do Windows → VNC)
+                    const handlePasteEvent = async (e) => {
+                        if (!rfbRef.current || viewOnly) return;
+
+                        // Verifica se foi Ctrl+V ou evento paste
+                        try {
+                            let text = '';
+                            if (e.clipboardData) {
+                                text = e.clipboardData.getData('text/plain');
+                            } else {
+                                text = await navigator.clipboard.readText();
+                            }
+
+                            if (text && rfbRef.current) {
+                                console.log(`📋 [${connectionInfo.name}] Colando texto: ${text.substring(0, 50)}...`);
+                                rfbRef.current.clipboardPasteFrom(text);
+                            }
+                        } catch (err) {
+                            console.warn('📋 Não foi possível acessar clipboard:', err);
+                        }
+                    };
+
+                    // Listener para evento paste nativo
+                    const container = vncContainerRef.current;
+                    if (container) {
+                        container.addEventListener('paste', handlePasteEvent);
+                    }
+
+                    // Salva referência para cleanup
+                    rfbRef.current._pasteHandler = handlePasteEvent;
                 });
 
                 rfb.addEventListener('disconnect', (event) => {
@@ -233,8 +267,9 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
             }
         };
         // ✨ v4.7: APENAS proxyUrl e password como dependências para evitar reconexões
+        // containerSize usado apenas para verificar se container tem dimensões válidas antes de conectar
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, containerSize.width > 0 && containerSize.height > 0]);
+    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, containerSize.width, containerSize.height]);
 
     if (!connectionInfo) return null;
 

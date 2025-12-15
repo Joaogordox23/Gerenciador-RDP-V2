@@ -1,7 +1,5 @@
 // src/views/ApplicationsView.js
-// View principal de Aplicações (Feature v4.3)
-// v4.3.1: Suporte a Drag & Drop
-
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useApps } from '../hooks/useApps';
@@ -15,11 +13,7 @@ import {
     RefreshIcon,
     FolderOpenIcon
 } from '../components/MuiIcons';
-import './ApplicationsView.css';
 
-/**
- * View de gerenciamento de aplicações
- */
 function ApplicationsView() {
     const { toast } = useToast();
     const { isEditModeEnabled, searchTerm, setSearchTerm, allGroupsCollapsed, appsViewMode } = useUI();
@@ -39,7 +33,6 @@ function ApplicationsView() {
         handleLaunchApp,
         selectFile,
         reloadApps,
-        // Drag & Drop
         reorderAppGroups,
         reorderAppsInGroup,
         moveAppToGroup
@@ -57,17 +50,25 @@ function ApplicationsView() {
 
         const term = searchTerm.toLowerCase();
         return appGroups
-            .map(group => ({
-                ...group,
-                apps: (group.apps || []).filter(app =>
+            .map(group => {
+                const groupNameMatches = group.name.toLowerCase().includes(term);
+
+                // Se o nome do grupo corresponde, mostra todas as apps
+                if (groupNameMatches) return group;
+
+                // Caso contrário, filtra apenas as apps que correspondem
+                const filteredApps = (group.apps || []).filter(app =>
                     app.name.toLowerCase().includes(term) ||
                     (app.description && app.description.toLowerCase().includes(term))
-                )
-            }))
-            .filter(group =>
-                group.name.toLowerCase().includes(term) ||
-                group.apps.length > 0
-            );
+                );
+
+                // Retorna grupo com apps filtradas (ou null se vazio)
+                if (filteredApps.length > 0) {
+                    return { ...group, apps: filteredApps };
+                }
+                return null;
+            })
+            .filter(Boolean); // Remove grupos vazios
     }, [appGroups, searchTerm]);
 
     // Handlers
@@ -80,20 +81,14 @@ function ApplicationsView() {
         setShowAddGroupForm(false);
     }, [newGroupName, handleAddAppGroup]);
 
-    // ==============================
-    // DRAG & DROP Handler
-    // ==============================
+    // Drag & Drop Handler
     const handleOnDragEnd = useCallback((result) => {
         const { destination, source, type, draggableId } = result;
 
-        // Sem destino = cancelado
         if (!destination) return;
-
-        // Mesma posição = nada a fazer
         if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
         try {
-            // Reordenação de grupos
             if (type === 'app-group') {
                 const newGroups = Array.from(appGroups);
                 const [reorderedItem] = newGroups.splice(source.index, 1);
@@ -103,7 +98,6 @@ function ApplicationsView() {
                 return;
             }
 
-            // Reordenação/movimento de apps
             if (type === 'app') {
                 const sourceGroupId = parseInt(source.droppableId.replace('apps-', ''));
                 const destGroupId = parseInt(destination.droppableId.replace('apps-', ''));
@@ -114,7 +108,6 @@ function ApplicationsView() {
 
                 if (!sourceGroup || !destGroup) return;
 
-                // Mesmo grupo = reordenação interna
                 if (sourceGroupId === destGroupId) {
                     const newApps = Array.from(sourceGroup.apps || []);
                     const [movedApp] = newApps.splice(source.index, 1);
@@ -122,7 +115,6 @@ function ApplicationsView() {
                     reorderAppsInGroup(sourceGroupId, newApps);
                     toast.success(`"${movedApp.name}" reordenado`);
                 } else {
-                    // Grupos diferentes = mover app
                     const movedApp = sourceGroup.apps[source.index];
                     moveAppToGroup(appId, sourceGroupId, destGroupId, destination.index);
                     toast.success(`"${movedApp.name}" movido para "${destGroup.name}"`);
@@ -167,10 +159,8 @@ function ApplicationsView() {
 
     const handleSaveApp = useCallback(async (appId, data, groupId) => {
         if (appId) {
-            // Editando
             await handleUpdateApp(appId, data);
         } else {
-            // Criando
             await handleAddApp(groupId, data);
         }
         setEditingApp(null);
@@ -185,24 +175,28 @@ function ApplicationsView() {
     // Loading state
     if (isLoading) {
         return (
-            <div className="apps-view loading">
-                <div className="loading-spinner" />
-                <span>Carregando aplicações...</span>
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-gray-500">Carregando aplicações...</span>
             </div>
         );
     }
 
     return (
-        <div className="apps-view">
-            {/* Barra de ações (sem duplicar header) */}
-            <div className="apps-toolbar">
-                <span className="apps-count">
+        <div className="p-4 space-y-4">
+            {/* Barra de ações */}
+            <div className="flex items-center justify-between bg-cream-100 dark:bg-dark-surface 
+                border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
+                <span className="text-sm text-gray-500">
                     {totalApps} {totalApps === 1 ? 'aplicação' : 'aplicações'} em {appGroups.length} {appGroups.length === 1 ? 'grupo' : 'grupos'}
                 </span>
 
-                <div className="apps-toolbar-actions">
+                <div className="flex items-center gap-2">
                     <button
-                        className="apps-action-btn"
+                        className="p-2 rounded-lg bg-cream-50 dark:bg-dark-bg 
+                            border border-gray-200 dark:border-gray-700 
+                            text-gray-500 transition-all duration-200
+                            hover:border-primary hover:text-primary"
                         onClick={reloadApps}
                         title="Recarregar"
                     >
@@ -211,7 +205,12 @@ function ApplicationsView() {
 
                     {isEditModeEnabled && (
                         <button
-                            className="apps-add-btn"
+                            className="flex items-center gap-2 px-4 py-2
+                                bg-gradient-to-br from-primary to-primary-hover
+                                text-white font-semibold rounded-lg
+                                shadow-md shadow-primary/30
+                                transition-all duration-200
+                                hover:-translate-y-0.5 hover:shadow-lg"
                             onClick={() => setShowAddGroupForm(true)}
                         >
                             <AddIcon sx={{ fontSize: 18 }} />
@@ -223,18 +222,30 @@ function ApplicationsView() {
 
             {/* Form de novo grupo */}
             {showAddGroupForm && (
-                <form className="apps-add-group-form" onSubmit={handleAddGroup}>
+                <form className="flex items-center gap-3 bg-cream-100 dark:bg-dark-surface 
+                    border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3"
+                    onSubmit={handleAddGroup}
+                >
                     <input
                         type="text"
                         placeholder="Nome do novo grupo..."
                         value={newGroupName}
                         onChange={(e) => setNewGroupName(e.target.value)}
                         autoFocus
+                        className="flex-1 px-4 py-2 bg-cream-50 dark:bg-dark-bg 
+                            border border-gray-200 dark:border-gray-700 rounded-lg
+                            text-sm text-slate-900 dark:text-white
+                            placeholder:text-gray-400 outline-none
+                            focus:border-primary"
                     />
-                    <button type="submit" className="btn-submit">Criar</button>
+                    <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-semibold
+                        transition-all hover:bg-primary-hover">
+                        Criar
+                    </button>
                     <button
                         type="button"
-                        className="btn-cancel"
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 
+                            rounded-lg font-semibold transition-all hover:bg-gray-300 dark:hover:bg-gray-600"
                         onClick={() => setShowAddGroupForm(false)}
                     >
                         Cancelar
@@ -243,14 +254,14 @@ function ApplicationsView() {
             )}
 
             {/* Lista de grupos */}
-            <div className="apps-content">
+            <div className="space-y-4">
                 {filteredGroups.length === 0 ? (
-                    <div className="apps-empty-state">
-                        <FolderOpenIcon sx={{ fontSize: 64, opacity: 0.3 }} />
-                        <h3>
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <FolderOpenIcon sx={{ fontSize: 64 }} className="text-gray-300 mb-4" />
+                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                             {searchTerm ? 'Nenhuma aplicação encontrada' : 'Nenhuma aplicação cadastrada'}
                         </h3>
-                        <p>
+                        <p className="text-sm text-gray-500 mb-4 max-w-sm">
                             {searchTerm
                                 ? 'Tente buscar por outro termo'
                                 : 'Ative o modo de edição e crie seu primeiro grupo de aplicações'
@@ -258,7 +269,8 @@ function ApplicationsView() {
                         </p>
                         {searchTerm && (
                             <button
-                                className="btn-clear-search"
+                                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 
+                                    rounded-lg font-semibold transition-all hover:bg-gray-300"
                                 onClick={() => setSearchTerm('')}
                             >
                                 Limpar busca
@@ -266,7 +278,12 @@ function ApplicationsView() {
                         )}
                         {!searchTerm && isEditModeEnabled && (
                             <button
-                                className="btn-create-first"
+                                className="flex items-center gap-2 px-4 py-2
+                                    bg-gradient-to-br from-primary to-primary-hover
+                                    text-white font-semibold rounded-lg
+                                    shadow-md shadow-primary/30
+                                    transition-all duration-200
+                                    hover:-translate-y-0.5"
                                 onClick={() => setShowAddGroupForm(true)}
                             >
                                 <AddIcon sx={{ fontSize: 18 }} />
@@ -279,7 +296,7 @@ function ApplicationsView() {
                         <Droppable droppableId="app-groups-list" type="app-group">
                             {(provided) => (
                                 <div
-                                    className="apps-groups-list"
+                                    className="space-y-4"
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                 >

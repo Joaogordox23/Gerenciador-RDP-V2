@@ -23,7 +23,10 @@ export function UIProvider({ children }) {
     const [searchTerm, setSearchTerm] = useState('');
 
     // ========== Estado de Colapso de Grupos ==========
-    const [allGroupsCollapsed, setAllGroupsCollapsed] = useState(false);
+    // null = respeitando localStorage de cada grupo (padrão)
+    // true = forçar colapsar todos
+    // false = forçar expandir todos
+    const [allGroupsCollapsed, setAllGroupsCollapsed] = useState(null);
 
     // ========== Ações ==========
     const toggleTheme = useCallback(() => {
@@ -38,8 +41,20 @@ export function UIProvider({ children }) {
         setIsEditModeEnabled(prev => !prev);
     }, []);
 
+    // Toggle cíclico: null → true (colapsar) → false (expandir) → null (restaurar)
     const toggleAllCollapsed = useCallback(() => {
-        setAllGroupsCollapsed(prev => !prev);
+        setAllGroupsCollapsed(prev => {
+            if (prev === null) return true;  // null → colapsar
+            if (prev === true) return false; // colapsado → expandir
+            return null;                     // expandido → restaurar padrão
+        });
+    }, []);
+
+    // ========== Mudar de View (limpa busca e colapso) ==========
+    const changeView = useCallback((newView) => {
+        setActiveView(newView);
+        setSearchTerm(''); // Limpa busca ao mudar de tela
+        setAllGroupsCollapsed(null); // Reseta estado de colapso
     }, []);
 
     // ========== Inicialização do Tema ==========
@@ -93,7 +108,8 @@ export function UIProvider({ children }) {
         toggleTheme,
         toggleSidebar,
         toggleEditMode,
-        toggleAllCollapsed
+        toggleAllCollapsed,
+        changeView
     };
 
     return (

@@ -9,9 +9,12 @@ import {
     SaveIcon,
     CancelIcon
 } from './MuiIcons';
-import './ServerForms.css';
 import PasswordStrengthIndicator from './PasswordStrengthValidator';
 
+/**
+ * AddServerForm - Formulário para adicionar novo servidor
+ * Migrado para Tailwind CSS
+ */
 function AddServerForm({ onAddServer, onCancel }) {
     const [serverData, setServerData] = useState({
         protocol: 'rdp',
@@ -43,101 +46,155 @@ function AddServerForm({ onAddServer, onCancel }) {
         onAddServer(serverData);
     };
 
+    // Input classes
+    const inputBaseClass = `
+        w-full pl-10 pr-4 py-2.5
+        bg-dark-elevated border border-dark-border rounded-lg
+        text-white text-sm placeholder-gray-500
+        focus:border-primary focus:ring-1 focus:ring-primary/30
+        outline-none transition-all
+    `;
+
+    const inputErrorClass = 'border-red-500 focus:border-red-500 focus:ring-red-500/30';
+
     return (
-        <div className="add-server-form-container">
-            <form onSubmit={handleSubmit} className="add-server-form">
-                <div className="form-group">
-                    <label className="form-label">Protocolo</label>
-                    <div className="form-radio-group">
-                        <label className={`form-radio-card ${serverData.protocol === 'rdp' ? 'selected' : ''}`}>
+        <div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {/* Protocol Selector */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Protocolo
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* RDP Option */}
+                        <label className={`
+                            flex items-center gap-3 px-4 py-3
+                            rounded-lg border-2 cursor-pointer
+                            transition-all
+                            ${serverData.protocol === 'rdp'
+                                ? 'bg-primary/10 border-primary'
+                                : 'bg-white/5 border-dark-border hover:border-primary/50'
+                            }
+                        `}>
                             <input
                                 type="radio"
                                 name="protocol"
                                 value="rdp"
                                 checked={serverData.protocol === 'rdp'}
                                 onChange={handleInputChange}
+                                className="hidden"
                             />
-                            <div className="radio-content">
-                                <span className="radio-label">RDP</span>
-                                <span className="radio-description">Remote Desktop Protocol</span>
+                            <div className="flex-1">
+                                <span className={`block text-sm font-semibold ${serverData.protocol === 'rdp' ? 'text-primary' : 'text-white'}`}>
+                                    RDP
+                                </span>
+                                <span className="block text-xs text-gray-400">
+                                    Remote Desktop Protocol
+                                </span>
                             </div>
-                            <ComputerIcon sx={{ fontSize: 20, color: serverData.protocol === 'rdp' ? 'var(--color-primary)' : 'var(--color-text-secondary)', marginLeft: 'auto' }} />
+                            <ComputerIcon sx={{ fontSize: 20 }} className={serverData.protocol === 'rdp' ? 'text-primary' : 'text-gray-500'} />
                         </label>
-                        <label className={`form-radio-card ${serverData.protocol === 'ssh' ? 'selected' : ''}`}>
+
+                        {/* SSH Option */}
+                        <label className={`
+                            flex items-center gap-3 px-4 py-3
+                            rounded-lg border-2 cursor-pointer
+                            transition-all
+                            ${serverData.protocol === 'ssh'
+                                ? 'bg-primary/10 border-primary'
+                                : 'bg-white/5 border-dark-border hover:border-primary/50'
+                            }
+                        `}>
                             <input
                                 type="radio"
                                 name="protocol"
                                 value="ssh"
                                 checked={serverData.protocol === 'ssh'}
                                 onChange={handleInputChange}
+                                className="hidden"
                             />
-                            <div className="radio-content">
-                                <span className="radio-label">SSH</span>
-                                <span className="radio-description">Secure Shell</span>
+                            <div className="flex-1">
+                                <span className={`block text-sm font-semibold ${serverData.protocol === 'ssh' ? 'text-primary' : 'text-white'}`}>
+                                    SSH
+                                </span>
+                                <span className="block text-xs text-gray-400">
+                                    Secure Shell
+                                </span>
                             </div>
-                            <TerminalIcon sx={{ fontSize: 20, color: serverData.protocol === 'ssh' ? 'var(--color-primary)' : 'var(--color-text-secondary)', marginLeft: 'auto' }} />
+                            <TerminalIcon sx={{ fontSize: 20 }} className={serverData.protocol === 'ssh' ? 'text-primary' : 'text-gray-500'} />
                         </label>
                     </div>
                 </div>
 
-                <div className="form-group">
-                    <label className="form-label">Nome *</label>
-                    <div className="input-with-icon">
-                        <ComputerIcon className="input-icon" />
+                {/* Nome */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                        Nome *
+                    </label>
+                    <div className="relative">
+                        <ComputerIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                         <input
                             type="text"
                             name="name"
                             value={serverData.name}
                             onChange={handleInputChange}
-                            className={`form-control ${errors.name ? 'error' : ''}`}
+                            className={`${inputBaseClass} ${errors.name ? inputErrorClass : ''}`}
                             autoFocus
                             placeholder="Ex: Servidor Financeiro"
                         />
                     </div>
-                    {errors.name && <span className="error-text">{errors.name}</span>}
+                    {errors.name && <span className="text-xs text-red-400 mt-1 block">{errors.name}</span>}
                 </div>
 
-                <div className="form-group">
-                    <label className="form-label">IP/Hostname *</label>
-                    <div className="input-with-icon">
-                        <SettingsEthernetIcon className="input-icon" />
+                {/* IP/Hostname */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                        IP/Hostname *
+                    </label>
+                    <div className="relative">
+                        <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                         <input
                             type="text"
                             name="ipAddress"
                             value={serverData.ipAddress}
                             onChange={handleInputChange}
-                            className={`form-control ${errors.ipAddress ? 'error' : ''}`}
+                            className={`${inputBaseClass} ${errors.ipAddress ? inputErrorClass : ''}`}
                             placeholder="Ex: 192.168.1.100 ou srv-fin.local"
                         />
                     </div>
-                    {errors.ipAddress && <span className="error-text">{errors.ipAddress}</span>}
+                    {errors.ipAddress && <span className="text-xs text-red-400 mt-1 block">{errors.ipAddress}</span>}
                 </div>
 
-                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div className="form-group">
-                        <label className="form-label">Usuário</label>
-                        <div className="input-with-icon">
-                            <PersonOutlineIcon className="input-icon" />
+                {/* Usuário e Senha */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Usuário
+                        </label>
+                        <div className="relative">
+                            <PersonOutlineIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                             <input
                                 type="text"
                                 name="username"
                                 value={serverData.username}
                                 onChange={handleInputChange}
-                                className="form-control"
+                                className={inputBaseClass}
                                 placeholder="Ex: admin"
                             />
                         </div>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Senha</label>
-                        <div className="input-with-icon">
-                            <LockIcon className="input-icon" />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Senha
+                        </label>
+                        <div className="relative">
+                            <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                             <input
                                 type="password"
                                 name="password"
                                 value={serverData.password}
                                 onChange={handleInputChange}
-                                className="form-control"
+                                className={inputBaseClass}
                                 placeholder="Opcional"
                             />
                         </div>
@@ -145,46 +202,74 @@ function AddServerForm({ onAddServer, onCancel }) {
                     </div>
                 </div>
 
+                {/* Domínio (RDP only) */}
                 {serverData.protocol === 'rdp' && (
-                    <div className="form-group">
-                        <label className="form-label">Domínio</label>
-                        <div className="input-with-icon">
-                            <DomainIcon className="input-icon" />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Domínio
+                        </label>
+                        <div className="relative">
+                            <DomainIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                             <input
                                 type="text"
                                 name="domain"
                                 value={serverData.domain}
                                 onChange={handleInputChange}
-                                className="form-control"
+                                className={inputBaseClass}
                                 placeholder="Ex: EMPRESA (Opcional)"
                             />
                         </div>
                     </div>
                 )}
 
+                {/* Porta (SSH only) */}
                 {serverData.protocol === 'ssh' && (
-                    <div className="form-group">
-                        <label className="form-label">Porta</label>
-                        <div className="input-with-icon">
-                            <SettingsEthernetIcon className="input-icon" />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Porta
+                        </label>
+                        <div className="relative">
+                            <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
                             <input
                                 type="text"
                                 name="port"
                                 value={serverData.port}
                                 onChange={handleInputChange}
-                                className="form-control"
+                                className={inputBaseClass}
                                 placeholder="Padrão: 22"
                             />
                         </div>
                     </div>
                 )}
 
-                <div className="form-actions">
-                    <button type="button" onClick={onCancel} className="btn btn-secondary">
+                {/* Actions */}
+                <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-dark-border">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="
+                            flex items-center gap-2
+                            px-4 py-2
+                            bg-dark-elevated text-gray-300
+                            rounded-lg text-sm font-medium
+                            hover:bg-dark-border
+                            transition-colors cursor-pointer
+                        "
+                    >
                         <CancelIcon sx={{ fontSize: 18 }} />
                         Cancelar
                     </button>
-                    <button type="submit" className="btn btn-primary">
+                    <button
+                        type="submit"
+                        className="
+                            flex items-center gap-2
+                            px-4 py-2
+                            bg-primary text-black
+                            rounded-lg text-sm font-medium
+                            hover:bg-primary-hover
+                            transition-colors cursor-pointer
+                        "
+                    >
                         <SaveIcon sx={{ fontSize: 18 }} />
                         Salvar
                     </button>

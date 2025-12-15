@@ -1,3 +1,5 @@
+// src/components/ServerListItem.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useState, useCallback } from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
 import {
@@ -12,12 +14,7 @@ import {
     SyncIcon,
     PersonOutlineIcon
 } from './MuiIcons';
-import './ServerListItem.css';
 
-/**
- * ✨ v4.0: Componente de Servidor em Modo Lista (Compacto)
- * Versão simplificada do Server.js para visualização em lista
- */
 function ServerListItem({
     serverInfo,
     onDelete,
@@ -25,7 +22,7 @@ function ServerListItem({
     isActive,
     isEditModeEnabled,
     isConnectivityEnabled = true,
-    onEdit // Nova prop para modal global
+    onEdit
 }) {
     const [isConnecting, setIsConnecting] = useState(false);
 
@@ -44,26 +41,18 @@ function ServerListItem({
     const isCurrentlyTesting = isTesting.has(serverKey);
     const isMonitored = monitoredServers.has(serverKey);
 
-    // Status visual
-    const getStatusIcon = () => {
-        if (isCurrentlyTesting) return <SyncIcon sx={{ fontSize: 16 }} className="rotating" />;
-        if (!connectivityResult) return <HelpOutlineIcon sx={{ fontSize: 16 }} />;
-
+    const getStatusInfo = () => {
+        if (isCurrentlyTesting) return { icon: <SyncIcon sx={{ fontSize: 14 }} className="animate-spin" />, color: 'text-blue-400', text: 'Testando...' };
+        if (!connectivityResult) return { icon: <HelpOutlineIcon sx={{ fontSize: 14 }} />, color: 'text-gray-400', text: 'Desconhecido' };
         switch (connectivityResult.status) {
-            case 'online': return <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />;
-            case 'offline': return <CancelIcon sx={{ fontSize: 16, color: 'error.main' }} />;
-            case 'partial': return <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.main' }} />;
-            default: return <HelpOutlineIcon sx={{ fontSize: 16 }} />;
+            case 'online': return { icon: <CheckCircleOutlineIcon sx={{ fontSize: 14 }} />, color: 'text-primary', text: 'Online' };
+            case 'offline': return { icon: <CancelIcon sx={{ fontSize: 14 }} />, color: 'text-red-500', text: 'Offline' };
+            case 'partial': return { icon: <WarningAmberIcon sx={{ fontSize: 14 }} />, color: 'text-yellow-500', text: 'Parcial' };
+            default: return { icon: <HelpOutlineIcon sx={{ fontSize: 14 }} />, color: 'text-gray-400', text: 'Desconhecido' };
         }
     };
 
-    const getStatusText = () => {
-        if (isConnecting) return 'Conectando...';
-        if (isActive) return 'Ativo';
-        if (isCurrentlyTesting) return 'Testando...';
-        if (!connectivityResult) return 'Desconhecido';
-        return connectivityResult.status === 'online' ? 'Online' : 'Offline';
-    };
+    const statusInfo = getStatusInfo();
 
     const handleConnect = useCallback(async () => {
         if (isEditModeEnabled) return;
@@ -84,95 +73,78 @@ function ServerListItem({
 
     const handleToggleMonitoring = useCallback((e) => {
         e.stopPropagation();
-        if (isMonitored) {
-            stopMonitoring(serverKey);
-        } else {
-            startMonitoring(serverInfo);
-        }
+        if (isMonitored) stopMonitoring(serverKey);
+        else startMonitoring(serverInfo);
     }, [isMonitored, stopMonitoring, startMonitoring, serverKey, serverInfo]);
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
-        // Chama onDelete diretamente - o ConfirmationDialog é exibido pelo App.js
         onDelete();
     }, [onDelete]);
 
+    const actionBtn = "p-1.5 rounded-lg transition-all duration-200 hover:scale-110";
+
     return (
         <div
-            className={`server-list-item ${isActive ? 'active' : ''} ${isMonitored ? 'monitored' : ''}`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200
+                hover:bg-primary/5
+                ${isActive ? 'bg-primary/10 border-l-4 border-primary' : ''}
+                ${isMonitored ? 'border-r-4 border-purple-500' : ''}`}
             onClick={handleConnect}
         >
             {/* Status Icon */}
-            <div className="list-item-status">
-                {getStatusIcon()}
-            </div>
+            <div className={statusInfo.color}>{statusInfo.icon}</div>
 
             {/* Protocol Badge */}
-            <div className="list-item-protocol">
-                <span className={`protocol-badge protocol-${serverInfo.protocol}`}>
-                    {serverInfo.protocol.toUpperCase()}
-                </span>
+            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded
+                ${serverInfo.protocol === 'ssh' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                {(serverInfo.protocol || 'rdp').toUpperCase()}
+            </span>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-slate-900 dark:text-white truncate block">{serverInfo.name}</span>
+                <span className="text-xs text-gray-500 font-mono">{serverInfo.ipAddress}{serverInfo.port && `:${serverInfo.port}`}</span>
             </div>
 
-            {/* Server Info */}
-            <div className="list-item-info">
-                <span className="list-item-name">{serverInfo.name}</span>
-                <span className="list-item-address">
-                    {serverInfo.ipAddress}
-                    {serverInfo.port && `:${serverInfo.port}`}
-                </span>
-            </div>
-
-            {/* User Info */}
+            {/* User */}
             {serverInfo.username && (
-                <div className="list-item-user">
-                    <PersonOutlineIcon sx={{ fontSize: 14, marginRight: '4px' }} />
-                    {serverInfo.username}
-                    {serverInfo.domain && `@${serverInfo.domain}`}
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <PersonOutlineIcon sx={{ fontSize: 12 }} />
+                    {serverInfo.username}{serverInfo.domain && `@${serverInfo.domain}`}
                 </div>
             )}
 
+            {/* Connection Open Badge */}
+            {isActive && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                    Aberta
+                </span>
+            )}
+
             {/* Status Text */}
-            <div className="list-item-status-text">
-                {getStatusText()}
-            </div>
+            <span className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.text}</span>
 
             {/* Actions */}
             {isEditModeEnabled && (
-                <div className="list-item-actions" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {isConnectivityEnabled && (
                         <>
-                            <button
-                                onClick={handleTestConnectivity}
-                                className="list-action-btn"
-                                title="Testar conectividade"
-                                disabled={isCurrentlyTesting}
-                            >
-                                <RefreshIcon sx={{ fontSize: 18 }} />
-                            </button>
-                            <button
-                                onClick={handleToggleMonitoring}
-                                className={`list-action-btn ${isMonitored ? 'active' : ''}`}
-                                title={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
-                            >
-                                <MonitorHeartIcon sx={{ fontSize: 18 }} />
-                            </button>
+                            <button onClick={handleTestConnectivity} disabled={isCurrentlyTesting}
+                                className={`${actionBtn} bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-blue-500 disabled:opacity-50`}
+                                title="Testar"><RefreshIcon sx={{ fontSize: 16 }} /></button>
+                            <button onClick={handleToggleMonitoring}
+                                className={`${actionBtn} ${isMonitored ? 'bg-purple-500/20 text-purple-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-purple-500'}`}
+                                title={isMonitored ? 'Parar' : 'Monitorar'}><MonitorHeartIcon sx={{ fontSize: 16 }} /></button>
                         </>
                     )}
-                    <button
-                        onClick={() => onEdit(serverInfo)} // Chama modal global
-                        className="list-action-btn"
-                        title="Editar"
-                    >
-                        <EditIcon sx={{ fontSize: 18 }} />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="list-action-btn delete"
-                        title="Excluir"
-                    >
-                        <DeleteIcon sx={{ fontSize: 18 }} />
-                    </button>
+                    <button onClick={() => onEdit(serverInfo)}
+                        className={`${actionBtn} bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white`}
+                        title="Editar"><EditIcon sx={{ fontSize: 16 }} /></button>
+                    <button onClick={handleDelete}
+                        className={`${actionBtn} bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white`}
+                        title="Excluir"><DeleteIcon sx={{ fontSize: 16 }} /></button>
                 </div>
             )}
         </div>

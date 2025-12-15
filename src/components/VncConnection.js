@@ -1,4 +1,5 @@
-// src/components/VncConnection.js (v2.0: Com indicador de conexão aberta)
+// src/components/VncConnection.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React from 'react';
 import {
     EditIcon,
@@ -7,78 +8,78 @@ import {
     PersonOutlineIcon,
     CheckCircleIcon
 } from './MuiIcons';
-import './VncConnection.css';
 
 function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect, isOpen = false }) {
 
     const handleConnect = () => {
         if (isEditModeEnabled) return;
-
-        // Chama callback para abrir o modal/aba
         if (onConnect) {
-            console.log("🖥️ Abrindo conexão VNC:", connectionInfo.name, isOpen ? "(já aberta)" : "(nova)");
-            onConnect({
-                ...connectionInfo,
-                protocol: 'vnc'
-            });
-        } else {
-            console.error('Callback onConnect não fornecido para VncConnection!');
+            onConnect({ ...connectionInfo, protocol: 'vnc' });
         }
     };
 
     return (
         <div
-            className={`vnc-connection server-card-base ${isOpen ? 'is-open' : ''}`}
+            className={`
+                relative w-[260px] min-w-[260px]
+                bg-cream-100 dark:bg-dark-surface
+                border border-gray-200 dark:border-gray-700
+                rounded-xl p-4 cursor-pointer
+                transition-all duration-200 shadow-md
+                hover:shadow-lg hover:-translate-y-1 hover:border-primary/50
+                ${isOpen ? 'ring-2 ring-primary border-primary' : ''}
+            `}
             onClick={handleConnect}
         >
             {/* Badge de conexão aberta */}
             {isOpen && (
-                <div className="vnc-open-badge" title="Conexão aberta em aba">
-                    <CheckCircleIcon sx={{ fontSize: 14 }} />
+                <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 
+                    bg-primary/20 text-primary rounded-lg text-xs font-semibold">
+                    <CheckCircleIcon sx={{ fontSize: 12 }} />
                     <span>Aberta</span>
                 </div>
             )}
 
-            <div className="server-card-header">
-                <div className="server-card-info">
-                    <div className="server-card-title">
-                        <ComputerIcon sx={{ fontSize: 20, marginRight: 1, verticalAlign: 'middle' }} />
-                        <span className="server-card-name">{connectionInfo.name}</span>
-                    </div>
-                    <div className="server-card-details">
-                        <div className="server-card-address">
-                            <span>{connectionInfo.ipAddress}:{connectionInfo.port}</span>
-                        </div>
-                        {connectionInfo.viewOnly && (
-                            <div className="server-card-user">
-                                <PersonOutlineIcon sx={{ fontSize: 16, marginRight: '4px', verticalAlign: 'middle' }} />
-                                <span>Apenas Visualização</span>
-                            </div>
-                        )}
-                    </div>
+            {/* Info */}
+            <div className="mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                    <ComputerIcon sx={{ fontSize: 20 }} className="text-primary" />
+                    <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                        {connectionInfo.name}
+                    </span>
                 </div>
-
-                {isEditModeEnabled && (
-                    <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
-                        <button
-                            className="server-card-action-btn edit-btn"
-                            type="button"
-                            title="Editar Conexão"
-                            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                        >
-                            <EditIcon sx={{ fontSize: 20 }} />
-                        </button>
-                        <button
-                            className="server-card-action-btn delete-btn"
-                            type="button"
-                            title="Deletar Conexão"
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                        >
-                            <DeleteIcon sx={{ fontSize: 20 }} />
-                        </button>
+                <div className="text-xs text-gray-500 font-mono">
+                    {connectionInfo.ipAddress}:{connectionInfo.port}
+                </div>
+                {connectionInfo.viewOnly && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <PersonOutlineIcon sx={{ fontSize: 14 }} />
+                        <span>Apenas Visualização</span>
                     </div>
                 )}
             </div>
+
+            {/* Actions */}
+            {isEditModeEnabled && (
+                <div className="flex items-center gap-1 pt-2 border-t border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        className="p-2 rounded-lg bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                        type="button"
+                        title="Editar"
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                    >
+                        <EditIcon sx={{ fontSize: 18 }} />
+                    </button>
+                    <button
+                        className="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                        type="button"
+                        title="Deletar"
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    >
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

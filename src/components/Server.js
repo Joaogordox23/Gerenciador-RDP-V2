@@ -1,7 +1,8 @@
+// src/components/Server.js
+// ✨ v4.8: Migrado para Tailwind CSS
 import React, { useState, useCallback, useMemo } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { useConnectivity } from '../hooks/useConnectivity';
-import './Server.css';
 import {
   EditIcon,
   DeleteIcon,
@@ -21,7 +22,6 @@ import {
   AccessTimeIcon,
   OpenInNewIcon
 } from './MuiIcons';
-import LoadingOverlay from './LoadingOverlay';
 
 function Server({
   serverInfo,
@@ -32,8 +32,8 @@ function Server({
   index,
   isConnectivityEnabled = true,
   onEdit,
-  onRemoteConnect, // Conexão Guacamole (modal único)
-  onOpenInTab // Conexão em nova aba (sistema de abas)
+  onRemoteConnect,
+  onOpenInTab
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -47,59 +47,40 @@ function Server({
     stopMonitoring
   } = useConnectivity();
 
-  // Memoizar chave do servidor para performance
   const serverKey = useMemo(() => generateServerKey(serverInfo), [serverInfo, generateServerKey]);
   const connectivityResult = results.get(serverKey);
   const isCurrentlyTesting = isTesting.has(serverKey);
   const isMonitored = monitoredServers.has(serverKey);
 
-  // === HANDLERS ===
   const handleConnect = useCallback(async () => {
     if (isEditModeEnabled) return;
-
     setIsConnecting(true);
     const protocol = serverInfo.protocol || 'rdp';
 
     try {
-      // SSH: Usa terminal nativo (xterm.js) via sistema de abas
       if (protocol === 'ssh' && onOpenInTab) {
-        console.log('🔐 Conectando SSH nativo:', serverInfo.name);
         onOpenInTab(serverInfo, 'ssh');
-      }
-      // RDP: Usa mstsc.exe nativo (cmdkey + arquivo .rdp)
-      else if (protocol === 'rdp' && window.api?.connection?.connect) {
-        console.log('🖥️ Conectando RDP nativo (mstsc.exe):', serverInfo.name);
+      } else if (protocol === 'rdp' && window.api?.connection?.connect) {
         await window.api.connection.connect(serverInfo);
-      }
-      // Fallback: Guacamole se configurado
-      else if (onRemoteConnect) {
-        console.log('🥑 Conectando via Guacamole:', serverInfo.name);
+      } else if (onRemoteConnect) {
         onRemoteConnect(serverInfo);
-      } else {
-        console.error('❌ API de conexão não disponível');
-        throw new Error('API de conexão não disponível');
       }
     } catch (error) {
       console.error('❌ Erro ao conectar:', error);
     } finally {
-      // Remove estado de conectando após 1 segundo
       setTimeout(() => setIsConnecting(false), 1000);
     }
   }, [isEditModeEnabled, serverInfo, onRemoteConnect, onOpenInTab]);
-
 
   const handleTestConnectivity = useCallback((e) => {
     e.stopPropagation();
     testServer(serverInfo);
   }, [testServer, serverInfo]);
 
-  // Handler para abrir em nova aba
   const handleOpenInTab = useCallback((e) => {
     e.stopPropagation();
     if (onOpenInTab) {
-      const protocol = serverInfo.protocol || 'rdp';
-      console.log('📑 Abrindo em nova aba:', serverInfo.name, protocol);
-      onOpenInTab(serverInfo, protocol);
+      onOpenInTab(serverInfo, serverInfo.protocol || 'rdp');
     }
   }, [onOpenInTab, serverInfo]);
 
@@ -114,220 +95,147 @@ function Server({
 
   const handleDeleteClick = useCallback((e) => {
     e.stopPropagation();
-
-    // Para monitoramento se ativo
-    if (isMonitored) {
-      stopMonitoring(serverKey);
-    }
-
-    // Chama onDelete diretamente - o ConfirmationDialog é exibido pelo App.js
+    if (isMonitored) stopMonitoring(serverKey);
     onDelete();
   }, [isMonitored, stopMonitoring, serverKey, onDelete]);
 
-  const getLatencyClass = (latency) => {
-    if (!latency || latency === null) return null;
-    if (latency < 50) return 'latency-good';
-    if (latency < 150) return 'latency-medium';
-    return 'latency-bad';
-  };
-
-  // === STATUS INFO ===
+  // Status info
   const statusInfo = useMemo(() => {
-    if (isConnecting) return {
-      text: 'Conectando...',
-      className: 'connecting',
-      icon: <HourglassEmptyIcon sx={{ fontSize: 16 }} />
-    };
-
-    if (isActive) return {
-      text: 'Ativo',
-      className: 'active',
-      icon: <CircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-    };
-
-    if (isCurrentlyTesting) return {
-      text: 'Testando...',
-      className: 'testing',
-      icon: <SyncIcon sx={{ fontSize: 16 }} className="rotating" />
-    };
-
-    if (!connectivityResult) return {
-      text: 'Desconhecido',
-      className: 'unknown',
-      icon: <HelpOutlineIcon sx={{ fontSize: 16 }} />
-    };
+    if (isConnecting) return { text: 'Conectando...', color: 'text-yellow-500', bg: 'bg-yellow-500/20', icon: <HourglassEmptyIcon sx={{ fontSize: 14 }} /> };
+    if (isActive) return { text: 'Ativo', color: 'text-primary', bg: 'bg-primary/20', icon: <CircleIcon sx={{ fontSize: 14 }} /> };
+    if (isCurrentlyTesting) return { text: 'Testando...', color: 'text-blue-400', bg: 'bg-blue-400/20', icon: <SyncIcon sx={{ fontSize: 14 }} className="animate-spin" /> };
+    if (!connectivityResult) return { text: 'Desconhecido', color: 'text-gray-400', bg: 'bg-gray-400/20', icon: <HelpOutlineIcon sx={{ fontSize: 14 }} /> };
 
     switch (connectivityResult.status) {
-      case 'online': return { text: 'Online', className: 'online', icon: <CheckCircleOutlineIcon sx={{ fontSize: 16 }} /> };
-      case 'offline': return { text: 'Offline', className: 'offline', icon: <CancelIcon sx={{ fontSize: 16 }} /> };
-      case 'partial': return { text: 'Parcial', className: 'partial', icon: <WarningAmberIcon sx={{ fontSize: 16 }} /> };
-      default: return { text: 'Erro', className: 'error', icon: <ErrorOutlineIcon sx={{ fontSize: 16 }} /> };
+      case 'online': return { text: 'Online', color: 'text-primary', bg: 'bg-primary/20', icon: <CheckCircleOutlineIcon sx={{ fontSize: 14 }} /> };
+      case 'offline': return { text: 'Offline', color: 'text-red-500', bg: 'bg-red-500/20', icon: <CancelIcon sx={{ fontSize: 14 }} /> };
+      case 'partial': return { text: 'Parcial', color: 'text-yellow-500', bg: 'bg-yellow-500/20', icon: <WarningAmberIcon sx={{ fontSize: 14 }} /> };
+      default: return { text: 'Erro', color: 'text-red-500', bg: 'bg-red-500/20', icon: <ErrorOutlineIcon sx={{ fontSize: 14 }} /> };
     }
   }, [isActive, isConnecting, isCurrentlyTesting, connectivityResult]);
 
-  // === RENDER SERVIDOR NORMAL ===
+  const getLatencyColor = (latency) => {
+    if (!latency) return '';
+    if (latency < 50) return 'text-primary bg-primary/20';
+    if (latency < 150) return 'text-yellow-500 bg-yellow-500/20';
+    return 'text-red-500 bg-red-500/20';
+  };
+
+  const actionBtn = "p-2 rounded-lg transition-all duration-200 hover:scale-110";
+
   return (
-    <Draggable
-      draggableId={`server-${serverInfo.id}`}
-      index={index}
-      isDragDisabled={!isEditModeEnabled}
-    >
+    <Draggable draggableId={`server-${serverInfo.id}`} index={index} isDragDisabled={!isEditModeEnabled}>
       {(provided, snapshot) => (
         <div
-          className={`server-item server-card-base draggable-item ${statusInfo.className} 
-                     ${isMonitored ? 'monitored' : ''} 
-                     ${snapshot.isDragging ? 'dragging' : ''}
-                     ${isConnecting ? 'connecting' : ''}
-                     ${isActive ? 'active-connection' : ''}
-                     ${isEditModeEnabled ? 'edit-mode-draggable' : ''}`}
+          className={`
+            relative w-[280px] min-w-[280px]
+            bg-cream-100 dark:bg-dark-surface
+            border border-gray-200 dark:border-gray-700
+            rounded-xl p-4 cursor-pointer
+            transition-all duration-200
+            hover:shadow-lg hover:-translate-y-1 hover:border-primary/50
+            ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-primary scale-105' : 'shadow-md'}
+            ${isActive ? 'ring-2 ring-primary border-primary' : ''}
+            ${isConnecting ? 'animate-pulse' : ''}
+            ${isEditModeEnabled ? 'cursor-grab' : ''}
+          `}
           onClick={handleConnect}
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          role="button"
-          tabIndex={0}
-          aria-label={`Servidor ${serverInfo.name} - Status: ${statusInfo.text}`}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleConnect();
-            }
-          }}
         >
-          {/* Indicador visual de arrastar - apenas visual, não drag handle */}
+          {/* Drag Handle */}
           {isEditModeEnabled && (
-            <div
-              className="server-drag-indicator"
-              title="Arraste o card para reordenar"
-            >
-              <span>⋮⋮</span>
-            </div>
+            <div className="absolute top-2 left-2 text-gray-400 text-lg font-bold select-none">⋮⋮</div>
           )}
+
           {/* Loading Overlay */}
-          {isConnecting && (
-            <LoadingOverlay text="Conectando..." variant="connecting" />
-          )}
-          {isCurrentlyTesting && !isConnecting && (
-            <LoadingOverlay text="Testando..." variant="testing" />
-          )}
-
-          {/* === CABEÇALHO DO SERVIDOR === */}
-          <div className="server-card-header">
-            <div className="server-card-info">
-              <div className="server-card-title">
-                <span className={`protocol-badge protocol-${serverInfo.protocol}`}>
-                  {serverInfo.protocol.toUpperCase()}
-                </span>
-                <span className="server-card-name">{serverInfo.name}</span>
-              </div>
-
-              <div className="server-card-details">
-                <div className="server-card-address">
-                  <LinkIcon sx={{ fontSize: 12 }} />
-                  <span>{serverInfo.ipAddress}</span>
-                  {serverInfo.port && <span className="port-number">:{serverInfo.port}</span>}
-                </div>
-                {serverInfo.username && (
-                  <div className="server-card-user">
-                    <PersonOutlineIcon sx={{ fontSize: 12 }} />
-                    <span>{serverInfo.username}</span>
-                    {serverInfo.domain && <span className="domain">@{serverInfo.domain}</span>}
-                  </div>
-                )}
+          {(isConnecting || isCurrentlyTesting) && (
+            <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center z-10">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm">{isConnecting ? 'Conectando...' : 'Testando...'}</span>
               </div>
             </div>
+          )}
 
-            <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
-              <div className="server-status">
-                <span className={`status-indicator status-${statusInfo.className}`} title={statusInfo.text}>
-                  {statusInfo.icon}
+          {/* Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded
+                  ${serverInfo.protocol === 'ssh' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                  {(serverInfo.protocol || 'rdp').toUpperCase()}
                 </span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{serverInfo.name}</span>
               </div>
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <LinkIcon sx={{ fontSize: 12 }} />
+                <span className="font-mono">{serverInfo.ipAddress}</span>
+                {serverInfo.port && <span>:{serverInfo.port}</span>}
+              </div>
+              {serverInfo.username && (
+                <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                  <PersonOutlineIcon sx={{ fontSize: 12 }} />
+                  <span>{serverInfo.username}</span>
+                  {serverInfo.domain && <span className="opacity-60">@{serverInfo.domain}</span>}
+                </div>
+              )}
+            </div>
+            {/* Status */}
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
+              {statusInfo.icon}
             </div>
           </div>
 
-          <div className="server-card-actions" onClick={(e) => e.stopPropagation()}>
+          {/* Actions */}
+          <div className="flex items-center gap-1 pt-2 border-t border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
             {isConnectivityEnabled && (
               <>
-                <button
-                  type="button"
-                  onClick={handleToggleMonitoring}
-                  className={`server-card-action-btn monitor-btn ${isMonitored ? 'active' : ''}`}
-                  title={isMonitored ? 'Parar monitoramento' : 'Iniciar monitoramento'}
-                >
-                  <MonitorHeartIcon sx={{ fontSize: 20 }} />
+                <button onClick={handleToggleMonitoring}
+                  className={`${actionBtn} ${isMonitored ? 'bg-purple-500/20 text-purple-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-purple-500'}`}
+                  title={isMonitored ? 'Parar monitoramento' : 'Monitorar'}>
+                  <MonitorHeartIcon sx={{ fontSize: 18 }} />
                 </button>
-                <button
-                  type="button"
-                  onClick={handleTestConnectivity}
-                  className={`server-card-action-btn test-btn ${isCurrentlyTesting ? 'testing' : ''}`}
-                  title="Testar conectividade"
-                  disabled={isCurrentlyTesting}
-                >
-                  <RefreshIcon sx={{ fontSize: 20 }} />
+                <button onClick={handleTestConnectivity} disabled={isCurrentlyTesting}
+                  className={`${actionBtn} bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-blue-500 disabled:opacity-50`}
+                  title="Testar conectividade">
+                  <RefreshIcon sx={{ fontSize: 18 }} />
                 </button>
               </>
             )}
-
-            {/* Botão de nova aba - sempre visível quando disponível */}
             {onOpenInTab && (
-              <button
-                type="button"
-                onClick={handleOpenInTab}
-                className="server-card-action-btn tab-btn"
-                title="Abrir em nova aba"
-              >
-                <OpenInNewIcon sx={{ fontSize: 20 }} />
+              <button onClick={handleOpenInTab}
+                className={`${actionBtn} bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-primary`}
+                title="Abrir em nova aba">
+                <OpenInNewIcon sx={{ fontSize: 18 }} />
               </button>
             )}
-
             {isEditModeEnabled && (
               <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(serverInfo);
-                  }}
-                  className="server-card-action-btn edit-btn"
-                  title="Editar servidor"
-                >
-                  <EditIcon sx={{ fontSize: 20 }} />
+                <button onClick={(e) => { e.stopPropagation(); onEdit(serverInfo); }}
+                  className={`${actionBtn} bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white ml-auto`}
+                  title="Editar">
+                  <EditIcon sx={{ fontSize: 18 }} />
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleDeleteClick}
-                  className="server-card-action-btn delete-btn"
-                  title="Excluir servidor"
-                >
-                  <DeleteIcon sx={{ fontSize: 20 }} />
+                <button onClick={handleDeleteClick}
+                  className={`${actionBtn} bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white`}
+                  title="Excluir">
+                  <DeleteIcon sx={{ fontSize: 18 }} />
                 </button>
               </>
             )}
           </div>
 
-          {/* === INDICADORES ADICIONAIS === */}
-          <div className="server-indicators">
-            {isMonitored && (
-              <span className="indicator monitoring-indicator" title="Monitoramento ativo">
-                <BarChartIcon sx={{ fontSize: 16 }} />
-              </span>
-            )}
-            {isActive && (
-              <span className="indicator active-indicator" title="Conexão ativa">
-                <LinkIcon sx={{ fontSize: 16 }} />
-              </span>
-            )}
-            {connectivityResult?.lastCheck && (
-              <span className="indicator last-check" title={`Última verificação: ${new Date(connectivityResult.lastCheck).toLocaleString()}`}>
-                <AccessTimeIcon sx={{ fontSize: 16 }} />
-              </span>
-            )}
-            {connectivityResult && connectivityResult.latency && (
-              <div className={`latency-badge ${getLatencyClass(connectivityResult.latency)}`}>
+          {/* Indicadores */}
+          <div className="flex items-center gap-2 mt-2">
+            {isMonitored && <span className="text-purple-500" title="Monitorando"><BarChartIcon sx={{ fontSize: 14 }} /></span>}
+            {isActive && <span className="text-primary" title="Conexão ativa"><LinkIcon sx={{ fontSize: 14 }} /></span>}
+            {connectivityResult?.lastCheck && <span className="text-gray-400" title="Última verificação"><AccessTimeIcon sx={{ fontSize: 14 }} /></span>}
+            {connectivityResult?.latency && (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getLatencyColor(connectivityResult.latency)}`}>
                 {connectivityResult.latency}ms
-              </div>
+              </span>
             )}
           </div>
         </div>

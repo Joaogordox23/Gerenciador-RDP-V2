@@ -1,11 +1,12 @@
 /**
  * RemoteDesktopViewer.js
  * Componente React para conexões remotas via Guacamole
+ * 
+ * Migrado para Tailwind CSS
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import Guacamole from 'guacamole-common-js';
-import './RemoteDesktopViewer.css';
 
 function RemoteDesktopViewer({
     connectionInfo,
@@ -279,38 +280,116 @@ function RemoteDesktopViewer({
         if (onDisconnect) onDisconnect();
     };
 
+    // Status badge classes
+    const getStatusBadge = () => {
+        switch (status) {
+            case 'connected':
+                return { text: '🟢 Conectado', class: 'text-primary' };
+            case 'connecting':
+                return { text: '🟡 Conectando...', class: 'text-amber-400' };
+            case 'waiting':
+                return { text: '🟡 Aguardando...', class: 'text-amber-400' };
+            case 'disconnected':
+                return { text: '⚫ Desconectado', class: 'text-gray-400' };
+            case 'error':
+                return { text: '🔴 Erro', class: 'text-red-400' };
+            default:
+                return { text: status, class: 'text-gray-400' };
+        }
+    };
+
+    const statusBadge = getStatusBadge();
+
     return (
-        <div className={`remote-desktop-viewer ${fullscreen ? 'fullscreen' : ''}`}>
+        <div className={`
+            remote-desktop-viewer
+            flex flex-col h-full
+            ${fullscreen
+                ? 'flex-1 rounded-none bg-black'
+                : 'bg-dark-surface rounded-lg'
+            }
+            overflow-hidden
+        `}>
             {/* Header só aparece quando NÃO está em fullscreen (toolbar vem do ConnectionViewerModal) */}
             {!fullscreen && (
-                <div className="viewer-header">
-                    <div className="viewer-info">
-                        <span className="viewer-name">{connectionInfo?.name || 'Conexão'}</span>
-                        <span className={`viewer-status status-${status}`}>
-                            {status === 'connected' && '🟢 Conectado'}
-                            {status === 'connecting' && '🟡 Conectando...'}
-                            {status === 'waiting' && '🟡 Aguardando...'}
-                            {status === 'disconnected' && '⚫ Desconectado'}
-                            {status === 'error' && '🔴 Erro'}
+                <div className="
+                    flex justify-between items-center
+                    px-4 py-2.5
+                    bg-gradient-to-r from-dark-surface to-dark-elevated
+                    border-b border-primary/20
+                ">
+                    <div className="flex items-center gap-3">
+                        <span className="font-semibold text-white">
+                            {connectionInfo?.name || 'Conexão'}
+                        </span>
+                        <span className={`text-sm px-2.5 py-1 rounded-full bg-white/10 ${statusBadge.class}`}>
+                            {statusBadge.text}
                         </span>
                     </div>
-                    <button className="btn-disconnect" onClick={handleDisconnect}>✕</button>
+                    <button
+                        onClick={handleDisconnect}
+                        className="
+                            w-8 h-8 rounded-full
+                            flex items-center justify-center
+                            bg-red-500/20 text-red-500 text-base
+                            hover:bg-red-500 hover:text-white
+                            transition-all cursor-pointer
+                        "
+                    >
+                        ✕
+                    </button>
                 </div>
             )}
 
-            <div ref={displayRef} className="viewer-display" tabIndex={0} />
+            {/* Display Container */}
+            <div
+                ref={displayRef}
+                className="
+                    viewer-display
+                    flex-1 overflow-hidden
+                    bg-black relative
+                    min-h-[400px]
+                    [&>div]:w-full [&>div]:h-full
+                    [&_canvas]:block
+                "
+                tabIndex={0}
+            />
 
+            {/* Loading Overlay */}
             {(status === 'connecting' || status === 'waiting') && (
-                <div className="viewer-overlay">
-                    <div className="loader"></div>
+                <div className="
+                    absolute inset-0
+                    flex flex-col items-center justify-center
+                    bg-black/80 text-white
+                ">
+                    <div className="
+                        w-10 h-10 mb-4
+                        border-4 border-primary/30 border-t-primary
+                        rounded-full animate-spin
+                    " />
                     <p>Conectando...</p>
                 </div>
             )}
 
+            {/* Error Overlay */}
             {error && (
-                <div className="viewer-overlay error">
-                    <p>❌ {error}</p>
-                    <button onClick={() => window.location.reload()}>Recarregar</button>
+                <div className="
+                    absolute inset-0
+                    flex flex-col items-center justify-center
+                    bg-red-600/90 text-white
+                ">
+                    <p className="mb-4">❌ {error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="
+                            px-6 py-2.5
+                            bg-primary text-white rounded-lg
+                            hover:brightness-110
+                            transition-all cursor-pointer
+                        "
+                    >
+                        Recarregar
+                    </button>
                 </div>
             )}
         </div>

@@ -108,7 +108,25 @@ function registerVncHandlers({ vncProxyService, sanitizeLog, isDev }) {
         }
     });
 
-    console.log('✅ VNC handlers registrados (3 handlers)');
+    // ==========================
+    // VNC SNAPSHOT (Modo economia de memória)
+    // ==========================
+    ipcMain.handle('vnc-snapshot', async (event, serverInfo) => {
+        try {
+            console.log(`📸 Capturando snapshot de: ${serverInfo.name}`);
+            const result = await vncProxyService.captureSnapshot(serverInfo);
+            return {
+                success: result !== null,
+                data: result,
+                serverId: serverInfo.id
+            };
+        } catch (error) {
+            console.error('❌ Erro ao capturar snapshot VNC:', error);
+            return { success: false, error: error.message, serverId: serverInfo.id };
+        }
+    });
+
+    console.log('✅ VNC handlers registrados (4 handlers)');
 }
 
 module.exports = { registerVncHandlers };

@@ -1,4 +1,4 @@
-// src/components/AddGroupForm.js - VERSÃO AJUSTADA PARA MODAL
+// src/components/AddGroupForm.js - VERSÃO MIGRADA PARA TAILWIND
 
 import React, { useState } from 'react';
 import {
@@ -11,7 +11,6 @@ import {
     CheckIcon,
     CancelIcon
 } from './MuiIcons';
-import './AddGroupForm.css'; // Importando o novo CSS
 
 function AddGroupForm({ onAddGroup, onCancel }) {
     // Estados do formulário
@@ -71,93 +70,155 @@ function AddGroupForm({ onAddGroup, onCancel }) {
         }
     };
 
+    // Input border classes
+    const getInputBorderClass = () => {
+        if (error) return 'border-red-500 focus:ring-red-500/20';
+        if (groupName.trim()) return 'border-green-500 focus:ring-green-500/20';
+        return 'border-white/10 focus:border-primary focus:ring-primary/20';
+    };
+
     // ==========================
     // RENDER
     // ==========================
     return (
-        <form className="add-group-form" onSubmit={handleSubmit}>
-            <div className="add-group-input-container">
-                <div className="add-group-input-wrapper">
-                    <div className="add-group-input-icon">
-                        <FolderIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            {/* Input Container */}
+            <div className="flex flex-col gap-2">
+                {/* Input Wrapper */}
+                <div className="relative flex items-center">
+                    {/* Icon */}
+                    <div className="absolute left-3 z-10 flex items-center justify-center pointer-events-none">
+                        <FolderIcon sx={{ fontSize: 20 }} className="text-primary" />
                     </div>
 
+                    {/* Input */}
                     <input
                         type="text"
                         value={groupName}
                         onChange={handleInputChange}
                         placeholder="Ex: Servidores de Produção"
-                        className={`add-group-input ${error ? 'error' : ''} ${groupName.trim() && !error ? 'valid' : ''}`}
+                        className={`
+                            w-full h-11 pl-11 pr-10 py-3
+                            rounded-lg border-2
+                            bg-white/5 text-white text-sm
+                            placeholder-gray-400/60
+                            outline-none
+                            transition-all duration-200
+                            focus:bg-white/10 focus:ring-4
+                            dark:bg-white/5
+                            ${getInputBorderClass()}
+                        `}
                         disabled={isSubmitting}
                         maxLength={50}
                         autoFocus
                     />
 
-                    <div className="add-group-input-indicator">
+                    {/* Indicator */}
+                    <div className="absolute right-3 z-10 flex items-center justify-center">
                         {groupName.trim() && !error && (
-                            <CheckIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                            <CheckIcon sx={{ fontSize: 18 }} className="text-green-500" />
                         )}
                         {error && (
-                            <CancelIcon sx={{ fontSize: 18, color: 'error.main' }} />
+                            <CancelIcon sx={{ fontSize: 18 }} className="text-red-500" />
                         )}
                     </div>
                 </div>
 
-                <div className="add-group-char-counter">
-                    <span className={groupName.length > 40 ? 'warning' : ''}>
+                {/* Character Counter */}
+                <div className="text-right text-xs text-gray-400">
+                    <span className={groupName.length > 40 ? 'text-amber-400' : ''}>
                         {groupName.length}/50
                     </span>
                 </div>
 
+                {/* Error Message */}
                 {error && (
-                    <div className="add-group-error">
-                        <WarningAmberIcon sx={{ fontSize: 18, color: 'error.main', marginRight: '6px' }} />
-                        <span className="error-text">{error}</span>
+                    <div className="
+                        flex items-center gap-1.5
+                        px-3 py-2.5 rounded-lg
+                        bg-red-500/10 border border-red-500/20
+                        text-red-400 text-xs
+                    ">
+                        <WarningAmberIcon sx={{ fontSize: 18 }} />
+                        <span className="flex-1">{error}</span>
                     </div>
                 )}
 
+                {/* Hint Message */}
                 {!error && groupName.length === 0 && (
-                    <div className="add-group-hint">
-                        <InfoIcon sx={{ fontSize: 18, color: 'info.main', marginRight: '6px' }} />
-                        <span className="hint-text">
+                    <div className="
+                        flex items-center gap-1.5
+                        px-3 py-2.5 rounded-lg
+                        bg-primary/10 border border-primary/20
+                        text-gray-400 text-xs
+                    ">
+                        <InfoIcon sx={{ fontSize: 18 }} className="text-primary" />
+                        <span className="flex-1">
                             Use nomes descritivos como "Desenvolvimento", "Produção", etc.
                         </span>
                     </div>
                 )}
             </div>
 
-            <div className="add-group-actions">
+            {/* Action Buttons */}
+            <div className="flex gap-3 justify-end pt-2 border-t border-white/10 dark:border-white/10">
+                {/* Cancel Button */}
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="add-group-cancel-btn"
                     disabled={isSubmitting}
+                    className="
+                        h-10 px-5 rounded-lg
+                        inline-flex items-center justify-center gap-2
+                        bg-white/5 border-2 border-white/10
+                        text-gray-400 text-sm font-semibold
+                        hover:bg-white/10 hover:border-white/20 hover:text-white
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        transition-all cursor-pointer
+                    "
                 >
-                    <CloseIcon sx={{ fontSize: 18, marginRight: '6px' }} />
-                    <span className="btn-text">Cancelar</span>
+                    <CloseIcon sx={{ fontSize: 18 }} />
+                    <span className="whitespace-nowrap">Cancelar</span>
                 </button>
 
+                {/* Submit Button */}
                 <button
                     type="submit"
-                    className={`add-group-submit-btn ${isSubmitting ? 'loading' : ''}`}
                     disabled={!groupName.trim() || error || isSubmitting}
+                    className={`
+                        h-10 px-5 rounded-lg
+                        inline-flex items-center justify-center gap-2
+                        bg-gradient-to-br from-primary to-teal-600
+                        text-black text-sm font-semibold
+                        shadow-lg shadow-primary/30
+                        hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40
+                        active:translate-y-0 active:shadow-md
+                        disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0
+                        transition-all cursor-pointer
+                        ${isSubmitting ? 'pointer-events-none' : ''}
+                    `}
                 >
-                    <span className="btn-icon">
+                    <span className="flex items-center justify-center">
                         {isSubmitting ? (
-                            <HourglassEmptyIcon sx={{ fontSize: 18 }} className="rotating" />
+                            <HourglassEmptyIcon sx={{ fontSize: 18 }} className="animate-spin" />
                         ) : (
                             <CheckCircleIcon sx={{ fontSize: 18 }} />
                         )}
                     </span>
-                    <span className="btn-text">
+                    <span className="whitespace-nowrap">
                         {isSubmitting ? 'Criando...' : 'Criar Grupo'}
                     </span>
                 </button>
             </div>
 
+            {/* Progress Bar */}
             {isSubmitting && (
-                <div className="add-group-progress">
-                    <div className="progress-bar"></div>
+                <div className="h-0.5 bg-white/10 rounded overflow-hidden mt-2">
+                    <div className="
+                        h-full w-full
+                        bg-gradient-to-r from-primary to-teal-300
+                        animate-[progress_1s_ease-in-out_infinite]
+                    " />
                 </div>
             )}
         </form>
