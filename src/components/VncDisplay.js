@@ -139,6 +139,14 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                         connectionTimeoutRef.current = null;
                     }
 
+                    // ✅ v5.5: CRÍTICO - Força foco no canvas para captura de teclado
+                    setTimeout(() => {
+                        if (rfbRef.current) {
+                            rfbRef.current.focus({ preventScroll: true });
+                            console.log(`🎯 [${connectionInfo.name}] Foco definido no canvas VNC`);
+                        }
+                    }, 200);
+
                     // Força recálculo de escala após receber primeiro frame
                     setTimeout(() => {
                         if (rfbRef.current) {
@@ -152,38 +160,98 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                             }, 100);
                         }
                     }, 300);
+                    // Nota: mousedown handler adicionado na seção de setup para cleanup correto
+                });
 
-                    // ✅ v5.3: Sincronização automática de clipboard (Ctrl+V do Windows → VNC)
-                    const handlePasteEvent = async (e) => {
-                        if (!rfbRef.current || viewOnly) return;
+                // ✅ v5.5: Clipboard bidirecional - Servidor → Local
+                rfb.addEventListener('clipboard', (e) => {
+                    const text = e.detail?.text;
+                    if (text) {
+                        console.log(`📋 [${connectionInfo.name}] Clipboard do servidor: ${text.substring(0, 50)}...`);
+                        navigator.clipboard.writeText(text).catch(err =>
+                            console.warn('📋 Não foi possível escrever no clipboard local:', err)
+                        );
+                    }
+                });
 
-                        // Verifica se foi Ctrl+V ou evento paste
-                        try {
-                            let text = '';
-                            if (e.clipboardData) {
-                                text = e.clipboardData.getData('text/plain');
-                            } else {
-                                text = await navigator.clipboard.readText();
-                            }
+                // ✅ v5.5: Bell - Notificação sonora do servidor
+                rfb.addEventListener('bell', () => {
+                    console.log(`🔔 [${connectionInfo.name}] Bell!`);
+                    // Tenta reproduzir som de notificação do sistema
+                    try {
+                        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+V2teleiyAqdXx4pVAGTRpqM/d5KBPOC1MotLj4KVdRzlkpr/ZxrdlS0RekbPNx7VuVkhbhKC6tq10X1dcgpquqaF2ZmJjfJCfnZV5cW5tfISNi4N+fH18gIeHhIF/foCBg4WEgn+Af4CDhYSDgH9/gIGDhIOCgH9/gIGCg4OCgYCAgIGCgoKBgICAgYGCgoGBgICAgYGBgYGBgICBgYGBgYGAgICBgYGBgYGAgICAgYGBgYGAgICAgYCBgYCAgICAgYGBgIB/f4CAgIGAgH9/f4CAgICAf39/gICAgIB/f3+AgICAgH9/f4CAgICAf39/f4CAgH9/f39/gIB/f39/f4CAf39/f39/gH9/f39/f4B/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/');
+                        audio.volume = 0.3;
+                        audio.play().catch(() => { });
+                    } catch (e) { /* ignore */ }
+                });
 
-                            if (text && rfbRef.current) {
-                                console.log(`📋 [${connectionInfo.name}] Colando texto: ${text.substring(0, 50)}...`);
-                                rfbRef.current.clipboardPasteFrom(text);
-                            }
-                        } catch (err) {
-                            console.warn('📋 Não foi possível acessar clipboard:', err);
-                        }
-                    };
+                // ✅ v5.5: Intercepta Ctrl+V para colar do clipboard local
+                const handleKeyDown = async (e) => {
+                    // Verifica viewOnly DIRETAMENTE do RFB (evita closure stale)
+                    const isViewOnly = rfbRef.current?.viewOnly ?? true;
 
-                    // Listener para evento paste nativo
-                    const container = vncContainerRef.current;
-                    if (container) {
-                        container.addEventListener('paste', handlePasteEvent);
+                    if (!rfbRef.current || isViewOnly) {
+                        return;
                     }
 
-                    // Salva referência para cleanup
-                    rfbRef.current._pasteHandler = handlePasteEvent;
-                });
+                    // Ctrl+V - Colar do clipboard local para o servidor
+                    if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                            const text = await navigator.clipboard.readText();
+                            if (text && rfbRef.current) {
+                                console.log(`📋 [${connectionInfo.name}] Colando via Ctrl+V`);
+                                // 1. Sincroniza o clipboard do servidor
+                                rfbRef.current.clipboardPasteFrom(text);
+
+                                // 2. Simula Ctrl+V no servidor para executar a ação de colar
+                                const XK_Control_L = 0xFFE3;
+                                const XK_v = 0x0076;
+
+                                // Pequeno delay para garantir que o clipboard foi sincronizado
+                                setTimeout(() => {
+                                    if (rfbRef.current) {
+                                        rfbRef.current.sendKey(XK_Control_L, "ControlLeft", true);
+                                        rfbRef.current.sendKey(XK_v, "KeyV", true);
+                                        rfbRef.current.sendKey(XK_v, "KeyV", false);
+                                        rfbRef.current.sendKey(XK_Control_L, "ControlLeft", false);
+                                    }
+                                }, 50);
+                            } else {
+                                console.warn(`📋 [${connectionInfo.name}] Clipboard vazio`);
+                            }
+                        } catch (err) {
+                            console.warn('📋 Clipboard não acessível:', err);
+                        }
+                    }
+                };
+
+                // Adiciona listener no container E no canvas (useCapture = true)
+                const container = vncContainerRef.current;
+                const canvas = container?.querySelector('canvas');
+
+                // ✅ v5.5: Guarda referências para cleanup
+                const mouseDownHandler = () => {
+                    if (rfbRef.current) {
+                        rfbRef.current.focus({ preventScroll: true });
+                    }
+                };
+
+                if (container) {
+                    container.addEventListener('keydown', handleKeyDown, true);
+                }
+                if (canvas) {
+                    canvas.addEventListener('keydown', handleKeyDown, true);
+                    canvas.addEventListener('mousedown', mouseDownHandler);
+                    canvas.tabIndex = 0;
+                }
+
+                // ✅ Guarda handlers no RFB para cleanup
+                rfb._keyDownHandler = handleKeyDown;
+                rfb._mouseDownHandler = mouseDownHandler;
+                rfb._container = container;
+                rfb._canvas = canvas;
 
                 rfb.addEventListener('disconnect', (event) => {
                     const detail = event.detail || {};
@@ -262,8 +330,24 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
             }
             if (rfbRef.current) {
                 console.log(`🧹 [${connectionInfo.name}] Limpando conexão VNC...`);
-                rfbRef.current.disconnect();
+
+                // ✅ v5.5: Remove event listeners antes de desconectar
+                const rfb = rfbRef.current;
+                if (rfb._keyDownHandler) {
+                    if (rfb._container) {
+                        rfb._container.removeEventListener('keydown', rfb._keyDownHandler, true);
+                    }
+                    if (rfb._canvas) {
+                        rfb._canvas.removeEventListener('keydown', rfb._keyDownHandler, true);
+                    }
+                }
+                if (rfb._mouseDownHandler && rfb._canvas) {
+                    rfb._canvas.removeEventListener('mousedown', rfb._mouseDownHandler);
+                }
+
+                rfb.disconnect();
                 rfbRef.current = null;
+                console.log(`✅ [${connectionInfo.name}] Cleanup completo`);
             }
         };
         // ✨ v4.7: APENAS proxyUrl e password como dependências para evitar reconexões

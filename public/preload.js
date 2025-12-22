@@ -182,6 +182,7 @@ try {
             startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-proxy-start', connectionInfo),
             stopProxy: (serverId) => ipcRenderer.invoke('vnc-proxy-stop', serverId),
             captureSnapshot: (serverInfo) => ipcRenderer.invoke('vnc-snapshot', serverInfo),
+            checkAvailability: (serverInfo) => ipcRenderer.invoke('vnc-check-availability', serverInfo), // v5.4: Reconexão automática
         },
 
         // API Guacamole (RDP/SSH/VNC integrado)
@@ -194,6 +195,13 @@ try {
             getGuacamole: () => ipcRenderer.invoke('get-guacamole-config'),
             setGuacamole: (config) => ipcRenderer.invoke('set-guacamole-config', config),
             isGuacamoleConfigured: () => ipcRenderer.invoke('is-guacamole-configured'),
+        },
+
+        // API AnyDesk
+        anydesk: {
+            connect: (anydeskId, password) => ipcRenderer.invoke('anydesk-connect', { anydeskId, password }),
+            checkInstalled: () => ipcRenderer.invoke('anydesk-check-installed'),
+            getLocalId: () => ipcRenderer.invoke('anydesk-get-local-id'),
         },
 
         // ==========================
@@ -246,6 +254,20 @@ try {
 
             // Utilitários
             selectFile: (type) => ipcRenderer.invoke('app-select-file', type),
+        },
+
+        // ==========================
+        // API AnyDesk Database (Feature v5.1)
+        // ==========================
+        anydeskDb: {
+            getGroups: () => ipcRenderer.invoke('db-anydesk-get-groups'),
+            addGroup: (data) => ipcRenderer.invoke('db-anydesk-add-group', data),
+            updateGroup: (data) => ipcRenderer.invoke('db-anydesk-update-group', data),
+            deleteGroup: (id) => ipcRenderer.invoke('db-anydesk-delete-group', id),
+            addConnection: (data) => ipcRenderer.invoke('db-anydesk-add-connection', data),
+            updateConnection: (data) => ipcRenderer.invoke('db-anydesk-update-connection', data),
+            deleteConnection: (id) => ipcRenderer.invoke('db-anydesk-delete-connection', id),
+            updateLastConnected: (id) => ipcRenderer.invoke('db-anydesk-update-last-connected', id),
         },
 
         // ==========================

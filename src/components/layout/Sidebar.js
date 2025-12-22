@@ -10,7 +10,8 @@ import {
     ChevronRightIcon,
     LightModeIcon,
     DarkModeIcon,
-    AppsIcon
+    AppsIcon,
+    DesktopWindowsIcon
 } from '../MuiIcons';
 
 function Sidebar({ activeView, onViewChange, theme, onThemeToggle, isCollapsed, onToggleCollapse }) {
@@ -19,6 +20,7 @@ function Sidebar({ activeView, onViewChange, theme, onThemeToggle, isCollapsed, 
         { id: 'RDP/SSH', label: 'RDP/SSH', icon: <ComputerIcon /> },
         { id: 'VNC', label: 'VNC', icon: <VideoLabelIcon /> },
         { id: 'VNC Wall', label: 'VNC Wall', icon: <GridViewIcon /> },
+        { id: 'AnyDesk', label: 'AnyDesk', icon: <DesktopWindowsIcon />, color: '#EF473A' },
         { id: 'Aplicações', label: 'Aplicações', icon: <AppsIcon /> }
     ];
 

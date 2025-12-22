@@ -52,6 +52,7 @@ const VncView = lazy(() => import('./views/VncView'));
 const VncWallView = lazy(() => import('./views/VncWallView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
 const ApplicationsView = lazy(() => import('./views/ApplicationsView'));
+const AnyDeskView = lazy(() => import('./views/AnyDeskView'));
 
 function App() {
     return (
@@ -619,6 +620,9 @@ function AppContent() {
                             )}
                             {activeView === 'Aplicações' && (
                                 <ApplicationsView />
+                            )}
+                            {activeView === 'AnyDesk' && (
+                                <AnyDeskView />
                             )}
 
                         </Suspense>

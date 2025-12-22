@@ -12,6 +12,7 @@ const { registerConnectionHandlers } = require('./connection.handlers');
 const { registerConfigHandlers } = require('./config.handlers');
 const { registerSshHandlers } = require('./ssh.handlers');
 const { registerAppHandlers } = require('./app.handlers');
+const { registerAnyDeskHandlers } = require('./anydesk.handlers');
 
 /**
  * Registra todos os IPC handlers do Electron
@@ -94,7 +95,10 @@ function registerAllHandlers(deps) {
         databaseManager: deps.databaseManager
     });
 
-    console.log('✅ Todos os IPC handlers registrados (42 handlers em 11 módulos)');
+    // AnyDesk handlers (anydesk-connect, anydesk-check-installed)
+    registerAnyDeskHandlers();
+
+    console.log('✅ Todos os IPC handlers registrados (45 handlers em 12 módulos)');
 }
 
 module.exports = { registerAllHandlers };

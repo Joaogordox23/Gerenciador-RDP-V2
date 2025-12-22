@@ -126,7 +126,20 @@ function registerVncHandlers({ vncProxyService, sanitizeLog, isDev }) {
         }
     });
 
-    console.log('✅ VNC handlers registrados (4 handlers)');
+    // ==========================
+    // VNC CHECK AVAILABILITY (Para reconexão automática)
+    // ==========================
+    ipcMain.handle('vnc-check-availability', async (event, serverInfo) => {
+        try {
+            // Usa o captureSnapshot que faz teste TCP rápido (3s timeout)
+            const result = await vncProxyService.captureSnapshot(serverInfo, 3000);
+            return result !== null && result.connected === true;
+        } catch (error) {
+            return false;
+        }
+    });
+
+    console.log('✅ VNC handlers registrados (5 handlers)');
 }
 
 module.exports = { registerVncHandlers };

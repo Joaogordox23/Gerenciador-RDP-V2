@@ -105,5 +105,9 @@ export {
 
     // Dashboard Icons (v5.0)
     ListAlt as ListAltIcon,
-    Sensors as SensorsIcon
+    Sensors as SensorsIcon,
+
+    // Power Control (v5.5)
+    PowerSettingsNew as PowerSettingsNewIcon,
+    RestartAlt as RestartAltIcon
 } from '@mui/icons-material';

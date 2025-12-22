@@ -288,6 +288,134 @@ function registerDatabaseHandlers({ databaseManager, fileSystemManager }) {
     });
 
     console.log('✅ Database handlers registrados (10 handlers)');
+
+    // ============================================
+    // HANDLERS ANYDESK
+    // ============================================
+
+    // Obter todos os grupos AnyDesk com conexões
+    ipcMain.handle('db-anydesk-get-groups', async () => {
+        try {
+            const groups = databaseManager.db.prepare(`
+                SELECT * FROM anydesk_groups ORDER BY sort_order, name
+            `).all();
+
+            const connections = databaseManager.db.prepare(`
+                SELECT * FROM anydesk_connections ORDER BY sort_order, name
+            `).all();
+
+            // Agrupar conexões
+            const groupsWithConnections = groups.map(group => ({
+                id: group.id,
+                name: group.name,
+                icon: group.icon,
+                color: group.color,
+                sortOrder: group.sort_order,
+                connections: connections
+                    .filter(c => c.group_id === group.id)
+                    .map(c => ({
+                        id: c.id,
+                        groupId: c.group_id,
+                        name: c.name,
+                        anydeskId: c.anydesk_id,
+                        description: c.description,
+                        password: c.password,
+                        lastConnected: c.last_connected,
+                        sortOrder: c.sort_order
+                    }))
+            }));
+
+            return groupsWithConnections;
+        } catch (error) {
+            console.error('❌ Erro ao obter grupos AnyDesk:', error);
+            return [];
+        }
+    });
+
+    // Adicionar grupo AnyDesk
+    ipcMain.handle('db-anydesk-add-group', async (event, { name, icon, color }) => {
+        try {
+            const result = databaseManager.db.prepare(`
+                INSERT INTO anydesk_groups (name, icon, color) VALUES (?, ?, ?)
+            `).run(name, icon, color || '#EF473A');
+            return { success: true, id: result.lastInsertRowid };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Atualizar grupo AnyDesk
+    ipcMain.handle('db-anydesk-update-group', async (event, { id, name, icon, color }) => {
+        try {
+            databaseManager.db.prepare(`
+                UPDATE anydesk_groups SET name = ?, icon = COALESCE(?, icon), color = COALESCE(?, color) WHERE id = ?
+            `).run(name, icon, color, id);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Deletar grupo AnyDesk
+    ipcMain.handle('db-anydesk-delete-group', async (event, id) => {
+        try {
+            databaseManager.db.prepare(`DELETE FROM anydesk_groups WHERE id = ?`).run(id);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Adicionar conexão AnyDesk
+    ipcMain.handle('db-anydesk-add-connection', async (event, { groupId, name, anydeskId, description, password }) => {
+        try {
+            const result = databaseManager.db.prepare(`
+                INSERT INTO anydesk_connections (group_id, name, anydesk_id, description, password)
+                VALUES (?, ?, ?, ?, ?)
+            `).run(groupId, name, anydeskId, description || '', password || '');
+            return { success: true, id: result.lastInsertRowid };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Atualizar conexão AnyDesk
+    ipcMain.handle('db-anydesk-update-connection', async (event, { id, name, anydeskId, description, password }) => {
+        try {
+            databaseManager.db.prepare(`
+                UPDATE anydesk_connections 
+                SET name = ?, anydesk_id = ?, description = ?, password = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).run(name, anydeskId, description || '', password || '', id);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Deletar conexão AnyDesk
+    ipcMain.handle('db-anydesk-delete-connection', async (event, id) => {
+        try {
+            databaseManager.db.prepare(`DELETE FROM anydesk_connections WHERE id = ?`).run(id);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Atualizar último acesso
+    ipcMain.handle('db-anydesk-update-last-connected', async (event, id) => {
+        try {
+            databaseManager.db.prepare(`
+                UPDATE anydesk_connections SET last_connected = CURRENT_TIMESTAMP WHERE id = ?
+            `).run(id);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    console.log('✅ AnyDesk database handlers registrados (8 handlers)');
 }
 
 module.exports = { registerDatabaseHandlers };

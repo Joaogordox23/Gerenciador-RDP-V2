@@ -9,11 +9,26 @@ import {
     SettingsIcon, RefreshIcon, PhotoCameraIcon, SignalWifiIcon, MouseIcon
 } from './MuiIcons';
 
-// X11 Keysyms
+// X11 Keysyms - Expandido para mais teclas
 const XK = {
-    Control_L: 0xFFE3, Alt_L: 0xFFE9, Shift_L: 0xFFE1, Delete: 0xFFFF,
-    Escape: 0xFF1B, Super_L: 0xFFEB, Tab: 0xFF09, F4: 0xFFC1,
-    r: 0x0072, e: 0x0065, d: 0x0064
+    // Modificadores
+    Control_L: 0xFFE3, Alt_L: 0xFFE9, Shift_L: 0xFFE1,
+    Super_L: 0xFFEB, // Tecla Windows
+    // Teclas especiais
+    Delete: 0xFFFF, Escape: 0xFF1B, Tab: 0xFF09,
+    Return: 0xFF0D, BackSpace: 0xFF08, Insert: 0xFF63,
+    Home: 0xFF50, End: 0xFF57, Page_Up: 0xFF55, Page_Down: 0xFF56,
+    // Function keys
+    F1: 0xFFBE, F2: 0xFFBF, F3: 0xFFC0, F4: 0xFFC1, F5: 0xFFC2,
+    F6: 0xFFC3, F7: 0xFFC4, F8: 0xFFC5, F9: 0xFFC6, F10: 0xFFC7,
+    F11: 0xFFC8, F12: 0xFFC9,
+    // Letras (lowercase)
+    a: 0x0061, b: 0x0062, c: 0x0063, d: 0x0064, e: 0x0065,
+    f: 0x0066, l: 0x006C, m: 0x006D, n: 0x006E, o: 0x006F,
+    p: 0x0070, r: 0x0072, s: 0x0073, t: 0x0074, u: 0x0075, v: 0x0076,
+    w: 0x0077, x: 0x0078, y: 0x0079, z: 0x007A,
+    // Print Screen
+    Print: 0xFF61,
 };
 
 function VncToolbar({
@@ -98,14 +113,81 @@ function VncToolbar({
         setShowSpecialKeysMenu(false);
     }, [rfbRef, viewOnly]);
 
+    // ✅ v5.5: Power Control Functions (Win+X → U → action)
+    const sendPowerCommand = useCallback((finalKey, actionName) => {
+        if (!rfbRef?.current || viewOnly) return;
+        const rfb = rfbRef.current;
+
+        console.log(`⚡ [Power] Enviando ${actionName}...`);
+
+        // Passo 1: Win+X para abrir menu de power user
+        rfb.sendKey(XK.Super_L, "MetaLeft", true);
+        rfb.sendKey(XK.x, "KeyX", true);
+        rfb.sendKey(XK.x, "KeyX", false);
+        rfb.sendKey(XK.Super_L, "MetaLeft", false);
+
+        // Passo 2: Aguarda menu abrir e pressiona U (shutdown options)
+        setTimeout(() => {
+            if (!rfbRef.current) return;
+            rfb.sendKey(XK.u, "KeyU", true);
+            rfb.sendKey(XK.u, "KeyU", false);
+
+            // Passo 3: Aguarda submenu e pressiona ação final
+            setTimeout(() => {
+                if (!rfbRef.current) return;
+                rfb.sendKey(finalKey, null, true);
+                rfb.sendKey(finalKey, null, false);
+                console.log(`✅ [Power] ${actionName} enviado!`);
+            }, 300);
+        }, 500);
+
+        setShowSpecialKeysMenu(false);
+    }, [rfbRef, viewOnly]);
+
+    const sendShutdown = useCallback(() => sendPowerCommand(XK.u, 'Shutdown'), [sendPowerCommand]);
+    const sendReboot = useCallback(() => sendPowerCommand(XK.r, 'Reboot'), [sendPowerCommand]);
+    const sendSleep = useCallback(() => sendPowerCommand(XK.s, 'Sleep'), [sendPowerCommand]);
+
+    // ✅ v5.5: Forçar foco no canvas VNC
+    const focusCanvas = useCallback(() => {
+        if (rfbRef?.current) {
+            rfbRef.current.focus({ preventScroll: true });
+        } else {
+            // Fallback: tenta encontrar canvas diretamente
+            const canvas = document.querySelector('.noVNC_canvas, canvas[tabindex]');
+            if (canvas) canvas.focus();
+        }
+    }, [rfbRef]);
+
     const specialKeyCombos = [
-        { label: 'Ctrl+Alt+Del', action: sendCtrlAltDel, icon: '🔐' },
-        { label: 'Ctrl+Shift+Esc', keys: [XK.Control_L, XK.Shift_L, XK.Escape], icon: '📊', desc: 'Gerenciador' },
-        { label: 'Win+R', keys: [XK.Super_L, XK.r], icon: '▶️', desc: 'Executar' },
-        { label: 'Win+E', keys: [XK.Super_L, XK.e], icon: '📁', desc: 'Explorador' },
-        { label: 'Win+D', keys: [XK.Super_L, XK.d], icon: '🖥️', desc: 'Desktop' },
-        { label: 'Alt+Tab', keys: [XK.Alt_L, XK.Tab], icon: '🔄', desc: 'Alternar' },
-        { label: 'Alt+F4', keys: [XK.Alt_L, XK.F4], icon: '❌', desc: 'Fechar' },
+        // Grupo: Power (v5.5)
+        { label: 'Desligar', action: sendShutdown, icon: '⏻', desc: 'Shutdown', group: 'Power' },
+        { label: 'Reiniciar', action: sendReboot, icon: '🔄', desc: 'Reboot', group: 'Power' },
+        { label: 'Suspender', action: sendSleep, icon: '💤', desc: 'Sleep', group: 'Power' },
+        { label: 'Win+L', keys: [XK.Super_L, XK.l], icon: '🔒', desc: 'Bloquear', group: 'Power' },
+        // Grupo: Sistema
+        { label: 'Ctrl+Alt+Del', action: sendCtrlAltDel, icon: '🔐', group: 'Sistema' },
+        { label: 'Ctrl+Shift+Esc', keys: [XK.Control_L, XK.Shift_L, XK.Escape], icon: '📊', desc: 'Gerenciador', group: 'Sistema' },
+        { label: 'Win+R', keys: [XK.Super_L, XK.r], icon: '▶️', desc: 'Executar', group: 'Sistema' },
+        { label: 'Win+E', keys: [XK.Super_L, XK.e], icon: '📁', desc: 'Explorador', group: 'Sistema' },
+        { label: 'Win+D', keys: [XK.Super_L, XK.d], icon: '🖥️', desc: 'Desktop', group: 'Sistema' },
+        // Grupo: Navegação
+        { label: 'Alt+Tab', keys: [XK.Alt_L, XK.Tab], icon: '🔄', desc: 'Alternar', group: 'Navegação' },
+        { label: 'Alt+F4', keys: [XK.Alt_L, XK.F4], icon: '❌', desc: 'Fechar', group: 'Navegação' },
+        { label: 'F11', keys: [XK.F11], icon: '⛶', desc: 'Fullscreen', group: 'Navegação' },
+        // Grupo: Edição
+        { label: 'Ctrl+C', keys: [XK.Control_L, XK.c], icon: '📋', desc: 'Copiar', group: 'Edição' },
+        { label: 'Ctrl+V', keys: [XK.Control_L, XK.v], icon: '📄', desc: 'Colar', group: 'Edição' },
+        { label: 'Ctrl+X', keys: [XK.Control_L, XK.x], icon: '✂️', desc: 'Recortar', group: 'Edição' },
+        { label: 'Ctrl+A', keys: [XK.Control_L, XK.a], icon: '☑️', desc: 'Selec. Tudo', group: 'Edição' },
+        { label: 'Ctrl+Z', keys: [XK.Control_L, XK.z], icon: '↩️', desc: 'Desfazer', group: 'Edição' },
+        { label: 'Ctrl+S', keys: [XK.Control_L, XK.s], icon: '💾', desc: 'Salvar', group: 'Edição' },
+        // Grupo: Navegador
+        { label: 'Ctrl+T', keys: [XK.Control_L, XK.t], icon: '➕', desc: 'Nova Aba', group: 'Navegador' },
+        { label: 'Ctrl+W', keys: [XK.Control_L, XK.w], icon: '✖️', desc: 'Fechar Aba', group: 'Navegador' },
+        { label: 'Ctrl+N', keys: [XK.Control_L, XK.n], icon: '🆕', desc: 'Nova Janela', group: 'Navegador' },
+        { label: 'Ctrl+F', keys: [XK.Control_L, XK.f], icon: '🔍', desc: 'Buscar', group: 'Navegador' },
+        { label: 'F5', keys: [XK.F5], icon: '🔄', desc: 'Atualizar', group: 'Navegador' },
     ];
 
     const takeScreenshot = () => {
@@ -185,20 +267,44 @@ function VncToolbar({
 
             {/* Actions */}
             <div className="flex items-center gap-1">
+                {/* ✅ v5.5: Botão de foco para garantir captura de teclado */}
+                <button type="button" className={btnBase} onClick={focusCanvas} title="Ativar entrada de teclado">
+                    🎯
+                </button>
                 <div className="relative">
                     <button type="button" className={btnBase} onClick={(e) => { e.stopPropagation(); setShowSpecialKeysMenu(!showSpecialKeysMenu); }} disabled={viewOnly} title="Teclas especiais">
                         <KeyboardIcon sx={{ fontSize: 18 }} />
                     </button>
                     {showSpecialKeysMenu && (
-                        <div className="absolute top-full left-0 mt-2 bg-dark-surface border border-gray-700 rounded-lg shadow-xl z-[9999] min-w-[180px] overflow-hidden">
-                            <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-gray-700">⌨️ Teclas Especiais</div>
-                            {specialKeyCombos.map(({ label, keys, action, icon, desc }) => (
-                                <button key={label} onClick={() => action ? action() : sendSpecialKeys(keys, label)}
-                                    className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-white/10 text-white cursor-pointer">
-                                    <span>{icon}</span>
-                                    <span className="font-medium">{label}</span>
-                                    {desc && <span className="text-xs text-gray-400 ml-auto">{desc}</span>}
-                                </button>
+                        <div className="
+                            absolute top-full right-0 mt-2 
+                            bg-dark-surface border border-gray-700 rounded-lg shadow-xl 
+                            z-[9999] min-w-[220px] max-h-[400px] 
+                            overflow-y-auto overflow-x-hidden
+                            scrollbar-thin scrollbar-track-dark-bg scrollbar-thumb-gray-600
+                            hover:scrollbar-thumb-gray-500
+                        ">
+                            <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-gray-700 sticky top-0 bg-dark-surface z-10">⌨️ Teclas Especiais</div>
+                            {/* Agrupa por categoria */}
+                            {['Power', 'Sistema', 'Navegação', 'Edição', 'Navegador'].map(group => (
+                                <div key={group}>
+                                    <div className={`px-3 py-1.5 text-xs font-semibold bg-primary/5 ${group === 'Power' ? 'text-red-400' : 'text-primary/80'}`}>
+                                        {group === 'Power' ? '⚡ ' : ''}{group}
+                                    </div>
+                                    {specialKeyCombos.filter(k => k.group === group).map(({ label, keys, action, icon, desc }) => (
+                                        <button key={label} onClick={() => action ? action() : sendSpecialKeys(keys, label)}
+                                            className={`
+                                                w-full px-3 py-1.5 text-sm text-left 
+                                                flex items-center gap-2 hover:bg-white/10 
+                                                text-white cursor-pointer
+                                                ${group === 'Power' ? 'hover:bg-red-500/10' : ''}
+                                            `}>
+                                            <span className="w-5 text-center">{icon}</span>
+                                            <span className="font-medium flex-1">{label}</span>
+                                            {desc && <span className="text-xs text-gray-400">{desc}</span>}
+                                        </button>
+                                    ))}
+                                </div>
                             ))}
                         </div>
                     )}

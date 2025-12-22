@@ -118,6 +118,38 @@ class DatabaseManager {
 
             CREATE INDEX IF NOT EXISTS idx_applications_group ON applications(group_id);
             CREATE INDEX IF NOT EXISTS idx_applications_type ON applications(type);
+
+            -- ============================================
+            -- TABELAS PARA ANYDESK (Feature v5.1)
+            -- ============================================
+            
+            -- Grupos de AnyDesk
+            CREATE TABLE IF NOT EXISTS anydesk_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                icon TEXT,
+                color TEXT DEFAULT '#EF473A',
+                sort_order INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Conexões AnyDesk
+            CREATE TABLE IF NOT EXISTS anydesk_connections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                anydesk_id TEXT NOT NULL,
+                description TEXT,
+                password TEXT,
+                sort_order INTEGER DEFAULT 0,
+                last_connected TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (group_id) REFERENCES anydesk_groups(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_anydesk_connections_group ON anydesk_connections(group_id);
+            CREATE INDEX IF NOT EXISTS idx_anydesk_connections_anydesk_id ON anydesk_connections(anydesk_id);
         `);
     }
 

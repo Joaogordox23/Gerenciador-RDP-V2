@@ -19,7 +19,9 @@ module.exports = {
         dark: {
           bg: '#1F2121',
           surface: '#262828',
-          card: '#2A2C2C'
+          card: '#2A2C2C',
+          elevated: '#333535',
+          border: '#3D4040'
         },
         // Cores de Texto
         text: {

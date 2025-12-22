@@ -153,6 +153,9 @@ function createWindow() {
 
     win.loadURL(startUrl);
 
+    // DevTools: descomente a linha abaixo para debug
+    // if (isDev) win.webContents.openDevTools();
+
     // ✅ CORREÇÃO: Envia dados quando a página terminar de carregar completamente
     win.webContents.on('did-finish-load', () => {
         if (initialData) {

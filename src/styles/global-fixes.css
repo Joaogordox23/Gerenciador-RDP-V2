@@ -368,3 +368,34 @@ body.modal-open .app-footer {
 .sidebar-item {
     cursor: pointer;
 }
+
+/* ======================================= */
+/* 📜 SCROLLBAR CUSTOMIZADO PARA DROPDOWNS */
+/* v5.5: Padrão visual para menus          */
+/* ======================================= */
+.dropdown-scrollbar,
+.scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar,
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-track,
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-thumb,
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #3D4040;
+    border-radius: 3px;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-thumb:hover,
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #00AF74;
+}

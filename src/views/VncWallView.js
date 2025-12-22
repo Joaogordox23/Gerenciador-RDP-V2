@@ -37,6 +37,7 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
         return saved === 'true';
     });
     const [connectionErrors, setConnectionErrors] = useState({});
+    const [reconnectAttempts, setReconnectAttempts] = useState({}); // ✅ v5.4: Contador de tentativas
     const reconnectTimeoutsRef = useRef({});
     const [isWallFullscreen, setIsWallFullscreen] = useState(false);
     const [sidebarHover, setSidebarHover] = useState(false);
@@ -133,28 +134,93 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
         }
     };
 
+    // ✅ v5.4: Reconexão persistente para suportar reinicialização de servidores
+    const MAX_RECONNECT_ATTEMPTS = 60; // ~10 minutos de tentativas
+    const BASE_RECONNECT_DELAY = 5000; // 5 segundos inicial
+    const MAX_RECONNECT_DELAY = 30000; // Máximo 30 segundos entre tentativas
+
     const handleConnectionError = async (connectionId, errorMessage) => {
         console.warn(`⚠️ Erro na conexão ${connectionId}:`, errorMessage);
         setConnectionErrors(prev => ({ ...prev, [connectionId]: true }));
+
         const connection = connections.find(c => c.id === connectionId);
         if (!connection) return;
-        if (reconnectTimeoutsRef.current[connectionId]) clearTimeout(reconnectTimeoutsRef.current[connectionId]);
+
+        // Limpa timeout anterior se existir
+        if (reconnectTimeoutsRef.current[connectionId]) {
+            clearTimeout(reconnectTimeoutsRef.current[connectionId]);
+        }
+
+        // Obtém número de tentativas atual
+        const currentAttempts = reconnectAttempts[connectionId] || 0;
+
+        // Se excedeu limite, para de tentar
+        if (currentAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            console.error(`❌ [${connection.name}] Desistindo após ${MAX_RECONNECT_ATTEMPTS} tentativas`);
+            return;
+        }
+
+        // Calcula delay com backoff exponencial (5s, 7.5s, 11.25s... até 30s max)
+        const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(1.5, Math.min(currentAttempts, 5)), MAX_RECONNECT_DELAY);
+
+        console.log(`🔄 [${connection.name}] Tentativa ${currentAttempts + 1}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s...`);
 
         reconnectTimeoutsRef.current[connectionId] = setTimeout(async () => {
             try {
+                // ✅ Primeiro verifica se o servidor está disponível via TCP
+                const isAvailable = await window.api.vnc.checkAvailability(connection);
+
+                if (!isAvailable) {
+                    console.log(`⏳ [${connection.name}] Servidor ainda offline, aguardando...`);
+                    setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
+                    // Agenda próxima tentativa
+                    handleConnectionError(connectionId, 'Servidor offline');
+                    return;
+                }
+
+                console.log(`✅ [${connection.name}] Servidor disponível! Reconectando...`);
+
+                // Para o proxy antigo
                 await window.api.vnc.stopProxy(connectionId);
+
+                // Pequeno delay para garantir limpeza
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Inicia novo proxy
                 const result = await window.api.vnc.startProxy(connection);
+
                 if (result.success) {
                     const proxyUrl = `ws://localhost:${result.port}`;
                     setConnections(prev => prev.map(c =>
-                        c.id === connectionId ? { ...c, proxyUrl, password: result.decryptedPassword || c.password, reconnectKey: Date.now() } : c
+                        c.id === connectionId ? {
+                            ...c,
+                            proxyUrl,
+                            password: result.decryptedPassword || c.password,
+                            reconnectKey: Date.now()
+                        } : c
                     ));
-                    setConnectionErrors(prev => { const newState = { ...prev }; delete newState[connectionId]; return newState; });
+                    // Limpa erros e contador de tentativas
+                    setConnectionErrors(prev => {
+                        const newState = { ...prev };
+                        delete newState[connectionId];
+                        return newState;
+                    });
+                    setReconnectAttempts(prev => {
+                        const newState = { ...prev };
+                        delete newState[connectionId];
+                        return newState;
+                    });
+                    console.log(`🎉 [${connection.name}] Reconexão bem-sucedida!`);
+                } else {
+                    throw new Error(result.error || 'Falha ao iniciar proxy');
                 }
             } catch (err) {
-                reconnectTimeoutsRef.current[connectionId] = setTimeout(() => handleConnectionError(connectionId, 'Retry'), 10000);
+                console.error(`❌ [${connection.name}] Erro na reconexão:`, err.message);
+                setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
+                // Agenda próxima tentativa
+                handleConnectionError(connectionId, err.message);
             }
-        }, 5000);
+        }, delay);
     };
 
     const toggleCarouselMode = () => { setCarouselMode(prev => !prev); setIsPlaying(false); };
@@ -381,9 +447,9 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                         {connections.length === 0 ? (
                             <>
                                 <span>{`Selecione servidores para ${carouselMode ? 'exibir no carrossel' : 'monitorar'}`}</span>
-                                {searchTerm && filteredAllConnections.length > 0 && (
+                                {searchTerm && allConnections.length > 0 && (
                                     <span className="text-sm text-primary">
-                                        {filteredAllConnections.length} conexões disponíveis correspondem à busca "{searchTerm}"
+                                        {allConnections.length} conexões disponíveis correspondem à busca "{searchTerm}"
                                     </span>
                                 )}
                             </>
@@ -394,10 +460,13 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                 ) : (
                     <div className={`flex-1 ${carouselMode ? 'overflow-hidden' : 'overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-600 hover:scrollbar-thumb-primary'}`}>
                         <div
-                            className="grid gap-2 h-full"
+                            className={`grid gap-2 ${carouselMode ? 'h-full' : ''}`}
                             style={{
                                 gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
-                                gridTemplateRows: `repeat(${gridRows}, 1fr)`
+                                ...(carouselMode
+                                    ? { gridTemplateRows: `repeat(${gridRows}, 1fr)` }
+                                    : { gridAutoRows: 'minmax(180px, 1fr)' }
+                                )
                             }}
                         >
                             {/* Grid/Carrossel: VncDisplay com qualidade ajustável */}
