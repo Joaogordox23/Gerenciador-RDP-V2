@@ -95,8 +95,29 @@ function Footer({ onSyncComplete, isSidebarCollapsed = false }) {
                 </span>
             </div>
 
-            {/* Right Section: Sync Button */}
-            <div className="flex items-center">
+            {/* Right Section: DevTools + Sync Button */}
+            <div className="flex items-center gap-2">
+                {/* DevTools Button (apenas para desenvolvedores) */}
+                <button
+                    className="
+                        flex items-center gap-1
+                        px-2 py-1.5
+                        bg-cream-50 dark:bg-dark-bg
+                        border border-gray-200 dark:border-gray-700
+                        rounded-md
+                        text-xs font-medium text-gray-400 dark:text-gray-500
+                        cursor-pointer
+                        transition-all duration-200
+                        hover:bg-white dark:hover:bg-dark-surface hover:border-yellow-500 hover:text-yellow-500
+                        opacity-50 hover:opacity-100
+                    "
+                    onClick={() => window.api?.openDevTools?.()}
+                    title="Abrir DevTools (F12)"
+                >
+                    🔧
+                </button>
+
+                {/* Sync Button */}
                 <button
                     className={`
                         flex items-center gap-1.5 

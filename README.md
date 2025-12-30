@@ -1,384 +1,199 @@
-# 🖥️ Gerenciador RDP/SSH Enterprise
+# 🖥️ Gerenciador RDP/VNC/SSH Enterprise
 
-## Manual Técnico de Implementação e Manutenção
+**Sistema unificado para gerenciamento de conexões remotas** - Desktop, multi-protocolo, com interface moderna e recursos enterprise.
+
+![Electron](https://img.shields.io/badge/Electron-28.0-47848F?logo=electron)
+![React](https://img.shields.io/badge/React-18.0-61DAFB?logo=react)
+![SQLite](https://img.shields.io/badge/SQLite-3.x-003B57?logo=sqlite)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## 📋 **GUIA RÁPIDO DE IMPLEMENTAÇÃO**
+## ✨ Funcionalidades Principais
 
-### 🚀 **Setup Inicial Completo**
+### 🔌 Multi-Protocolo
+| Protocolo | Descrição |
+|-----------|-----------|
+| **RDP** | Conexão Windows via mstsc.exe |
+| **VNC** | Visualização integrada com noVNC (WebSocket) |
+| **SSH** | Terminal integrado com xterm.js |
+| **AnyDesk** | Integração com cliente AnyDesk |
 
-"""bash
-# 1. CONFIGURAÇÃO DO AMBIENTE
-git clone [seu-repositorio]
-cd gerenciador-rdp-ssh
+### 📊 Recursos VNC Avançados
+- **VNC Wall** - Visualização simultânea de múltiplas conexões
+- **Tabs de Conexão** - Múltiplas sessões em abas
+- **Clipboard Bidirecional** - Copiar/colar entre local e remoto
+- **Controle Remoto** - Mouse, teclado, teclas especiais (Ctrl+Alt+Del)
+- **Ping em Massa** - Verificação de status de todas as conexões
+- **Importação CSV** - Importação em lote de conexões VNC
 
-# 2. INSTALAÇÃO DE DEPENDÊNCIAS
+### 🎨 Interface Premium
+- **Design Moderno** - Tema escuro inspirado em Netflix
+- **Glass Effects** - Blur e transparência
+- **Tailwind CSS** - Estilização consistente
+- **Drag & Drop** - Reorganização de grupos/conexões
+- **Responsivo** - Sidebar colapsável
+
+### 🔒 Segurança
+- **Criptografia** - Senhas armazenadas com `safeStorage` do Electron
+- **SQLite** - Banco local seguro
+- **Context Isolation** - Isolamento completo Electron/React
+
+---
+
+## 🚀 Instalação
+
+### Pré-requisitos
+- Node.js 18+
+- npm ou yarn
+- Windows 10/11 (para RDP nativo)
+
+### Desenvolvimento
+```bash
+# Clone o repositório
+git clone https://github.com/Joaogordox23/Gerenciador-RDP-V2.git
+cd Gerenciador-RDP-V2
+
+# Instale dependências
 npm install
 
-# 3. CONFIGURAÇÃO DE DESENVOLVIMENTO
-npm start  # Frontend React
-npm run electron  # Aplicação desktop
+# Execute em desenvolvimento
+npm run electron:start
+```
 
-# 4. BUILD DE PRODUÇÃO
+### Build de Produção
+```bash
+# Build para Windows
 npm run build
-npm run electron-pack  # Build final
-"""
+npm run electron:build
 
-### 🛠️ **Estrutura de Desenvolvimento**
-
-#### **Componentes Principais Implementados**
-"""
-src/
-├── App.js                  # ✅ Versão ultra-segura (sem loops)
-├── components/
-│   ├── AddGroupForm.js     # ✅ Versão premium com validação
-│   ├── AddServerForm.js    # ✅ Versão ultra-simples (funcional)
-│   ├── Group.js            # ✅ Componentee moderno
-│   ├── Server.js           # ✅ Versão avançada
-│   └── ConfirmationDialog.js # ✅ Diálogos profissionais
-├── hooks/
-│   └── useConnectivity.js  # ✅ Versão minimalista (sem loops)
-└── utils/
-    ├── crypto-handler.js   # ✅ Criptografia segura
-    └── ConnectivityTester.js # ✅ Testes de conectividade
-"""
-
----
-
-## 🎨 **DESIGN SYSTEM PREMIUM**
-
-### **Cores e Gradientes**
-"""css
-/* Paleta principal */
---primary-bg: #141414;
---netflix-red: #e50914;
---glass-bg: rgba(47, 47, 47, 0.95);
---border-glass: rgba(255, 255, 255, 0.1);
-
-/* Gradientes modernos */
---gradient-netflix: linear-gradient(135deg, #e50914 0%, #ff4757 100%);
---gradient-success: linear-gradient(135deg, #059669 0%, #10b981 100%);
---gradient-danger: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
---gradient-info: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-"""
-
-### **Efeitos Visuais Premium**
-- **Glass Effect**: `backdrop-filter: blur(20px)`
-- **Sombras Suaves**: `box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4)`
-- **Transições Fluidas**: `transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)`
-- **Animações**: Gradientes animados, ripple effects, pulse
-
----
-
-## 🔧 **FUNCIONALIDADES IMPLEMENTADAS**
-
-### ✅ **Sistema de Grupos**
-- **Criação Premium**: Formulário com glass effect e validação em tempo real
-- **Edição Dinâmica**: Renomeação inline com feedback visual
-- **Exclusão Segura**: Confirmação com diálogo moderno
-- **Organização**: Hierarquia flexível e intuitiva
-
-### ✅ **Gerenciamento de Servidores**
-- **Multi-Protocolo**: RDP (Windows) e SSH (Linux/Unix)
-- **Formulário Inteligente**: Auto-configuração de portas padrão
-- **Validação Robusta**: Campos obrigatórios por protocolo
-- **Estados Visuais**: Feedback claro para todos os estados
-
-### ✅ **Sistema de Conectividade**
-- **Testes Automáticos**: Monitoramento de status em tempo real
-- **Indicadores Visuais**: Estados coloridos (online/offline/testing)
-- **Cache Inteligente**: Otimização de performance
-- **Testes Manuais**: Botão de teste sob demanda
-
-### ✅ **Interface Premium**
-- **Design Moderno**: Tema escuro com elementos glass
-- **Responsividade**: Adaptação perfeita a diferentes telas
-- **Animações Fluidas**: Transições suaves e profissionais
-- **Feedback Visual**: Mensagens de sucesso/erro elegantes
-
----
-
-## 🛡️ **SEGURANÇA E PERFORMANCE**
-
-### **Medidas de Segurança Implementadas**
-"""javascript
-// Criptografia de dados sensíveis
-const encryptedData = cryptoHandler.encrypt(sensitiveData);
-
-// Validação de entrada
-const sanitizedInput = input.trim().replace(/[<>]/g, '');
-
-// Isolamento de contexto (Electron)
-contextIsolation: true,
-nodeIntegration: false
-"""
-
-### **Otimizações de Performance**
-- **Componentes Memoizados**: `useCallback`, `useMemo` para evitar re-renders
-- **Estados Localizados**: Gerenciamento de estado próximo ao uso
-- **Lazy Loading**: Carregamento sob demanda de recursos pesados
-- **Cache Inteligente**: Armazenamento temporário de resultados de conectividade
-
----
-
-## 🐛 **DEBUGGING E TROUBLESHOOTING**
-
-### **Problemas Conhecidos e Soluções**
-
-#### ❌ **Loop Infinito (RESOLVIDO)**
-"""javascript
-// ❌ PROBLEMA: useEffect com dependências incorretas
-useEffect(() => {
-    validateForm(); // Causa re-renders infinitos
-}, [formData]); 
-
-// ✅ SOLUÇÃO: Validação apenas no submit
-const handleSubmit = () => {
-    const errors = validateForm();
-    if (errors) return;
-    // Continuar...
-};
-"""
-
-#### ❌ **Props Incompatíveis (RESOLVIDO)**
-"""jsx
-// ❌ PROBLEMA: Props não coincidentes
-<Group groupData={group} />  // App.js enviava
-function Group({ groupInfo }) // Group.js esperava
-
-// ✅ SOLUÇÃO: Props consistentes
-<Group groupInfo={group} />  // Ambos usam groupInfo
-function Group({ groupInfo }) 
-"""
-
-### **Logs e Monitoramento**
-"""javascript
-// Ativar logs detalhados
-console.log('🔍 Debug:', data);
-console.warn('⚠️ Aviso:', warning);
-console.error('❌ Erro:', error);
-
-// Monitoramento de performance
-console.time('⏱️ Operação');
-// ... código ...
-console.timeEnd('⏱️ Operação');
-"""
-
----
-
-## 📱 **RESPONSIVIDADE E ACESSIBILIDADE**
-
-### **Breakpoints Implementados**
-"""css
-/* Mobile First */
-@media (max-width: 480px) { 
-    /* Smartphones */ 
-}
-
-@media (max-width: 768px) { 
-    /* Tablets */ 
-}
-
-@media (min-width: 1024px) { 
-    /* Desktop */ 
-}
-
-@media (min-width: 1440px) { 
-    /* Telas grandes */ 
-}
-"""
-
-### **Recursos de Acessibilidade**
-- **Contraste Alto**: Cores com contraste adequado para leitura
-- **Navegação por Teclado**: Todos os elementos são focalizáveis
-- **ARIA Labels**: Descrições para leitores de tela
-- **Estados de Foco**: Indicadores visuais claros
-
----
-
-## 🔄 **FLUXO DE DADOS E ESTADO**
-
-### **Arquitetura de Estado**
-"""javascript
-// Estado global (App.js)
-const [groups, setGroups] = useState([]);
-const [activeConnections, setActiveConnections] = useState([]);
-const [isEditModeEnabled, setIsEditModeEnabled] = useState(false);
-
-// Estados locais (Componentes)
-const [formData, setFormData] = useState(initialState);
-const [errors, setErrors] = useState({});
-const [isSubmitting, setIsSubmitting] = useState(false);
-"""
-
-### **Comunicação Entre Componentes**
-"""javascript
-// Props down, events up
-<Group 
-    groupInfo={group}
-    onAddServer={handleAddServer}
-    onDeleteServer={handleDeleteServer}
-    onUpdateServer={handleUpdateServer}
-/>
-"""
-
----
-
-## 🧪 **TESTES E QUALIDADE**
-
-### **Estratégia de Testes**
-"""javascript
-// Testes de componentes
-describe('AddGroupForm', () => {
-    test('valida nome do grupo', () => {
-        // Teste de validação
-    });
-    
-    test('submete formulário corretamente', () => {
-        // Teste de submissão
-    });
-});
-
-// Testes de conectividade
-describe('ConnectivityTester', () => {
-    test('testa conexão RDP', () => {
-        // Teste de RDP
-    });
-    
-    test('testa conexão SSH', () => {
-        // Teste de SSH
-    });
-});
-"""
-
-### **Ferramentas de Qualidade**
-- **ESLint**: Verificação de código
-- **Prettier**: Formatação consistente
-- **Jest**: Testes unitários
-- **React Testing Library**: Testes de componentes
-
----
-
-## 🚀 **DEPLOYMENT E DISTRIBUIÇÃO**
-
-### **Build de Produção**
-"""bash
-# 1. Build React otimizado
+# Build para Linux (requer ambiente Linux)
 npm run build
-
-# 2. Package Electron
-npm run electron-pack
-
-# 3. Criar instaladores
-npm run dist
-"""
-
-### **Configuração de Distribuição**
-"""json
-{
-  "build": {
-    "appId": "com.empresa.gerenciador-rdp-ssh",
-    "productName": "Gerenciador RDP/SSH Enterprise",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "build/**/*",
-      "electron/**/*",
-      "package.json"
-    ]
-  }
-}
-"""
+npm run build:linux
+```
 
 ---
 
-## 📈 **MÉTRICAS E MONITORAMENTO**
+## 📁 Estrutura do Projeto
 
-### **KPIs de Performance**
-- **Tempo de Carregamento**: < 2 segundos
-- **Uso de Memória**: < 200MB em uso normal
-- **Responsividade**: Todas as ações < 100ms
-- **Taxa de Erro**: < 0.1% das operações
-
-### **Métricas de Conectividade**
-- **Taxa de Sucesso**: % de conexões bem-sucedidas
-- **Tempo de Resposta**: Latência média dos testes
-- **Disponibilidade**: % de servidores online
-- **Cache Hit Rate**: Eficiência do cache
-
----
-
-## 🔮 **ROADMAP TÉCNICO**
-
-### **Versão 2.1 (Curto Prazo)**
-- [ ] **Drag & Drop**: Reorganização visual de servidores
-- [ ] **Temas**: Sistema de temas claro/escuro
-- [ ] **Atalhos**: Teclado shortcuts para ações rápidas
-- [ ] **Exportação**: Backup/restore de configurações
-
-### **Versão 2.2 (Médio Prazo)**
-- [ ] **WebRTC**: Conexões diretas browser-to-server
-- [ ] **Plugins**: Sistema de extensões personalizadas
-- [ ] **API REST**: Interface para integrações externas
-- [ ] **Multi-usuário**: Sistema de permissões e usuários
-
-### **Versão 3.0 (Longo Prazo)**
-- [ ] **Cloud Sync**: Sincronização entre dispositivos
-- [ ] **Mobile App**: Aplicativo complementar
-- [ ] **AI Insights**: Análises inteligentes de conectividade
-- [ ] **Enterprise SSO**: Integração com Active Directory
+```
+Gerenciador-RDP-V2/
+├── public/                     # Backend Electron
+│   ├── electron.js             # Main process
+│   ├── preload.js              # API bridge
+│   ├── DatabaseManager.js      # SQLite manager
+│   ├── FileSystemManager.js    # Gerenciador de arquivos .rdp/.vnc
+│   └── ipc/                    # IPC Handlers modulares
+│       ├── database.handlers.js
+│       ├── vnc.handlers.js
+│       ├── ssh.handlers.js
+│       └── ...
+├── src/                        # Frontend React
+│   ├── App.js                  # Componente principal
+│   ├── components/
+│   │   ├── VncDisplay.js       # Visualizador noVNC
+│   │   ├── VncToolbar.js       # Toolbar VNC
+│   │   ├── VncWallView.js      # Mural VNC
+│   │   ├── SshTerminal.js      # Terminal SSH
+│   │   └── ...
+│   ├── views/                  # Páginas principais
+│   └── contexts/               # React Contexts
+└── package.json
+```
 
 ---
 
-## 💡 **BOAS PRÁTICAS DE MANUTENÇÃO**
+## ⚙️ Configuração
 
-### **Code Review Checklist**
-- [ ] Componentes seguem padrões estabelecidos
-- [ ] Estados são gerenciados adequadamente
-- [ ] Não há loops infinitos ou memory leaks
-- [ ] CSS segue convenções de nomenclatura
-- [ ] Dados sensíveis são criptografados
-- [ ] Testes cobrem funcionalidades críticas
+### Diretórios de Dados
+O sistema salva conexões em:
+```
+%DOCUMENTOS%/GerenciadorRDP/
+├── RDP/           # Arquivos .rdp por grupo
+├── VNC/           # Arquivos .vnc por grupo
+└── connections.db # Banco SQLite
+```
 
-### **Monitoramento Contínuo**
-- **Performance**: Monitorar uso de CPU/memória
-- **Logs**: Revisar logs de erro regularmente
-- **User Feedback**: Coletar feedback de usuários
-- **Updates**: Manter dependências atualizadas
+### Variáveis de Ambiente
+Não requer configuração adicional. Todos os dados são locais.
 
 ---
 
-## 📞 **SUPORTE TÉCNICO**
+## 🎮 Atalhos de Teclado
 
-### **Documentação de Apoio**
-- **README.md**: Instruções básicas de setup
-- **CHANGELOG.md**: Histórico de versões
-- **CONTRIBUTING.md**: Guia para contribuidores
-- **API.md**: Documentação da API interna
-
-### **Canais de Comunicação**
-- **Issues**: GitHub Issues para bugs e features
-- **Discussions**: Fórum da comunidade
-- **Wiki**: Base de conhecimento técnico
-- **Releases**: Notas de atualização
+| Atalho | Ação |
+|--------|------|
+| `F12` | Abrir DevTools |
+| `Ctrl+C/V` | Clipboard VNC (quando no viewer) |
+| `Esc` | Fechar modais |
 
 ---
 
-## 🏆 **CONCLUSÃO**
+## 📝 Changelog (Resumido)
 
-O **Gerenciador RDP/SSH Enterprise** representa o estado da arte em aplicações desktop modernas, combinando:
+### v5.11 (Atual)
+- ✅ Clipboard VNC bidirecional funcionando
+- ✅ Botão DevTools no footer
+- ✅ Correção das tabs VNC
 
-- ✅ **Tecnologias Atuais**: React, Electron, Node.js
-- ✅ **Design Premium**: Interface Netflix-inspired com glass effects
-- ✅ **Arquitetura Sólida**: Componentes bem estruturados e performantes
-- ✅ **Segurança Robusta**: Criptografia e boas práticas
-- ✅ **UX Excepcional**: Animações fluidas e feedback visual
-- ✅ **Manutenibilidade**: Código limpo e documentado
+### v5.10
+- ✅ Importação CSV para VNC
+- ✅ Ping em massa para conexões VNC
+- ✅ Status indicators (online/offline)
 
-**🎯 Esta documentação serve como guia definitivo para desenvolvimento, manutenção e evolução contínua do sistema.**
+### v5.9
+- ✅ VNC Wall com carrossel
+- ✅ Quick Connect VNC
+- ✅ Integração SSH com xterm.js
+
+### v5.8
+- ✅ Build Linux (AppImage, deb)
+- ✅ System Tray
+- ✅ Single Instance Lock
 
 ---
 
-*Documentação técnica criada com precisão e dedicação para garantir a excelência contínua do projeto.*
+## 🐛 Troubleshooting
+
+### VNC não conecta
+1. Verifique se a porta está correta (padrão: 5900)
+2. Confirme que o servidor VNC está rodando
+3. Teste ping no host
+
+### Clipboard VNC não funciona (servidor → local)
+1. No TightVNC Server: desmarque "Disable clipboard transfer"
+2. Clique no canvas VNC antes de copiar
+3. Use o botão 🔄 na toolbar para sincronizar
+
+### Linux: Hostname não resolve
+Configure DNS ou winbind:
+```bash
+sudo apt install libnss-winbind winbind
+# Edite /etc/nsswitch.conf: hosts: files dns wins
+```
+
+---
+
+## 🤝 Contribuição
+
+1. Fork o repositório
+2. Crie sua branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit: `git commit -m 'feat: nova funcionalidade'`
+4. Push: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 👨‍💻 Autor
+
+**João Paulo Andrade**
+
+---
+
+*Desenvolvido com ❤️ usando Electron, React e muita dedicação.*

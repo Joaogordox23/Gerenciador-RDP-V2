@@ -83,6 +83,26 @@ function VncToolbar({
         if (remoteClipboard) navigator.clipboard.writeText(remoteClipboard);
     }, [remoteClipboard]);
 
+    // ✅ v5.11: Solicita clipboard do servidor enviando Ctrl+C remotamente
+    const handleRequestClipboard = useCallback(() => {
+        const rfb = rfbRef?.current;
+        if (!rfb) return;
+
+        console.log('📋 Solicitando clipboard do servidor (enviando Ctrl+C)...');
+
+        // Envia Ctrl+C para o servidor para triggerar envio do clipboard
+        const XK_Control_L = 0xFFE3;
+        const XK_c = 0x0063;
+
+        rfb.sendKey(XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(XK_c, "KeyC", true);
+        rfb.sendKey(XK_c, "KeyC", false);
+        rfb.sendKey(XK_Control_L, "ControlLeft", false);
+
+        // O evento 'clipboard' será disparado pelo servidor e nosso listener
+        // já está configurado para copiar automaticamente para o clipboard local
+    }, [rfbRef]);
+
     const toggleScale = () => {
         const newValue = !scaleViewport;
         setScaleViewport(newValue);
@@ -231,8 +251,9 @@ function VncToolbar({
 
             {/* Clipboard */}
             <div className="flex items-center gap-1">
-                <button type="button" className={btnBase} onClick={handlePaste} title="Colar"><ContentPasteIcon sx={{ fontSize: 18 }} /></button>
-                {remoteClipboard && <button type="button" className={`${btnBase} text-primary`} onClick={handleCopy} title="Copiar"><ContentCopyIcon sx={{ fontSize: 18 }} /></button>}
+                <button type="button" className={btnBase} onClick={handlePaste} title="Colar do local para servidor"><ContentPasteIcon sx={{ fontSize: 18 }} /></button>
+                <button type="button" className={btnBase} onClick={handleRequestClipboard} title="Sincronizar clipboard do servidor (Ctrl+C)">🔄</button>
+                {remoteClipboard && <button type="button" className={`${btnBase} text-primary`} onClick={handleCopy} title="Copiar para local"><ContentCopyIcon sx={{ fontSize: 18 }} /></button>}
             </div>
             <div className="w-px h-6 bg-gray-600" />
 

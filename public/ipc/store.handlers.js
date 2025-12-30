@@ -9,8 +9,9 @@ const { ipcMain, safeStorage, app } = require('electron');
  * @param {Object} deps.store - Instância do electron-store
  * @param {Object} deps.fileSystemManager - Gerenciador de arquivos
  * @param {Object} deps.databaseManager - Gerenciador do SQLite
+ * @param {Function} deps.getMainWindow - Função para obter janela principal
  */
-function registerStoreHandlers({ store, fileSystemManager, databaseManager }) {
+function registerStoreHandlers({ store, fileSystemManager, databaseManager, getMainWindow }) {
     // ==========================
     // CLEAR DATA - Limpa todos os dados
     // ==========================
@@ -126,7 +127,26 @@ function registerStoreHandlers({ store, fileSystemManager, databaseManager }) {
         }
     });
 
-    console.log('✅ Store handlers registrados (inclui sync e request-initial-data)');
+    // ==========================
+    // OPEN DEVTOOLS - Abre DevTools via botão do footer
+    // ✅ v5.11: DevTools sob demanda
+    // ==========================
+    ipcMain.handle('open-devtools', async () => {
+        try {
+            const win = getMainWindow();
+            if (win && !win.isDestroyed()) {
+                win.webContents.openDevTools();
+                console.log('🔧 DevTools aberto via botão');
+                return { success: true };
+            }
+            return { success: false, error: 'Janela não disponível' };
+        } catch (error) {
+            console.error('Erro ao abrir DevTools:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    console.log('✅ Store handlers registrados (inclui sync e DevTools)');
 }
 
 /**

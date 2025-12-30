@@ -31,11 +31,12 @@ const { registerAnyDeskHandlers } = require('./anydesk.handlers');
 function registerAllHandlers(deps) {
     console.log('📡 Registrando IPC handlers...');
 
-    // Store handlers (get-data, set-data, clear-data, sync)
+    // Store handlers (get-data, set-data, clear-data, sync, DevTools)
     registerStoreHandlers({
         store: deps.store,
         fileSystemManager: deps.fileSystemManager,
-        databaseManager: deps.databaseManager
+        databaseManager: deps.databaseManager,
+        getMainWindow: deps.getMainWindow
     });
 
     // Database handlers (db-*)

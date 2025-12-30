@@ -153,7 +153,7 @@ function createWindow() {
 
     win.loadURL(startUrl);
 
-    // DevTools: descomente a linha abaixo para debug
+    // DevTools: usar botão no footer ou F12 para abrir
     // if (isDev) win.webContents.openDevTools();
 
     // ✅ CORREÇÃO: Envia dados quando a página terminar de carregar completamente

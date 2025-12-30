@@ -185,17 +185,25 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     // Nota: mousedown handler adicionado na seção de setup para cleanup correto
                 });
 
-                // ✅ v5.9: Clipboard bidirecional - Servidor → Local (melhorado)
+                // ✅ v5.11: Clipboard bidirecional - Servidor → Local (debug melhorado)
+                console.log(`🔧 [${connectionInfo.name}] Registrando listener de clipboard...`);
+
                 rfb.addEventListener('clipboard', async (e) => {
+                    console.log(`📋 [${connectionInfo.name}] EVENTO CLIPBOARD RECEBIDO:`, {
+                        hasDetail: !!e.detail,
+                        text: e.detail?.text?.substring(0, 100),
+                        fullEvent: e
+                    });
+
                     const text = e.detail?.text;
                     if (text && text.trim()) {
-                        console.log(`📋 [${connectionInfo.name}] Recebido clipboard do servidor (${text.length} chars): "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+                        console.log(`📋 [${connectionInfo.name}] Clipboard do servidor: "${text.substring(0, 50)}..."`);
                         try {
                             await navigator.clipboard.writeText(text);
-                            console.log(`✅ [${connectionInfo.name}] Clipboard copiado para local com sucesso!`);
+                            console.log(`✅ [${connectionInfo.name}] Copiado para clipboard local!`);
                         } catch (err) {
-                            console.warn(`⚠️ [${connectionInfo.name}] Falha ao escrever no clipboard local:`, err.message);
-                            // Fallback: tenta via documento (para contextos sem foco)
+                            console.warn(`⚠️ [${connectionInfo.name}] navigator.clipboard.writeText falhou:`, err.message);
+                            // Fallback: tenta via documento
                             try {
                                 const textarea = document.createElement('textarea');
                                 textarea.value = text;
@@ -205,15 +213,17 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                                 textarea.select();
                                 document.execCommand('copy');
                                 document.body.removeChild(textarea);
-                                console.log(`✅ [${connectionInfo.name}] Clipboard copiado via fallback!`);
+                                console.log(`✅ [${connectionInfo.name}] Copiado via fallback!`);
                             } catch (fallbackErr) {
-                                console.error(`❌ [${connectionInfo.name}] Fallback de clipboard também falhou:`, fallbackErr);
+                                console.error(`❌ [${connectionInfo.name}] Fallback falhou:`, fallbackErr);
                             }
                         }
                     } else {
-                        console.log(`📋 [${connectionInfo.name}] Clipboard vazio recebido do servidor`);
+                        console.log(`📋 [${connectionInfo.name}] Clipboard vazio recebido`);
                     }
                 });
+
+                console.log(`✅ [${connectionInfo.name}] Listener de clipboard registrado!`);
 
                 // ✅ v5.5: Bell - Notificação sonora do servidor
                 rfb.addEventListener('bell', () => {
@@ -236,15 +246,31 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     }
 
                     // Ctrl+C - Copiar do servidor para local
-                    // Nota: Enviamos o Ctrl+C para o servidor e esperamos o evento 'clipboard'
-                    // que já está configurado para escrever no clipboard local automaticamente
+                    // ✅ v5.11: Melhorado para aguardar resposta do servidor com timeout
                     if (e.ctrlKey && e.key.toLowerCase() === 'c') {
                         // Não previne default - deixa o noVNC enviar o comando ao servidor
                         console.log(`📋 [${connectionInfo.name}] Ctrl+C detectado - aguardando clipboard do servidor...`);
 
-                        // O servidor VNC irá enviar o clipboard via evento 'clipboard'
-                        // que já está configurado na linha 184-193 para escrever no clipboard local
-                        // Não há mais nada a fazer aqui - o fluxo é automático
+                        // ✅ v5.11: Cria um listener temporário para detectar se o servidor enviou clipboard
+                        let clipboardReceived = false;
+                        const onClipboardReceived = () => {
+                            clipboardReceived = true;
+                        };
+
+                        if (rfbRef.current) {
+                            rfbRef.current.addEventListener('clipboard', onClipboardReceived);
+                        }
+
+                        // Aguarda 1.5 segundos para o servidor enviar o clipboard
+                        setTimeout(() => {
+                            if (rfbRef.current) {
+                                rfbRef.current.removeEventListener('clipboard', onClipboardReceived);
+                            }
+
+                            if (!clipboardReceived) {
+                                console.warn(`⚠️ [${connectionInfo.name}] Servidor não enviou clipboard. Use o botão 📋 na toolbar para sincronizar.`);
+                            }
+                        }, 1500);
                     }
 
                     // Ctrl+V - Colar do clipboard local para o servidor (apenas em modo controle)

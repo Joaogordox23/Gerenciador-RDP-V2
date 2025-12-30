@@ -177,6 +177,9 @@ try {
         adSearch: (params) => ipcRenderer.invoke('ad-search', params), // ADICIONADO: Busca AD direta
         bulkUpdatePassword: (data) => ipcRenderer.invoke('bulk-update-password', data), // ADICIONADO: Atualização em massa
 
+        // ✅ v5.11: DevTools via botão do footer
+        openDevTools: () => ipcRenderer.invoke('open-devtools'),
+
         // <-- ADICIONE ESTE NOVO OBJETO PARA VNC -->
         vnc: {
             startProxy: (connectionInfo) => ipcRenderer.invoke('vnc-proxy-start', connectionInfo),
