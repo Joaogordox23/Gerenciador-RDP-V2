@@ -667,13 +667,8 @@ function AppContent() {
                     />
                 )}
 
-                {/* Modal de conexão VNC (noVNC) */}
-                {activeVncConnection && (
-                    <VncViewerModal
-                        connectionInfo={activeVncConnection}
-                        onClose={closeVncConnection}
-                    />
-                )}
+                {/* ✅ v5.11: Modal legado VNC removido - agora usa ConnectionTabsContainer */}
+                {/* VNC connections são gerenciadas pelo sistema de abas */}
 
                 {/* Modal de conexão remota (Guacamole) */}
                 {activeRemoteConnection && (
