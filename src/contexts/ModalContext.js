@@ -25,6 +25,9 @@ export function ModalProvider({ children }) {
     const [tabConnections, setTabConnections] = useState([]);
     const [activeTabId, setActiveTabId] = useState(null);
 
+    // ✅ v5.11: Estado para conexão temporária pendente de salvar (Quick Connect)
+    const [pendingSaveConnection, setPendingSaveConnection] = useState(null);
+
     // ========== Estados de Diálogo de Confirmação ==========
     const [dialogConfig, setDialogConfig] = useState({
         isOpen: false,
@@ -122,6 +125,13 @@ export function ModalProvider({ children }) {
 
     const removeTabConnection = useCallback((tabId) => {
         setTabConnections(prev => {
+            const tabToRemove = prev.find(tab => tab.id === tabId);
+
+            // ✅ v5.11: Detecta se é conexão temporária (Quick Connect)
+            if (tabToRemove?.info?.isTemporary) {
+                setPendingSaveConnection(tabToRemove.info);
+            }
+
             const remaining = prev.filter(tab => tab.id !== tabId);
 
             // Se removeu a aba ativa, seleciona outra
@@ -225,7 +235,11 @@ export function ModalProvider({ children }) {
         removeTabConnection,
         updateTabStatus,
         switchToTab,
-        getActiveTabConnection
+        getActiveTabConnection,
+
+        // ✅ v5.11: Quick Connect - conexão temporária pendente
+        pendingSaveConnection,
+        setPendingSaveConnection
     };
 
     return (

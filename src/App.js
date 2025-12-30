@@ -689,6 +689,7 @@ function AppContent() {
                     onClose={() => setShowQuickConnectModal(false)}
                     vncGroups={vncGroups}
                     onSaveConnection={handleAddVncConnection}
+                    onVncConnect={(conn) => addTabConnection(conn, 'vnc')}
                 />
 
                 {/* Modal de Configuração do Servidor Guacamole */}

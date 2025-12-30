@@ -1,12 +1,10 @@
 /**
  * QuickConnectVncModal.js
  * Modal para conexão VNC rápida (temporária)
- * v4.4: Feature de Quick Connect
- * 
- * Migrado para Tailwind CSS
+ * v5.11: Corrigido para usar sistema de tabs + modo claro
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     ComputerIcon,
     SettingsEthernetIcon,
@@ -16,8 +14,8 @@ import {
     CancelIcon,
     FlashOnIcon
 } from './MuiIcons';
-import VncViewerModal from './VncViewerModal';
 import Modal from './Modal';
+import { useModals } from '../contexts/ModalContext';
 
 /**
  * Modal de Conexão Rápida VNC
@@ -25,8 +23,12 @@ import Modal from './Modal';
  * @param {function} onClose - Callback para fechar
  * @param {Array} vncGroups - Lista de grupos VNC disponíveis
  * @param {function} onSaveConnection - Callback para salvar conexão: (groupId, connectionData) => void
+ * @param {function} onVncConnect - Callback para abrir conexão VNC: (connectionInfo) => void
  */
-function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnection }) {
+function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnection, onVncConnect }) {
+    // ✅ v5.11: Usa contexto para detectar quando tab temporária fecha
+    const { pendingSaveConnection, setPendingSaveConnection } = useModals();
+
     // Estados do formulário
     const [formData, setFormData] = useState({
         name: '',
@@ -36,11 +38,19 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
     });
 
     // Estados de controle
-    const [isConnecting, setIsConnecting] = useState(false);
-    const [showVncViewer, setShowVncViewer] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [selectedGroupId, setSelectedGroupId] = useState('');
     const [connectionData, setConnectionData] = useState(null);
+
+    // ✅ v5.11: Detecta quando uma conexão temporária é fechada e mostra diálogo
+    useEffect(() => {
+        if (pendingSaveConnection) {
+            setConnectionData(pendingSaveConnection);
+            setShowSaveDialog(true);
+            // Limpa o estado pendente
+            setPendingSaveConnection(null);
+        }
+    }, [pendingSaveConnection, setPendingSaveConnection]);
 
     // Handler de input
     const handleInputChange = useCallback((e) => {
@@ -54,7 +64,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
         return `VNC-${formData.ipAddress}`;
     }, [formData.name, formData.ipAddress]);
 
-    // Conectar
+    // ✅ v5.11: Conectar usando sistema de tabs
     const handleConnect = useCallback(() => {
         if (!formData.ipAddress.trim()) {
             alert('Por favor, informe o IP ou hostname.');
@@ -63,7 +73,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
 
         // Prepara dados da conexão temporária
         const tempConnection = {
-            id: `temp-${Date.now()}`, // ID temporário
+            id: `temp-${Date.now()}`,
             name: getConnectionName(),
             ipAddress: formData.ipAddress.trim(),
             port: formData.port || '5900',
@@ -71,24 +81,27 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
             isTemporary: true
         };
 
-        setConnectionData(tempConnection);
-        setShowVncViewer(true);
-    }, [formData, getConnectionName]);
-
-    // Quando fecha o VNC viewer
-    const handleVncClose = useCallback(() => {
-        setShowVncViewer(false);
-
-        // Pergunta se quer salvar
-        if (connectionData) {
-            setShowSaveDialog(true);
+        // ✅ Usa o callback para abrir na tab
+        if (onVncConnect) {
+            onVncConnect(tempConnection);
         }
-    }, [connectionData]);
 
-    // Finaliza e reseta (definido primeiro para ser usado como dependência)
+        // Fecha o modal e reseta formulário
+        setFormData({
+            name: '',
+            ipAddress: '',
+            port: '5900',
+            password: ''
+        });
+        onClose();
+
+        // Nota: O diálogo de salvar não é mais mostrado automaticamente
+        // O usuário pode adicionar a conexão manualmente se desejar
+    }, [formData, getConnectionName, onVncConnect, onClose]);
+
+    // Finaliza e reseta
     const handleFinish = useCallback(() => {
         setShowSaveDialog(false);
-        setShowVncViewer(false);
         setConnectionData(null);
         setSelectedGroupId('');
         setFormData({
@@ -97,8 +110,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
             port: '5900',
             password: ''
         });
-        onClose();
-    }, [onClose]);
+    }, []);
 
     // Salvar conexão
     const handleSaveConnection = useCallback(() => {
@@ -107,7 +119,6 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
             return;
         }
 
-        // Chama callback para salvar (sem ID temporário, vai gerar novo no banco)
         onSaveConnection(Number(selectedGroupId), {
             name: connectionData.name,
             ipAddress: connectionData.ipAddress,
@@ -116,7 +127,6 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
             protocol: 'vnc'
         });
 
-        // Fecha tudo
         handleFinish();
     }, [selectedGroupId, connectionData, onSaveConnection, handleFinish]);
 
@@ -125,28 +135,27 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
         handleFinish();
     }, [handleFinish]);
 
-    // Fecha o modal principal (sem conectar)
-    const handleCloseModal = useCallback(() => {
-        if (showVncViewer) {
-            // Se VNC está aberto, fecha ele primeiro (vai mostrar diálogo)
-            handleVncClose();
-        } else if (showSaveDialog) {
-            // Se diálogo está aberto, não fecha direto
-            return;
-        } else {
-            onClose();
-        }
-    }, [showVncViewer, showSaveDialog, handleVncClose, onClose]);
+    if (!isOpen && !showSaveDialog) return null;
 
-    if (!isOpen) return null;
+    // Classes com suporte a modo claro
+    const inputClasses = `
+        w-full pl-10 pr-4 py-2.5
+        bg-white dark:bg-dark-elevated 
+        border border-gray-300 dark:border-dark-border rounded-lg
+        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+        focus:border-primary focus:ring-1 focus:ring-primary/30
+        outline-none transition-all
+    `;
+
+    const labelClasses = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
 
     return (
         <>
             {/* Modal do Formulário */}
-            {!showVncViewer && !showSaveDialog && (
+            {isOpen && !showSaveDialog && (
                 <Modal
                     isOpen={true}
-                    onClose={handleCloseModal}
+                    onClose={onClose}
                     title="Conexão VNC Rápida"
                     icon={<FlashOnIcon sx={{ fontSize: 24 }} />}
                     size="small"
@@ -154,7 +163,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                     <div className="py-2">
                         {/* Hint */}
                         <p className="
-                            text-sm text-gray-400 mb-5
+                            text-sm text-gray-600 dark:text-gray-400 mb-5
                             px-4 py-3
                             bg-primary/10 rounded-lg
                             border-l-3 border-primary
@@ -164,48 +173,36 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
 
                         {/* Nome (opcional) */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            <label className={labelClasses}>
                                 Nome (opcional)
                             </label>
                             <div className="relative">
-                                <ComputerIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
+                                <ComputerIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
                                 <input
                                     type="text"
                                     name="name"
                                     value={formData.name}
                                     onChange={handleInputChange}
                                     placeholder="Ex: Servidor Temporário"
-                                    className="
-                                        w-full pl-10 pr-4 py-2.5
-                                        bg-dark-elevated border border-dark-border rounded-lg
-                                        text-white placeholder-gray-500
-                                        focus:border-primary focus:ring-1 focus:ring-primary/30
-                                        outline-none transition-all
-                                    "
+                                    className={inputClasses}
                                 />
                             </div>
                         </div>
 
                         {/* IP ou Hostname */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            <label className={labelClasses}>
                                 IP ou Hostname *
                             </label>
                             <div className="relative">
-                                <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
+                                <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
                                 <input
                                     type="text"
                                     name="ipAddress"
                                     value={formData.ipAddress}
                                     onChange={handleInputChange}
                                     placeholder="Ex: 192.168.1.100"
-                                    className="
-                                        w-full pl-10 pr-4 py-2.5
-                                        bg-dark-elevated border border-dark-border rounded-lg
-                                        text-white placeholder-gray-500
-                                        focus:border-primary focus:ring-1 focus:ring-primary/30
-                                        outline-none transition-all
-                                    "
+                                    className={inputClasses}
                                     autoFocus
                                     required
                                 />
@@ -215,62 +212,50 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                         {/* Porta e Senha */}
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                <label className={labelClasses}>
                                     Porta
                                 </label>
                                 <div className="relative">
-                                    <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
+                                    <SettingsEthernetIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
                                     <input
                                         type="number"
                                         name="port"
                                         value={formData.port}
                                         onChange={handleInputChange}
                                         placeholder="5900"
-                                        className="
-                                            w-full pl-10 pr-4 py-2.5
-                                            bg-dark-elevated border border-dark-border rounded-lg
-                                            text-white placeholder-gray-500
-                                            focus:border-primary focus:ring-1 focus:ring-primary/30
-                                            outline-none transition-all
-                                        "
+                                        className={inputClasses}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                <label className={labelClasses}>
                                     Senha (opcional)
                                 </label>
                                 <div className="relative">
-                                    <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" sx={{ fontSize: 18 }} />
+                                    <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
                                     <input
                                         type="password"
                                         name="password"
                                         value={formData.password}
                                         onChange={handleInputChange}
                                         placeholder="Senha VNC"
-                                        className="
-                                            w-full pl-10 pr-4 py-2.5
-                                            bg-dark-elevated border border-dark-border rounded-lg
-                                            text-white placeholder-gray-500
-                                            focus:border-primary focus:ring-1 focus:ring-primary/30
-                                            outline-none transition-all
-                                        "
+                                        className={inputClasses}
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-dark-border">
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-dark-border">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 className="
                                     flex items-center gap-1.5
                                     px-4 py-2
-                                    bg-dark-elevated text-gray-300
+                                    bg-gray-100 dark:bg-dark-elevated text-gray-700 dark:text-gray-300
                                     rounded-lg text-sm font-medium
-                                    hover:bg-dark-border
+                                    hover:bg-gray-200 dark:hover:bg-dark-border
                                     transition-colors cursor-pointer
                                 "
                             >
@@ -284,7 +269,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                                 className="
                                     flex items-center gap-1.5
                                     px-4 py-2
-                                    bg-primary text-black
+                                    bg-primary text-white
                                     rounded-lg text-sm font-medium
                                     hover:bg-primary-hover
                                     disabled:opacity-50 disabled:cursor-not-allowed
@@ -299,14 +284,6 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                 </Modal>
             )}
 
-            {/* VNC Viewer Modal */}
-            {showVncViewer && connectionData && (
-                <VncViewerModal
-                    connectionInfo={connectionData}
-                    onClose={handleVncClose}
-                />
-            )}
-
             {/* Diálogo de Salvar */}
             {showSaveDialog && (
                 <Modal
@@ -317,16 +294,16 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                     size="small"
                 >
                     <div className="py-2">
-                        <p className="mb-3 text-base">
+                        <p className="mb-3 text-base text-gray-800 dark:text-white">
                             Deseja salvar a conexão <strong className="text-primary">"{connectionData?.name}"</strong> em um grupo?
                         </p>
-                        <p className="text-sm text-gray-400 italic mb-5">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic mb-5">
                             Se não salvar, a conexão será perdida.
                         </p>
 
                         {/* Select Group */}
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            <label className={labelClasses}>
                                 Selecione um grupo:
                             </label>
                             <select
@@ -334,8 +311,9 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                                 onChange={(e) => setSelectedGroupId(e.target.value)}
                                 className="
                                     w-full px-4 py-2.5
-                                    bg-dark-elevated border border-dark-border rounded-lg
-                                    text-white
+                                    bg-white dark:bg-dark-elevated 
+                                    border border-gray-300 dark:border-dark-border rounded-lg
+                                    text-gray-900 dark:text-white
                                     focus:border-primary focus:ring-1 focus:ring-primary/30
                                     outline-none transition-all
                                     cursor-pointer
@@ -351,16 +329,16 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                         </div>
 
                         {/* Actions */}
-                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-dark-border">
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-dark-border">
                             <button
                                 type="button"
                                 onClick={handleDontSave}
                                 className="
                                     flex items-center gap-1.5
                                     px-4 py-2
-                                    bg-dark-elevated text-gray-300
+                                    bg-gray-100 dark:bg-dark-elevated text-gray-700 dark:text-gray-300
                                     rounded-lg text-sm font-medium
-                                    hover:bg-dark-border
+                                    hover:bg-gray-200 dark:hover:bg-dark-border
                                     transition-colors cursor-pointer
                                 "
                             >
@@ -374,7 +352,7 @@ function QuickConnectVncModal({ isOpen, onClose, vncGroups = [], onSaveConnectio
                                 className="
                                     flex items-center gap-1.5
                                     px-4 py-2
-                                    bg-primary text-black
+                                    bg-primary text-white
                                     rounded-lg text-sm font-medium
                                     hover:bg-primary-hover
                                     disabled:opacity-50 disabled:cursor-not-allowed
