@@ -81,7 +81,7 @@ function Footer({ onSyncComplete, isSidebarCollapsed = false }) {
             {/* Left Section: Version */}
             <div className="flex items-center">
                 <span className="text-xs text-gray-500 dark:text-gray-400 opacity-70">
-                    v5.0.0
+                    v5.8.0
                 </span>
             </div>
 

@@ -78,11 +78,13 @@ function registerVncHandlers({ vncProxyService, sanitizeLog, isDev }) {
             // Descriptografa a senha para enviar ao noVNC
             let decryptedPassword = null;
             if (serverInfo.password) {
+                // Heurística simples: se já vier plain text (do frontend re-enviando), safeStorage falha.
+                // Tenta descriptografar, se falhar, assume que é a senha real.
                 try {
                     const encryptedBuffer = Buffer.from(serverInfo.password, 'base64');
                     decryptedPassword = safeStorage.decryptString(encryptedBuffer);
                 } catch (e) {
-                    console.warn('⚠️ Senha não criptografada ou inválida, usando original');
+                    // console.log('ℹ️ Senha parece já estar descriptografada ou formato inválido, usando original.');
                     decryptedPassword = serverInfo.password;
                 }
             }
@@ -100,7 +102,7 @@ function registerVncHandlers({ vncProxyService, sanitizeLog, isDev }) {
 
     ipcMain.handle('vnc-proxy-stop', async (event, serverId) => {
         try {
-            const stopped = vncProxyService.stopProxy(serverId);
+            const stopped = await vncProxyService.stopProxy(serverId);
             return { success: stopped };
         } catch (error) {
             console.error('❌ Erro ao parar proxy VNC:', error);

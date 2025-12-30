@@ -19,8 +19,9 @@ function VncViewerModal({ connectionInfo, onClose }) {
     // Estados controlados pela toolbar
     const [viewOnly, setViewOnly] = useState(true); // ✅ Inicia em modo visualização por padrão
     const [scaleViewport, setScaleViewport] = useState(true);
-    const [qualityLevel, setQualityLevel] = useState(6);
-    const [compressionLevel, setCompressionLevel] = useState(2);
+    // ✅ v5.9: Qualidade máxima por padrão no acesso completo
+    const [qualityLevel, setQualityLevel] = useState(9); // 9 = máxima qualidade
+    const [compressionLevel, setCompressionLevel] = useState(0); // 0 = sem compressão
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Ref para o RFB do noVNC
@@ -133,29 +134,35 @@ function VncViewerModal({ connectionInfo, onClose }) {
 
     return (
         <div
-            ref={containerRef}
             className="
-                w-full h-full
-                flex flex-col
-                bg-dark-surface
+                fixed inset-0 z-[9999]
+                bg-black/95
             "
         >
-            {/* Toolbar com controles */}
-            <VncToolbar
-                rfbRef={rfbRef}
-                connectionName={connectionInfo.name}
-                viewOnly={viewOnly}
-                setViewOnly={setViewOnly}
-                scaleViewport={scaleViewport}
-                setScaleViewport={setScaleViewport}
-                qualityLevel={qualityLevel}
-                setQualityLevel={setQualityLevel}
-                onClose={onClose}
-                onFullscreen={toggleFullscreen}
-            />
+            <div
+                ref={containerRef}
+                className="
+                    w-full h-full
+                    flex flex-col
+                    bg-dark-surface
+                "
+            >
+                {/* Toolbar com controles */}
+                <VncToolbar
+                    rfbRef={rfbRef}
+                    connectionName={connectionInfo.name}
+                    viewOnly={viewOnly}
+                    setViewOnly={setViewOnly}
+                    scaleViewport={scaleViewport}
+                    setScaleViewport={setScaleViewport}
+                    qualityLevel={qualityLevel}
+                    setQualityLevel={setQualityLevel}
+                    onClose={onClose}
+                    onFullscreen={toggleFullscreen}
+                />
 
-            {/* Content */}
-            <div className="
+                {/* Content */}
+                <div className="
                 flex-1 relative
                 flex items-center justify-center
                 bg-black min-h-0
@@ -166,60 +173,61 @@ function VncViewerModal({ connectionInfo, onClose }) {
                 [&>div]:w-full [&>div]:h-full [&>div]:flex [&>div]:items-center [&>div]:justify-center [&>div]:overflow-hidden
                 [&>div>div]:w-full [&>div>div]:h-full
             ">
-                {/* Loading */}
-                {isConnecting && (
-                    <div className="
+                    {/* Loading */}
+                    {isConnecting && (
+                        <div className="
                         absolute inset-0
                         flex flex-col items-center justify-center
                         bg-dark-surface text-white
                     ">
-                        <div className="
+                            <div className="
                             w-12 h-12 mb-4
                             border-4 border-primary/30 border-t-primary
                             rounded-full animate-spin
                         " />
-                        <p className="text-base text-white/80">
-                            Conectando a {connectionInfo.name}...
-                        </p>
-                    </div>
-                )}
+                            <p className="text-base text-white/80">
+                                Conectando a {connectionInfo.name}...
+                            </p>
+                        </div>
+                    )}
 
-                {/* Error */}
-                {error && (
-                    <div className="
+                    {/* Error */}
+                    {error && (
+                        <div className="
                         absolute inset-0
                         flex flex-col items-center justify-center
                         bg-red-500/10 text-white
                     ">
-                        <p className="text-lg mb-5">❌ {error}</p>
-                        <button
-                            onClick={onClose}
-                            className="
+                            <p className="text-lg mb-5">❌ {error}</p>
+                            <button
+                                onClick={onClose}
+                                className="
                                 px-6 py-2.5
                                 bg-red-500 text-white
                                 rounded-lg text-sm font-medium
                                 hover:brightness-110
                                 transition-all cursor-pointer
                             "
-                        >
-                            Fechar
-                        </button>
-                    </div>
-                )}
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    )}
 
-                {/* VNC Display */}
-                {proxyInfo && !error && (
-                    <VncDisplay
-                        connectionInfo={proxyInfo}
-                        onDisconnect={onClose}
-                        onError={(errMsg) => setError(errMsg)}
-                        viewOnly={viewOnly}
-                        scaleViewport={scaleViewport}
-                        quality={qualityLevel}
-                        compression={compressionLevel}
-                        onRfbReady={handleRfbReady}
-                    />
-                )}
+                    {/* VNC Display */}
+                    {proxyInfo && !error && (
+                        <VncDisplay
+                            connectionInfo={proxyInfo}
+                            onDisconnect={onClose}
+                            onError={(errMsg) => setError(errMsg)}
+                            viewOnly={viewOnly}
+                            scaleViewport={scaleViewport}
+                            quality={qualityLevel}
+                            compression={compressionLevel}
+                            onRfbReady={handleRfbReady}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );

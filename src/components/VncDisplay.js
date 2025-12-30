@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import RFB from '@novnc/novnc/core/rfb';
 
-function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 6, compression = 2, onRfbReady, frameInterval = 0 }) {
+// ✅ v5.9: connectionTimeout agora é configurável via prop
+function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, scaleViewport = true, quality = 6, compression = 2, onRfbReady, frameInterval = 0, connectionTimeout = 10000 }) {
     const wrapperRef = useRef(null);
     const vncContainerRef = useRef(null);
     const rfbRef = useRef(null);
     const connectionTimeoutRef = useRef(null); // Ref para limpar timeout
+    // ✅ v5.10: Flag interna para rastrear estado de conexão (evita dependência de API interna do noVNC)
+    const isConnectedRef = useRef(false);
     const [isMounted, setIsMounted] = useState(false);
 
     // ✅ Estados para feedback visual de conexão
@@ -14,6 +17,10 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
 
     // Estado para dimensões absolutas do container
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    // ✅ v5.9: Ref para evitar re-render do useEffect de conexão quando container é redimensionado
+    const containerSizeRef = useRef({ width: 0, height: 0 });
+    // ✅ v5.9: Flag para indicar que o container já tem dimensões válidas (dispara conexão)
+    const [hasValidSize, setHasValidSize] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -28,9 +35,17 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
             const newHeight = Math.floor(rect.height);
 
             if (newWidth > 0 && newHeight > 0) {
+                containerSizeRef.current = { width: newWidth, height: newHeight };
+                // ✅ v5.9: Seta flag apenas uma vez quando container tem dimensões válidas
+                setHasValidSize(prev => {
+                    if (!prev) {
+                        console.log(`📐 [VncDisplay] Container pronto: ${newWidth}x${newHeight}px`);
+                        return true;
+                    }
+                    return prev;
+                });
                 setContainerSize(prev => {
                     if (prev.width !== newWidth || prev.height !== newHeight) {
-                        console.log(`📐 [VncDisplay] Container atualizado: ${newWidth}x${newHeight}px`);
                         return { width: newWidth, height: newHeight };
                     }
                     return prev;
@@ -88,8 +103,8 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
             return;
         }
 
-        // Espera container ter dimensões válidas
-        if (containerSize.width === 0 || containerSize.height === 0) {
+        // ✅ v5.9: Usa hasValidSize para disparar efeito apenas quando container está pronto
+        if (!hasValidSize || containerSizeRef.current.width === 0 || containerSizeRef.current.height === 0) {
             console.log(`⏳ [${connectionInfo.name}] Aguardando container ter dimensões...`);
             return;
         }
@@ -104,7 +119,7 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     rfbRef.current.disconnect();
                 }
 
-                console.log(`📐 [${connectionInfo.name}] Iniciando RFB com container: ${containerSize.width}x${containerSize.height}px`);
+                console.log(`📐 [${connectionInfo.name}] Iniciando RFB com container: ${containerSizeRef.current.width}x${containerSizeRef.current.height}px`);
 
                 const rfb = new RFB(vncContainerRef.current, proxyUrl, {
                     credentials: { password: password },
@@ -129,7 +144,9 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                 rfb.focusOnClick = true;
 
                 rfb.addEventListener('connect', () => {
-                    console.log(`✅ [${connectionInfo.name}] Conectado via proxy!`);
+                    console.log(`✅ [${connectionInfo.name}] Conectado via proxy! (Tentativa de interação)`);
+                    // ✅ v5.10: Marca como conectado usando ref interna
+                    isConnectedRef.current = true;
                     setConnectionStatus('connected');
                     setErrorMessage(null);
 
@@ -140,12 +157,17 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     }
 
                     // ✅ v5.5: CRÍTICO - Força foco no canvas para captura de teclado
+                    // Delay aumentado para garantir que o DOM renderizou o canvas
                     setTimeout(() => {
                         if (rfbRef.current) {
-                            rfbRef.current.focus({ preventScroll: true });
-                            console.log(`🎯 [${connectionInfo.name}] Foco definido no canvas VNC`);
+                            try {
+                                rfbRef.current.focus({ preventScroll: true });
+                                console.log(`🎯 [${connectionInfo.name}] Foco definido no canvas VNC`);
+                            } catch (e) {
+                                console.warn(`⚠️ [${connectionInfo.name}] Falha ao focar canvas:`, e);
+                            }
                         }
-                    }, 200);
+                    }, 300);
 
                     // Força recálculo de escala após receber primeiro frame
                     setTimeout(() => {
@@ -163,14 +185,33 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     // Nota: mousedown handler adicionado na seção de setup para cleanup correto
                 });
 
-                // ✅ v5.5: Clipboard bidirecional - Servidor → Local
-                rfb.addEventListener('clipboard', (e) => {
+                // ✅ v5.9: Clipboard bidirecional - Servidor → Local (melhorado)
+                rfb.addEventListener('clipboard', async (e) => {
                     const text = e.detail?.text;
-                    if (text) {
-                        console.log(`📋 [${connectionInfo.name}] Clipboard do servidor: ${text.substring(0, 50)}...`);
-                        navigator.clipboard.writeText(text).catch(err =>
-                            console.warn('📋 Não foi possível escrever no clipboard local:', err)
-                        );
+                    if (text && text.trim()) {
+                        console.log(`📋 [${connectionInfo.name}] Recebido clipboard do servidor (${text.length} chars): "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+                        try {
+                            await navigator.clipboard.writeText(text);
+                            console.log(`✅ [${connectionInfo.name}] Clipboard copiado para local com sucesso!`);
+                        } catch (err) {
+                            console.warn(`⚠️ [${connectionInfo.name}] Falha ao escrever no clipboard local:`, err.message);
+                            // Fallback: tenta via documento (para contextos sem foco)
+                            try {
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                textarea.style.position = 'fixed';
+                                textarea.style.left = '-9999px';
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                console.log(`✅ [${connectionInfo.name}] Clipboard copiado via fallback!`);
+                            } catch (fallbackErr) {
+                                console.error(`❌ [${connectionInfo.name}] Fallback de clipboard também falhou:`, fallbackErr);
+                            }
+                        }
+                    } else {
+                        console.log(`📋 [${connectionInfo.name}] Clipboard vazio recebido do servidor`);
                     }
                 });
 
@@ -185,23 +226,35 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     } catch (e) { /* ignore */ }
                 });
 
-                // ✅ v5.5: Intercepta Ctrl+V para colar do clipboard local
+                // ✅ v5.9: Intercepta Ctrl+V/Ctrl+C para sincronizar clipboard bidirecional
                 const handleKeyDown = async (e) => {
                     // Verifica viewOnly DIRETAMENTE do RFB (evita closure stale)
                     const isViewOnly = rfbRef.current?.viewOnly ?? true;
 
-                    if (!rfbRef.current || isViewOnly) {
+                    if (!rfbRef.current) {
                         return;
                     }
 
-                    // Ctrl+V - Colar do clipboard local para o servidor
-                    if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+                    // Ctrl+C - Copiar do servidor para local
+                    // Nota: Enviamos o Ctrl+C para o servidor e esperamos o evento 'clipboard'
+                    // que já está configurado para escrever no clipboard local automaticamente
+                    if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+                        // Não previne default - deixa o noVNC enviar o comando ao servidor
+                        console.log(`📋 [${connectionInfo.name}] Ctrl+C detectado - aguardando clipboard do servidor...`);
+
+                        // O servidor VNC irá enviar o clipboard via evento 'clipboard'
+                        // que já está configurado na linha 184-193 para escrever no clipboard local
+                        // Não há mais nada a fazer aqui - o fluxo é automático
+                    }
+
+                    // Ctrl+V - Colar do clipboard local para o servidor (apenas em modo controle)
+                    if (e.ctrlKey && e.key.toLowerCase() === 'v' && !isViewOnly) {
                         e.preventDefault();
                         e.stopPropagation();
                         try {
                             const text = await navigator.clipboard.readText();
                             if (text && rfbRef.current) {
-                                console.log(`📋 [${connectionInfo.name}] Colando via Ctrl+V`);
+                                console.log(`📋 [${connectionInfo.name}] Colando via Ctrl+V: "${text.substring(0, 30)}..."`);
                                 // 1. Sincroniza o clipboard do servidor
                                 rfbRef.current.clipboardPasteFrom(text);
 
@@ -296,17 +349,23 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                     if (onError) onError(errMsg);
                 });
 
-                // Timeout de conexão - usa ref para verificar status atual
+                // ✅ v5.10: Usa flag interna em vez de API interna do noVNC
                 connectionTimeoutRef.current = setTimeout(() => {
-                    // ✅ Verifica se ainda está conectando usando rfbRef
-                    if (rfbRef.current && !rfbRef.current._rfbConnectionState?.startsWith('connected')) {
+                    if (rfbRef.current && !isConnectedRef.current) {
+                        console.error(`❌ [${connectionInfo.name}] Timeout de conexão (${connectionTimeout / 1000}s)`);
+
+                        // Força desconexão para limpar recursos
+                        try {
+                            rfbRef.current.disconnect();
+                        } catch (e) { /* ignore */ }
+
+                        // ✅ Dispara onError para que o VncWallView force um restart do proxy
                         setConnectionStatus('error');
-                        const errMsg = 'Tempo limite de conexão excedido (15s)';
+                        const errMsg = `Timeout (${connectionTimeout / 1000}s)`;
                         setErrorMessage(errMsg);
                         if (onError) onError(errMsg);
-                        if (onDisconnect) onDisconnect();
                     }
-                }, 15000);
+                }, connectionTimeout);
 
                 rfbRef.current = rfb;
 
@@ -321,7 +380,8 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                 setErrorMessage(error.message || 'Erro ao iniciar conexão VNC');
                 if (onError) onError(error.message);
             }
-        }, 100); // 100ms debounce
+            // ✅ Jitter: Delay aleatório (100-300ms) para evitar thundering herd no carrossel
+        }, 100 + Math.random() * 200);
 
         return () => {
             clearTimeout(timeoutId);
@@ -350,10 +410,9 @@ function VncDisplay({ connectionInfo, onDisconnect, onError, viewOnly = false, s
                 console.log(`✅ [${connectionInfo.name}] Cleanup completo`);
             }
         };
-        // ✨ v4.7: APENAS proxyUrl e password como dependências para evitar reconexões
-        // containerSize usado apenas para verificar se container tem dimensões válidas antes de conectar
+        // ✨ v5.9: hasValidSize dispara conexão quando container fica pronto
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, containerSize.width, containerSize.height]);
+    }, [connectionInfo?.proxyUrl, connectionInfo?.password, isMounted, connectionTimeout, hasValidSize]);
 
     if (!connectionInfo) return null;
 

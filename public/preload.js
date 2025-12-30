@@ -183,6 +183,9 @@ try {
             stopProxy: (serverId) => ipcRenderer.invoke('vnc-proxy-stop', serverId),
             captureSnapshot: (serverInfo) => ipcRenderer.invoke('vnc-snapshot', serverInfo),
             checkAvailability: (serverInfo) => ipcRenderer.invoke('vnc-check-availability', serverInfo), // v5.4: Reconexão automática
+            // v5.11: Importação CSV
+            deleteAll: () => ipcRenderer.invoke('db-vnc-delete-all'),
+            importCsv: (csvContent, cleanImport) => ipcRenderer.invoke('db-vnc-import-csv', { csvContent, cleanImport }),
         },
 
         // API Guacamole (RDP/SSH/VNC integrado)
@@ -343,7 +346,7 @@ setInterval(() => {
 // ==========================
 // VERSIONAMENTO E INFORMAÇÕES DO SISTEMA
 // ==========================
-const PRELOAD_VERSION = '5.0.0';
+const PRELOAD_VERSION = '5.8.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
     'batch-testing',

@@ -3,7 +3,7 @@
 // ✨ v5.1: Modo Snapshot para economia de memória
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import VncDisplay from '../components/VncDisplay';
-import VncSnapshot from '../components/VncSnapshot';
+// VncSnapshot removido pois não é usado (lint fix)
 import VncFullscreen from '../components/VncFullscreen';
 import {
     SlideshowIcon,
@@ -86,7 +86,7 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
         }
     }, [carouselMode, isPlaying, carouselInterval, totalPages]);
 
-    const handleStartMonitoring = async (connection) => {
+    const handleStartMonitoring = useCallback(async (connection) => {
         // ✅ v5.0: Verifica se já está sendo monitorada OU já está sendo iniciada
         if (pendingConnectionsRef.current.has(connection.id)) {
             console.log(`⚠️ [${connection.name}] Já está sendo iniciada, ignorando`);
@@ -101,11 +101,20 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
             if (result.success) {
                 const proxyUrl = `ws://localhost:${result.port}`;
                 setConnections(prev => {
-                    // Verifica duplicata no momento da atualização
-                    if (prev.find(c => c.id === connection.id)) {
-                        console.log(`⚠️ [${connection.name}] Já existe nas conexões ativas`);
-                        return prev;
+                    // ✅ v5.6: Suporte a atualização de conexão existente (Reconexão/Resume)
+                    const existingIndex = prev.findIndex(c => c.id === connection.id);
+                    if (existingIndex >= 0) {
+                        const newConnections = [...prev];
+                        newConnections[existingIndex] = {
+                            ...prev[existingIndex],
+                            ...connection,
+                            proxyUrl,
+                            password: result.decryptedPassword || connection.password,
+                            reconnectKey: Date.now() // Força remount do VncDisplay se necessário
+                        };
+                        return newConnections;
                     }
+                    // Adiciona nova
                     return [...prev, {
                         ...connection, proxyUrl,
                         password: result.decryptedPassword || connection.password
@@ -118,110 +127,197 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
             // Remove do pendente após conclusão (sucesso ou erro)
             pendingConnectionsRef.current.delete(connection.id);
         }
-    };
+    }, [setConnections]);
 
-    const handleStopMonitoring = async (connectionId) => {
+    // ✅ Ref para rastrear conexões ativas para cleanup (evita stale closure e deps erradas)
+    const activeConnectionsRef = useRef(connections);
+
+    // Mantém ref atualizada
+    useEffect(() => {
+        activeConnectionsRef.current = connections;
+    }, [connections]);
+
+    const handleStopMonitoring = useCallback(async (connectionId) => {
         try {
+            // ✅ v5.9: Limpa timeout de reconexão se existir
             if (reconnectTimeoutsRef.current[connectionId]) {
                 clearTimeout(reconnectTimeoutsRef.current[connectionId]);
                 delete reconnectTimeoutsRef.current[connectionId];
             }
+            // ✅ v5.9: Remove da lista de pendentes
+            pendingConnectionsRef.current.delete(connectionId);
+
             await window.api.vnc.stopProxy(connectionId);
             setConnections(prev => prev.filter(c => c.id !== connectionId));
             setConnectionErrors(prev => { const newState = { ...prev }; delete newState[connectionId]; return newState; });
+            // ✅ v5.9: Limpa contador de tentativas
+            setReconnectAttempts(prev => { const newState = { ...prev }; delete newState[connectionId]; return newState; });
         } catch (error) {
             console.error('Erro ao desconectar:', error);
         }
-    };
+    }, [setConnections]);
+
+    // ✅ v5.6: Gestão Dinâmica de Recursos do Carrossel (Lazy Loading) - REMOVIDO PARA RESTAURAR COMPORTAMENTO v5.0.1
+    // A versão 5.0.1 não tinha essa lógica de pausa/início manual, dependia apenas
+    // do mount/unmount do componente VncDisplay e do backend persistente.
+    // Ao remover isso, voltamos à estabilidade original.
+
+    // ✅ v5.9: Debounce para evitar race condition ao navegar rapidamente no carrossel
+    useEffect(() => {
+        if (!carouselMode) return;
+
+        // ✅ v5.10: Flag de cancelamento para evitar race condition
+        let cancelled = false;
+
+        const timeoutId = setTimeout(async () => {
+            if (cancelled) return; // Ignora se já navegou para outra página
+
+            const start = currentIndex * itemsPerPage;
+            const end = start + itemsPerPage;
+            const visibleSlice = filteredConnections.slice(start, end);
+
+            for (const conn of visibleSlice) {
+                if (cancelled) break; // Aborta se cancelado durante iteração
+                if (!conn.proxyUrl && !pendingConnectionsRef.current.has(conn.id)) {
+                    handleStartMonitoring(conn);
+                }
+            }
+        }, 300); // Aguarda 300ms antes de iniciar conexões
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timeoutId);
+        };
+    }, [carouselMode, currentIndex, itemsPerPage, filteredConnections, handleStartMonitoring]);
+
+    // ✅ CLEANUP GERAL: Para todos os proxies ao desmontar a view
+    useEffect(() => {
+        return () => {
+            console.log('🧹 [VncWallView] Desmontando VNC Wall - Parando todos os proxies...');
+
+            // Usa a ref para pegar o valor mais recente no momento do unmount
+            const connectionsToStop = activeConnectionsRef.current;
+
+            if (connectionsToStop && connectionsToStop.length > 0) {
+                connectionsToStop.forEach(c => window.api.vnc.stopProxy(c.id));
+            }
+
+            // Limpar timeouts
+            if (reconnectTimeoutsRef.current) {
+                Object.values(reconnectTimeoutsRef.current).forEach(timeout => clearTimeout(timeout));
+            }
+        };
+    }, []); // Empty dep array = run on unmount only
 
     // ✅ v5.4: Reconexão persistente para suportar reinicialização de servidores
     const MAX_RECONNECT_ATTEMPTS = 60; // ~10 minutos de tentativas
     const BASE_RECONNECT_DELAY = 5000; // 5 segundos inicial
     const MAX_RECONNECT_DELAY = 30000; // Máximo 30 segundos entre tentativas
 
-    const handleConnectionError = async (connectionId, errorMessage) => {
+    // ✅ v5.10: Wrap em useCallback para evitar stale closure
+    const handleConnectionError = useCallback(async (connectionId, errorMessage) => {
         console.warn(`⚠️ Erro na conexão ${connectionId}:`, errorMessage);
         setConnectionErrors(prev => ({ ...prev, [connectionId]: true }));
 
-        const connection = connections.find(c => c.id === connectionId);
-        if (!connection) return;
+        // ✅ v5.9: Usa ref para pegar lista atualizada (evita stale closure)
+        const connection = activeConnectionsRef.current.find(c => c.id === connectionId);
+        if (!connection) {
+            console.log(`ℹ️ [${connectionId}] Conexão não existe mais, cancelando reconexão`);
+            return;
+        }
 
         // Limpa timeout anterior se existir
         if (reconnectTimeoutsRef.current[connectionId]) {
             clearTimeout(reconnectTimeoutsRef.current[connectionId]);
+            delete reconnectTimeoutsRef.current[connectionId];
         }
 
-        // Obtém número de tentativas atual
-        const currentAttempts = reconnectAttempts[connectionId] || 0;
+        // ✅ v5.10: Usa state funcional para evitar stale closure no contador
+        setReconnectAttempts(prevAttempts => {
+            const currentAttempts = prevAttempts[connectionId] || 0;
 
-        // Se excedeu limite, para de tentar
-        if (currentAttempts >= MAX_RECONNECT_ATTEMPTS) {
-            console.error(`❌ [${connection.name}] Desistindo após ${MAX_RECONNECT_ATTEMPTS} tentativas`);
-            return;
-        }
+            // Se excedeu limite, para de tentar
+            if (currentAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                console.error(`❌ [${connection.name}] Desistindo após ${MAX_RECONNECT_ATTEMPTS} tentativas`);
+                return prevAttempts;
+            }
 
-        // Calcula delay com backoff exponencial (5s, 7.5s, 11.25s... até 30s max)
-        const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(1.5, Math.min(currentAttempts, 5)), MAX_RECONNECT_DELAY);
+            // Calcula delay com backoff exponencial (5s, 7.5s, 11.25s... até 30s max)
+            const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(1.5, Math.min(currentAttempts, 5)), MAX_RECONNECT_DELAY);
 
-        console.log(`🔄 [${connection.name}] Tentativa ${currentAttempts + 1}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s...`);
+            console.log(`🔄 [${connection.name}] Tentativa ${currentAttempts + 1}/${MAX_RECONNECT_ATTEMPTS} em ${delay / 1000}s...`);
 
-        reconnectTimeoutsRef.current[connectionId] = setTimeout(async () => {
-            try {
-                // ✅ Primeiro verifica se o servidor está disponível via TCP
-                const isAvailable = await window.api.vnc.checkAvailability(connection);
-
-                if (!isAvailable) {
-                    console.log(`⏳ [${connection.name}] Servidor ainda offline, aguardando...`);
-                    setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
-                    // Agenda próxima tentativa
-                    handleConnectionError(connectionId, 'Servidor offline');
+            reconnectTimeoutsRef.current[connectionId] = setTimeout(async () => {
+                // ✅ v5.9: Verifica novamente se a conexão ainda existe (pode ter sido parada durante o timeout)
+                const currentConnection = activeConnectionsRef.current.find(c => c.id === connectionId);
+                if (!currentConnection) {
+                    console.log(`ℹ️ [${connectionId}] Conexão foi removida durante timeout, cancelando reconexão`);
+                    delete reconnectTimeoutsRef.current[connectionId];
                     return;
                 }
 
-                console.log(`✅ [${connection.name}] Servidor disponível! Reconectando...`);
+                try {
+                    // ✅ Primeiro verifica se o servidor está disponível via TCP
+                    const isAvailable = await window.api.vnc.checkAvailability(currentConnection);
 
-                // Para o proxy antigo
-                await window.api.vnc.stopProxy(connectionId);
+                    if (!isAvailable) {
+                        console.log(`⏳ [${currentConnection.name}] Servidor offline...`);
+                        // ✅ v5.8: Incrementa tentativas para evitar loop infinito
+                        setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
 
-                // Pequeno delay para garantir limpeza
-                await new Promise(resolve => setTimeout(resolve, 500));
+                        // Agenda próxima tentativa com backoff (chama recursivamente)
+                        handleConnectionError(connectionId, 'Servidor offline');
+                        return;
+                    }
 
-                // Inicia novo proxy
-                const result = await window.api.vnc.startProxy(connection);
+                    console.log(`✅ [${currentConnection.name}] Servidor disponível! Reconectando proxy...`);
 
-                if (result.success) {
-                    const proxyUrl = `ws://localhost:${result.port}`;
-                    setConnections(prev => prev.map(c =>
-                        c.id === connectionId ? {
-                            ...c,
-                            proxyUrl,
-                            password: result.decryptedPassword || c.password,
-                            reconnectKey: Date.now()
-                        } : c
-                    ));
-                    // Limpa erros e contador de tentativas
-                    setConnectionErrors(prev => {
-                        const newState = { ...prev };
-                        delete newState[connectionId];
-                        return newState;
-                    });
-                    setReconnectAttempts(prev => {
-                        const newState = { ...prev };
-                        delete newState[connectionId];
-                        return newState;
-                    });
-                    console.log(`🎉 [${connection.name}] Reconexão bem-sucedida!`);
-                } else {
-                    throw new Error(result.error || 'Falha ao iniciar proxy');
+                    // 🛑 FORÇA O RESTART DO PROXY para garantir limpeza
+                    // Mesmo que o VncProxyService reutilize, o stop aqui garante que se houve deadlock, limpa.
+                    await window.api.vnc.stopProxy(connectionId);
+
+                    // Pequeno delay para garantir limpeza do sistema operacional
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Inicia novo proxy
+                    const result = await window.api.vnc.startProxy(currentConnection);
+
+                    if (result.success) {
+                        const proxyUrl = `ws://localhost:${result.port}`;
+                        setConnections(prev => prev.map(c =>
+                            c.id === connectionId ? {
+                                ...c,
+                                proxyUrl,
+                                password: result.decryptedPassword || c.password,
+                                reconnectKey: Date.now() // ✨ FORÇA REMOUNT do VncDisplay
+                            } : c
+                        ));
+                        // Limpa erros e contador de tentativas
+                        setConnectionErrors(prev => {
+                            const newState = { ...prev };
+                            delete newState[connectionId];
+                            return newState;
+                        });
+                        setReconnectAttempts(prev => {
+                            const newState = { ...prev };
+                            delete newState[connectionId];
+                            return newState;
+                        });
+                        console.log(`🎉 [${connection.name}] Reconexão bem-sucedida!`);
+                    } else {
+                        throw new Error(result.error || 'Falha ao iniciar proxy');
+                    }
+                } catch (err) {
+                    console.error(`❌ [${connection.name}] Erro na reconexão:`, err.message);
+                    setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
+                    // Agenda próxima tentativa
+                    handleConnectionError(connectionId, err.message);
                 }
-            } catch (err) {
-                console.error(`❌ [${connection.name}] Erro na reconexão:`, err.message);
-                setReconnectAttempts(prev => ({ ...prev, [connectionId]: (prev[connectionId] || 0) + 1 }));
-                // Agenda próxima tentativa
-                handleConnectionError(connectionId, err.message);
-            }
-        }, delay);
-    };
+            }, delay);
+
+            return prevAttempts; // Retorna sem modificar (scheduler cuida do incremento)
+        });
+    }, [setConnectionErrors, setReconnectAttempts, setConnections, handleStartMonitoring]);
 
     const toggleCarouselMode = () => { setCarouselMode(prev => !prev); setIsPlaying(false); };
     const handlePlayPause = () => setIsPlaying(prev => !prev);
@@ -287,7 +383,7 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [fullscreenConnection, carouselMode, connections.length, isWallFullscreen, toggleWallFullscreen]);
+    }, [fullscreenConnection, carouselMode, connections.length, isWallFullscreen, toggleWallFullscreen, handleNext, handlePrevious, handlePlayPause]);
 
     // Classes base para botões
     const btnBase = "flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer";
@@ -497,8 +593,8 @@ const VncWallView = ({ vncGroups, activeConnections, setActiveConnections, searc
                                             onDisconnect={() => handleStopMonitoring(conn.id)}
                                             onError={(err) => handleConnectionError(conn.id, err)}
                                             viewOnly={true}
-                                            quality={carouselMode ? 6 : 2}
-                                            compression={carouselMode ? 2 : 8}
+                                            quality={carouselMode ? 5 : 7}
+                                            compression={carouselMode ? 3 : 1}
                                             frameInterval={carouselMode ? 0 : 5000}
                                         />
                                     </div>

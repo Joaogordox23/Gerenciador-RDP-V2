@@ -1,5 +1,6 @@
 // src/components/VncConnection.js
 // ✨ v4.8: Migrado para Tailwind CSS
+// ✨ v5.10: Adicionado indicador de status online/offline
 import React from 'react';
 import {
     EditIcon,
@@ -9,7 +10,27 @@ import {
     CheckCircleIcon
 } from './MuiIcons';
 
-function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect, isOpen = false }) {
+// ✅ v5.10: Componente de indicador de status
+function StatusIndicator({ status }) {
+    if (status === undefined || status === null) {
+        return null; // Não mostra nada se não houver verificação
+    }
+    if (status === 'checking') {
+        return (
+            <span className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" title="Verificando..." />
+        );
+    }
+    if (status === true || status === 'online') {
+        return (
+            <span className="w-2 h-2 rounded-full bg-green-500" title="Online" />
+        );
+    }
+    return (
+        <span className="w-2 h-2 rounded-full bg-red-500" title="Offline" />
+    );
+}
+
+function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, onConnect, isOpen = false, isOnline }) {
 
     const handleConnect = () => {
         if (isEditModeEnabled) return;
@@ -47,6 +68,8 @@ function VncConnection({ connectionInfo, isEditModeEnabled, onDelete, onEdit, on
                     <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
                         {connectionInfo.name}
                     </span>
+                    {/* ✅ v5.10: Indicador de status */}
+                    <StatusIndicator status={isOnline} />
                 </div>
                 <div className="text-xs text-gray-500 font-mono">
                     {connectionInfo.ipAddress}:{connectionInfo.port}

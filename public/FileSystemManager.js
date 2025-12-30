@@ -215,11 +215,17 @@ class FileSystemManager {
     }
 
     /**
-     * Cria arquivo .vnc
-     */
+ * Cria arquivo .vnc
+ * ✅ v5.11: Corrigido para incluir senha no arquivo
+ */
     _createVncFile(dir, name, server) {
         const filePath = path.join(dir, `${name}.vnc`);
-        const content = `[Connection]\r\nHost=${server.ipAddress}\r\nPort=${server.port || 5900}\r\nPassword=\r\n`;
+
+        // ✅ CORREÇÃO: Incluir a senha no arquivo .vnc
+        // A senha já vem criptografada (base64) do banco de dados
+        const password = server.password || '';
+
+        const content = `[Connection]\r\nHost=${server.ipAddress}\r\nPort=${server.port || 5900}\r\nPassword=${password}\r\n`;
 
         // ✅ OTIMIZAÇÃO: Só escreve se o conteúdo mudou
         if (this._hasContentChanged(filePath, content)) {

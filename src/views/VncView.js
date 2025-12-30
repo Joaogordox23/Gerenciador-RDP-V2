@@ -1,7 +1,10 @@
 // src/views/VncView.js
 // ✨ v4.8: Migrado para Tailwind CSS
+// ✨ v5.10: Adicionado ping de conexões
+// ✨ v5.11: Importação CSV
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import VncGroup from '../components/VncGroup';
+import VncCsvImportModal from '../components/VncCsvImportModal';
 import { useUI } from '../contexts/UIContext';
 import { useModals } from '../contexts/ModalContext';
 import {
@@ -9,7 +12,9 @@ import {
     ChevronRightIcon,
     FolderIcon,
     MonitorIcon,
-    CloseIcon
+    CloseIcon,
+    RefreshIcon,
+    UploadFileIcon
 } from '../components/MuiIcons';
 
 function VncView({
@@ -30,6 +35,13 @@ function VncView({
         return saved === 'true';
     });
     const [selectedGroupId, setSelectedGroupId] = useState(null);
+
+    // ✅ v5.10: Estado para status de ping das conexões
+    const [connectionStatus, setConnectionStatus] = useState({});
+    const [isPinging, setIsPinging] = useState(false);
+
+    // ✅ v5.11: Estado para modal de importação CSV
+    const [showCsvImport, setShowCsvImport] = useState(false);
 
     // Ref para área principal (scroll)
     const mainAreaRef = useRef(null);
@@ -77,6 +89,53 @@ function VncView({
         return vncGroups.reduce((acc, g) => acc + (g.connections?.length || 0), 0);
     }, [vncGroups]);
 
+    // ✅ v5.10: Função para pingar todas as conexões
+    const checkAllConnections = useCallback(async () => {
+        if (isPinging) return;
+        setIsPinging(true);
+
+        // Coleta todas as conexões
+        const allConnections = vncGroups.flatMap(g => g.connections || []);
+        if (allConnections.length === 0) {
+            setIsPinging(false);
+            return;
+        }
+
+        // Marca todas como 'checking'
+        const checkingStatus = {};
+        allConnections.forEach(conn => {
+            checkingStatus[conn.id] = 'checking';
+        });
+        setConnectionStatus(checkingStatus);
+
+        // Pinga em paralelo (máximo 5 simultâneas para não sobrecarregar)
+        const batchSize = 5;
+        const results = { ...checkingStatus };
+
+        for (let i = 0; i < allConnections.length; i += batchSize) {
+            const batch = allConnections.slice(i, i + batchSize);
+            const batchResults = await Promise.all(
+                batch.map(async (conn) => {
+                    try {
+                        const isOnline = await window.api.vnc.checkAvailability(conn);
+                        return { id: conn.id, online: isOnline };
+                    } catch {
+                        return { id: conn.id, online: false };
+                    }
+                })
+            );
+
+            // Atualiza resultados incrementalmente
+            batchResults.forEach(({ id, online }) => {
+                results[id] = online;
+            });
+            setConnectionStatus({ ...results });
+        }
+
+        setIsPinging(false);
+        console.log(`✅ [VncView] Ping concluído: ${allConnections.length} conexões verificadas`);
+    }, [vncGroups, isPinging]);
+
     return (
         <div className="flex h-[calc(100vh-140px)] gap-4 p-4">
             {/* Sidebar de Navegação Rápida */}
@@ -94,24 +153,56 @@ function VncView({
                             Grupos VNC ({totalConnections})
                         </h3>
                     )}
-                    <button
-                        className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 
-                            bg-cream-50 dark:bg-dark-bg text-gray-500 
-                            cursor-pointer flex items-center justify-center shrink-0
-                            transition-all duration-200
-                            hover:bg-primary hover:text-black hover:border-primary hover:scale-105"
-                        onClick={() => {
-                            const newState = !isSidebarCollapsed;
-                            setIsSidebarCollapsed(newState);
-                            localStorage.setItem('vnc-sidebar-collapsed', newState.toString());
-                        }}
-                        title={isSidebarCollapsed ? 'Expandir' : 'Recolher'}
-                    >
-                        {isSidebarCollapsed ?
-                            <ChevronRightIcon sx={{ fontSize: 16 }} /> :
-                            <ChevronLeftIcon sx={{ fontSize: 16 }} />
-                        }
-                    </button>
+                    <div className="flex items-center gap-1">
+                        {/* ✅ v5.10: Botão de Ping */}
+                        {!isSidebarCollapsed && (
+                            <button
+                                className={`w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700
+                                    bg-cream-50 dark:bg-dark-bg text-gray-500
+                                    cursor-pointer flex items-center justify-center shrink-0
+                                    transition-all duration-200
+                                    hover:bg-primary hover:text-black hover:border-primary hover:scale-105
+                                    ${isPinging ? 'animate-spin' : ''}`}
+                                onClick={checkAllConnections}
+                                disabled={isPinging}
+                                title="Verificar status de todas as conexões"
+                            >
+                                <RefreshIcon sx={{ fontSize: 16 }} />
+                            </button>
+                        )}
+                        {/* ✅ v5.11: Botão de Importar CSV */}
+                        {!isSidebarCollapsed && (
+                            <button
+                                className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700
+                                    bg-cream-50 dark:bg-dark-bg text-gray-500
+                                    cursor-pointer flex items-center justify-center shrink-0
+                                    transition-all duration-200
+                                    hover:bg-green-500 hover:text-white hover:border-green-500 hover:scale-105"
+                                onClick={() => setShowCsvImport(true)}
+                                title="Importar conexões VNC via CSV"
+                            >
+                                <UploadFileIcon sx={{ fontSize: 16 }} />
+                            </button>
+                        )}
+                        <button
+                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700
+                                bg-cream-50 dark:bg-dark-bg text-gray-500
+                                cursor-pointer flex items-center justify-center shrink-0
+                                transition-all duration-200
+                                hover:bg-primary hover:text-black hover:border-primary hover:scale-105"
+                            onClick={() => {
+                                const newState = !isSidebarCollapsed;
+                                setIsSidebarCollapsed(newState);
+                                localStorage.setItem('vnc-sidebar-collapsed', newState.toString());
+                            }}
+                            title={isSidebarCollapsed ? 'Expandir' : 'Recolher'}
+                        >
+                            {isSidebarCollapsed ?
+                                <ChevronRightIcon sx={{ fontSize: 16 }} /> :
+                                <ChevronLeftIcon sx={{ fontSize: 16 }} />
+                            }
+                        </button>
+                    </div>
                 </div>
 
                 {/* Seção de Conexões Ativas */}
@@ -226,6 +317,7 @@ function VncView({
                                 viewMode={viewMode}
                                 forceCollapsed={allGroupsCollapsed}
                                 openConnectionIds={openConnectionIds}
+                                connectionStatus={connectionStatus}
                                 {...groupProps}
                             />
                         </div>
@@ -247,6 +339,16 @@ function VncView({
                     </div>
                 )}
             </div>
+
+            {/* ✅ v5.11: Modal de Importação CSV */}
+            <VncCsvImportModal
+                isOpen={showCsvImport}
+                onClose={() => setShowCsvImport(false)}
+                onImportComplete={() => {
+                    // Recarrega a página para atualizar os grupos
+                    window.location.reload();
+                }}
+            />
         </div>
     );
 }

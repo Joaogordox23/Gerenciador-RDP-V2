@@ -287,7 +287,232 @@ function registerDatabaseHandlers({ databaseManager, fileSystemManager }) {
         }
     });
 
-    console.log('✅ Database handlers registrados (10 handlers)');
+    // ==========================
+    // VNC CSV IMPORT (FEATURE v5.11)
+    // ==========================
+
+    /**
+     * Helper: Executa a limpeza de VNC (reutilizável)
+     * @returns {Object} Resultado da limpeza
+     */
+    async function executeVncClean() {
+        console.log('🗑️ [VNC CLEAN] Iniciando limpeza completa de VNC...');
+
+        // 1. Busca todas conexões VNC antes de deletar
+        const vncConnections = databaseManager.db.prepare(`
+            SELECT c.*, g.name as group_name 
+            FROM connections c 
+            JOIN groups g ON c.group_id = g.id 
+            WHERE c.protocol = 'vnc'
+        `).all();
+
+        console.log(`📊 [VNC CLEAN] Encontradas ${vncConnections.length} conexões VNC para remover`);
+
+        // 2. Remove arquivos .vnc do disco
+        let filesDeleted = 0;
+        for (const conn of vncConnections) {
+            try {
+                fileSystemManager.deleteConnectionFile({
+                    ...conn,
+                    ipAddress: conn.ip_address,
+                    groupName: conn.group_name
+                });
+                filesDeleted++;
+            } catch (fileErr) {
+                console.warn(`⚠️ [VNC CLEAN] Não foi possível remover arquivo para: ${conn.name}`);
+            }
+        }
+
+        // 3. Deleta conexões VNC do SQLite
+        const deleteConnResult = databaseManager.db.prepare(`
+            DELETE FROM connections WHERE protocol = 'vnc'
+        `).run();
+
+        // 4. Deleta grupos VNC (apenas do tipo 'vnc')
+        const deleteGroupsResult = databaseManager.db.prepare(`
+            DELETE FROM groups WHERE type = 'vnc'
+        `).run();
+
+        console.log(`✅ [VNC CLEAN] Limpeza concluída:`);
+        console.log(`   - ${deleteConnResult.changes} conexões removidas do SQLite`);
+        console.log(`   - ${deleteGroupsResult.changes} grupos VNC removidos`);
+        console.log(`   - ${filesDeleted} arquivos .vnc removidos`);
+
+        return {
+            success: true,
+            connectionsDeleted: deleteConnResult.changes,
+            groupsDeleted: deleteGroupsResult.changes,
+            filesDeleted: filesDeleted
+        };
+    }
+
+    /**
+     * ⚠️ PERIGO: Deleta TODAS as conexões e grupos VNC
+     * Afeta APENAS VNC - RDP/SSH permanecem intactos
+     */
+    ipcMain.handle('db-vnc-delete-all', async () => {
+        try {
+            return await executeVncClean();
+        } catch (error) {
+            console.error('❌ [VNC CLEAN] Erro na limpeza:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    /**
+     * Importa conexões VNC de um CSV
+     * @param {string} csvContent - Conteúdo do arquivo CSV
+     * @param {boolean} cleanImport - Se true, deleta tudo antes de importar
+     */
+    ipcMain.handle('db-vnc-import-csv', async (event, { csvContent, cleanImport }) => {
+        const results = {
+            success: true,
+            imported: 0,
+            skipped: 0,
+            failed: 0,
+            groupsCreated: 0,
+            errors: [],
+            skippedNames: []
+        };
+
+        try {
+            console.log(`📥 [VNC CSV] Iniciando importação CSV (modo: ${cleanImport ? 'LIMPO' : 'MESCLAR'})`);
+
+            // 1. Se cleanImport, deleta tudo primeiro (chama função diretamente)
+            if (cleanImport) {
+                console.log('🧹 [VNC CSV] Executando limpeza prévia...');
+                const cleanResult = await executeVncClean();
+                if (!cleanResult.success) {
+                    throw new Error('Falha na limpeza prévia: ' + cleanResult.error);
+                }
+                console.log(`✅ [VNC CSV] Limpeza concluída: ${cleanResult.connectionsDeleted} conexões removidas`);
+            }
+
+            // 2. Remove BOM UTF-8 se existir e normaliza quebras de linha
+            let cleanedCsv = csvContent;
+            if (cleanedCsv.charCodeAt(0) === 0xFEFF) {
+                cleanedCsv = cleanedCsv.slice(1);
+            }
+            cleanedCsv = cleanedCsv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            // 3. Parse CSV (delimitador: ;)
+            const lines = cleanedCsv.split('\n').filter(line => line.trim());
+
+            if (lines.length === 0) {
+                return { ...results, success: false, error: 'Arquivo CSV vazio' };
+            }
+
+            // 4. Verifica se primeira linha é cabeçalho
+            const firstLine = lines[0].toLowerCase();
+            const isHeader = firstLine.includes('nome') || firstLine.includes('host') || firstLine.includes('grupo');
+            const dataLines = isHeader ? lines.slice(1) : lines;
+
+            console.log(`📊 [VNC CSV] ${dataLines.length} linhas de dados para processar`);
+
+            // 5. Cache de grupos existentes
+            const existingGroups = databaseManager.getAllGroups('vnc');
+            const groupCache = new Map();
+            existingGroups.forEach(g => groupCache.set(g.groupName.toLowerCase(), g.id));
+
+            // 6. Processa cada linha
+            for (let i = 0; i < dataLines.length; i++) {
+                const line = dataLines[i].trim();
+                if (!line) continue;
+
+                try {
+                    // Parse: Nome;Host;Porta;Senha;Grupo
+                    const parts = line.split(';').map(p => p.trim());
+
+                    if (parts.length < 2) {
+                        results.failed++;
+                        results.errors.push({ line: i + 1, error: 'Linha inválida (mínimo: Nome;Host)' });
+                        continue;
+                    }
+
+                    const [name, host, port = '5900', password = '', groupName = 'Importados CSV'] = parts;
+
+                    if (!name || !host) {
+                        results.failed++;
+                        results.errors.push({ line: i + 1, error: 'Nome ou Host vazio' });
+                        continue;
+                    }
+
+                    // 7. Busca ou cria grupo
+                    let groupId;
+                    const normalizedGroupName = groupName.toLowerCase();
+
+                    if (groupCache.has(normalizedGroupName)) {
+                        groupId = groupCache.get(normalizedGroupName);
+                    } else {
+                        // Cria novo grupo
+                        groupId = databaseManager.addGroup(groupName, 'vnc');
+                        groupCache.set(normalizedGroupName, groupId);
+                        results.groupsCreated++;
+                        console.log(`📁 [VNC CSV] Grupo criado: "${groupName}" (ID: ${groupId})`);
+                    }
+
+                    // 8. Verifica duplicatas (mesmo nome E mesmo IP no mesmo grupo)
+                    const existsByName = databaseManager.connectionExists(name, groupId);
+                    if (existsByName) {
+                        results.skipped++;
+                        results.skippedNames.push(name);
+                        continue;
+                    }
+
+                    // 9. Criptografa senha
+                    let encryptedPassword = '';
+                    if (password) {
+                        try {
+                            const encrypted = safeStorage.encryptString(password);
+                            encryptedPassword = encrypted.toString('base64');
+                        } catch (e) {
+                            console.warn(`⚠️ [VNC CSV] Falha ao criptografar senha para ${name}`);
+                            encryptedPassword = password; // Fallback: guarda sem criptografia
+                        }
+                    }
+
+                    // 10. Insere no SQLite
+                    const connectionData = {
+                        name: name,
+                        ipAddress: host,
+                        port: port || '5900',
+                        protocol: 'vnc',
+                        password: encryptedPassword
+                    };
+
+                    const connectionId = databaseManager.addConnection(groupId, connectionData);
+
+                    // 11. Cria arquivo .vnc no disco
+                    fileSystemManager.saveConnectionFile({
+                        ...connectionData,
+                        id: connectionId,
+                        groupName: groupName
+                    });
+
+                    results.imported++;
+
+                } catch (lineError) {
+                    results.failed++;
+                    results.errors.push({ line: i + 1, error: lineError.message });
+                    console.error(`❌ [VNC CSV] Erro na linha ${i + 1}:`, lineError.message);
+                }
+            }
+
+            console.log(`✅ [VNC CSV] Importação concluída:`);
+            console.log(`   - ${results.imported} conexões importadas`);
+            console.log(`   - ${results.groupsCreated} grupos criados`);
+            console.log(`   - ${results.skipped} duplicatas ignoradas`);
+            console.log(`   - ${results.failed} erros`);
+
+            return results;
+
+        } catch (error) {
+            console.error('❌ [VNC CSV] Erro geral na importação:', error);
+            return { ...results, success: false, error: error.message };
+        }
+    });
+
+    console.log('✅ Database handlers registrados (12 handlers)');
 
     // ============================================
     // HANDLERS ANYDESK

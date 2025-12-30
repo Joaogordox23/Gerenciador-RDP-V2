@@ -12,8 +12,10 @@ function VncFullscreen({ connection, onClose }) {
     const [scaleViewport, setScaleViewport] = useState(true);
     const [viewOnly, setViewOnly] = useState(true); // ✅ Inicia em modo visualização por padrão
     const [qualityLevel, setQualityLevel] = useState(9); // Máxima qualidade
-    const [compressionLevel, setCompressionLevel] = useState(2);
+    const [compressionLevel, setCompressionLevel] = useState(0); // ✅ v5.9: Sem compressão
     const [isFullscreen, setIsFullscreen] = useState(false);
+    // ✅ v5.10: Estado de erro para feedback ao usuário
+    const [error, setError] = useState(null);
 
     const rfbRef = useRef(null);
     const containerRef = useRef(null);
@@ -116,6 +118,20 @@ function VncFullscreen({ connection, onClose }) {
                     flex items-center justify-center
                     relative
                 ">
+                    {/* ✅ v5.10: UI de Erro */}
+                    {error && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
+                            <div className="text-5xl mb-4">⚠️</div>
+                            <h3 className="text-red-400 text-lg font-semibold mb-2">Erro na Conexão</h3>
+                            <p className="text-gray-400 text-sm mb-6 max-w-md text-center px-4">{error}</p>
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    )}
                     <VncDisplay
                         connectionInfo={connection}
                         scaleViewport={scaleViewport}
@@ -123,6 +139,11 @@ function VncFullscreen({ connection, onClose }) {
                         quality={qualityLevel}
                         compression={compressionLevel}
                         onRfbReady={handleRfbReady}
+                        onError={(errMsg) => {
+                            console.error(`❌ [VncFullscreen] Erro: ${errMsg}`);
+                            setError(errMsg);
+                        }}
+                        onDisconnect={onClose}
                     />
                 </div>
             </div>

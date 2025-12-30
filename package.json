@@ -1,6 +1,6 @@
 {
   "name": "GerenciadorRDP",
-  "version": "5.0.0",
+  "version": "5.8.0",
   "private": true,
   "main": "public/electron.js",
   "homepage": "./",
@@ -54,7 +54,9 @@
     "electron": "npm run electron:start",
     "electron:start": "concurrently \"npm:start\" \"wait-on http://localhost:3000 && electron .\"",
     "package": "npm run build:react && electron-builder",
-    "build": "npm run build:react && electron-builder --win --x64"
+    "build": "npm run build:react && electron-builder --win --x64",
+    "build:linux": "npm run build:react && electron-builder --linux",
+    "build:all": "npm run build:react && electron-builder --win --linux"
   },
   "eslintConfig": {
     "extends": [
@@ -95,6 +97,17 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Network",
+      "maintainer": "seu-email@dominio.com",
+      "synopsis": "Gerenciador de Conexões RDP/SSH/VNC",
+      "description": "Aplicação enterprise para gerenciamento de conexões remotas RDP, SSH e VNC"
     },
     "nsis": {
       "oneClick": false,

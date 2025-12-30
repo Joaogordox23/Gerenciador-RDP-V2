@@ -101,9 +101,10 @@ function VncToolbar({
         if (rfbRef?.current) rfbRef.current.viewOnly = newValue;
     };
 
-    const sendCtrlAltDel = () => {
+    // ✅ v5.9: Memoizado para evitar re-renders
+    const sendCtrlAltDel = useCallback(() => {
         if (rfbRef?.current) { rfbRef.current.sendCtrlAltDel(); setShowSpecialKeysMenu(false); }
-    };
+    }, [rfbRef]);
 
     const sendSpecialKeys = useCallback((keysyms, label) => {
         if (!rfbRef?.current || viewOnly) return;

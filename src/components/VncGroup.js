@@ -28,7 +28,8 @@ function VncGroup({
     onEditVnc,
     viewMode = 'grid',
     forceCollapsed = null,
-    openConnectionIds = new Set()
+    openConnectionIds = new Set(),
+    connectionStatus = {} // ✅ v5.10: Map de id -> status (true/false/'checking')
 }) {
     const [newGroupName, setNewGroupName] = useState(groupInfo.groupName);
     const [localCollapsed, setLocalCollapsed] = useState(() => {
@@ -148,6 +149,7 @@ function VncGroup({
                                 onEdit={() => onEditVnc(conn, groupInfo.id)}
                                 onConnect={onVncConnect}
                                 isActive={openConnectionIds.has(conn.id)}
+                                isOnline={connectionStatus[conn.id]}
                             />
                         ) : (
                             <VncConnection
@@ -158,6 +160,7 @@ function VncGroup({
                                 onEdit={() => onEditVnc(conn, groupInfo.id)}
                                 onConnect={onVncConnect}
                                 isOpen={openConnectionIds.has(conn.id)}
+                                isOnline={connectionStatus[conn.id]}
                             />
                         )
                     ))}

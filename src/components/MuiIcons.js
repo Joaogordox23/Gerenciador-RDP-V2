@@ -109,5 +109,10 @@ export {
 
     // Power Control (v5.5)
     PowerSettingsNew as PowerSettingsNewIcon,
-    RestartAlt as RestartAltIcon
+    RestartAlt as RestartAltIcon,
+
+    // VNC CSV Import (v5.11)
+    UploadFile as UploadFileIcon,
+    DeleteForever as DeleteForeverIcon,
+    Warning as WarningIcon
 } from '@mui/icons-material';
