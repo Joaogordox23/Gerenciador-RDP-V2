@@ -349,7 +349,7 @@ setInterval(() => {
 // ==========================
 // VERSIONAMENTO E INFORMAÇÕES DO SISTEMA
 // ==========================
-const PRELOAD_VERSION = '5.8.0';
+const PRELOAD_VERSION = '5.11.0';
 const CONNECTIVITY_FEATURES = [
     'server-testing',
     'batch-testing',

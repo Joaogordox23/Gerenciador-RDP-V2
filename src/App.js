@@ -632,7 +632,7 @@ function AppContent() {
                     <div className="footer-content">
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <RocketLaunchIcon sx={{ fontSize: 16, marginRight: '8px', color: 'primary.main' }} />
-                            Gerenciador Enterprise v5.8.0
+                            Gerenciador Enterprise v5.11.0
                         </div>
                         <div>{groups.length + vncGroups.length} grupo(s) {allServers.length + allVncConnections.length} item(ns)</div>
                     </div>

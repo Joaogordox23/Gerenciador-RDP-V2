@@ -1,6 +1,6 @@
 {
   "name": "GerenciadorRDP",
-  "version": "5.8.0",
+  "version": "5.11.0",
   "private": true,
   "main": "public/electron.js",
   "homepage": "./",
